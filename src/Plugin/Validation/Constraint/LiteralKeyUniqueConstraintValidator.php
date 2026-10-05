@@ -41,6 +41,13 @@ final class LiteralKeyUniqueConstraintValidator extends ConstraintValidator impl
       return;
     }
     $entity = $items->getEntity();
+    // [literal:key] shares a token namespace with the entity's own tokens
+    // (the Token module adds [literal:url], [literal:name] and so on).
+    $reserved = array_merge(array_keys($entity->getFieldDefinitions()), ['url', 'original', 'language', 'edit-url']);
+    if (in_array($key, $reserved, TRUE)) {
+      $this->context->addViolation($constraint->reservedMessage, ['%key' => $key]);
+      return;
+    }
     $query = $this->entityTypeManager->getStorage('literal')->getQuery()
       ->accessCheck(FALSE)
       ->condition('key', $key);

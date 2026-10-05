@@ -25,3 +25,11 @@ literals.literal_type.*:
 views.filter.literal_audience:
   type: views.filter.in_operator
   label: 'Literal audience'
+
+literals.settings:
+  type: config_object
+  label: 'Literals settings'
+  mapping:
+    log_audit:
+      type: boolean
+      label: 'Log audit lines (writes and reads: IDs, keys, outcomes; never gists or values)'

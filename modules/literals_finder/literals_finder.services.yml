@@ -23,3 +23,7 @@ services:
   Drupal\literals_finder\Hook\LiteralsFinderHooks:
     class: Drupal\literals_finder\Hook\LiteralsFinderHooks
     arguments: ['@literals_finder.embedder', '@logger.channel.literals']
+
+  literals.guardrails:
+    class: Drupal\literals_finder\Finder\LiteralGuardrails
+    arguments: ['@Drupal\ai\Guardrail\AiGuardrailRepository', '@ai.provider']

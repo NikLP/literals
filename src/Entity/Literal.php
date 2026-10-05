@@ -166,6 +166,8 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
       ->setRequired(TRUE)
       ->setRevisionable(TRUE)
       ->addConstraint('LiteralValue')
+      // The value never leaves the site, so no model-backed guardrail sees it.
+      ->addConstraint('LiteralGuardrails', ['deterministicOnly' => TRUE])
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayOptions('form', ['type' => 'string_textarea', 'weight' => 10]);
 
@@ -174,6 +176,7 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
       ->setDescription(t('A short description of what the value is, in plain words. This is the only part that is matched.'))
       ->setRevisionable(TRUE)
       ->setSetting('max_length', 255)
+      ->addConstraint('LiteralGuardrails')
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => 15]);
 

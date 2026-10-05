@@ -1,0 +1,8 @@
+name: 'Literals tool'
+type: module
+description: 'Exposes literals as a Tool API / MCP tool: exact lookup by key, or by question when literals_finder is enabled.'
+package: AIM
+core_version_requirement: ^11
+dependencies:
+  - literals:literals
+  - tool:tool (>=1.0.0-beta10)

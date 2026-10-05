@@ -1,0 +1,16 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - literals_finder
+id: literals_max_length
+label: 'Literals: maximum text length'
+description: 'Rejects a literal gist or value longer than a short exact value should be.'
+guardrail: input_length_limit
+guardrail_settings:
+  max_length: 2000
+  use_tokens: false
+  tokenizer_model: gpt-4
+  check_all_messages: false
+  violation_message: 'This text is @count @unit long, which exceeds the maximum of @max @unit.'

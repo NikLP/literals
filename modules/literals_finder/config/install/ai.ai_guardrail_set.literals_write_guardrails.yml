@@ -1,0 +1,16 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - ai.ai_guardrail.literals_max_length
+    - ai.ai_guardrail.literals_no_markup
+id: literals_write_guardrails
+label: 'Literals: write guardrails'
+description: 'Applied to a literal gist and value when saved.'
+stop_threshold: 1.0
+pre_generate_guardrails:
+  plugin_id:
+    - literals_max_length
+    - literals_no_markup
+post_generate_guardrails:
+  plugin_id: {  }

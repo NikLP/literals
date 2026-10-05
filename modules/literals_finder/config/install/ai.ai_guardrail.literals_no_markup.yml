@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - literals_finder
+id: literals_no_markup
+label: 'Literals: no HTML markup'
+description: 'Rejects a literal gist or value containing HTML tags, since both are stored and served as plain text.'
+guardrail: regexp_guardrail
+guardrail_settings:
+  regexp_pattern: '/<[a-z][\s\S]*>/i'
+  scan_all_user_messages: false
+  violation_message: 'This text contains HTML markup, which is not allowed in a literal.'

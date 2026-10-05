@@ -22,4 +22,9 @@ final class LiteralKeyUniqueConstraint extends SymfonyConstraint {
    */
   public string $message = 'The key %key is already used.';
 
+  /**
+   * The message shown when the key collides with an entity token name.
+   */
+  public string $reservedMessage = 'The key %key is reserved (it is the name of a literal field or entity token). Choose another.';
+
 }

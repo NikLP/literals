@@ -52,3 +52,13 @@ function literals_update_10002(): void {
     $database->update($table)->fields(['audience' => 'anonymous'])->condition('audience', 'public')->execute();
   }
 }
+
+/**
+ * Adds the literals.settings config (audit logging, off by default).
+ */
+function literals_update_10003(): void {
+  $config = \Drupal::configFactory()->getEditable('literals.settings');
+  if ($config->isNew()) {
+    $config->set('log_audit', FALSE)->save();
+  }
+}

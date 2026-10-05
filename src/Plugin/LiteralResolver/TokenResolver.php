@@ -72,7 +72,7 @@ class TokenResolver extends LiteralResolverBase {
       $metadata->addCacheContexts(['user']);
     }
     $bubbleable = new BubbleableMetadata();
-    $text = $token_service->replace($value, $data, ['clear' => TRUE], $bubbleable);
+    $text = $token_service->replace($value, $data, ['clear' => TRUE, 'literals_account' => $account], $bubbleable);
     $metadata->addCacheableDependency($bubbleable);
     return $text;
   }
