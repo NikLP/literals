@@ -13,7 +13,8 @@ use Drupal\Core\Session\AccountInterface;
 /**
  * Access control handler for the literal entity type.
  *
- * Every operation is gated by a per-pool permission, with the flat
+ * Viewing is decided by the literal's audience (public, signed-in users or
+ * one role); editing and deleting by flat permissions, with the flat
  * administer permission as the bypass. An unpublished literal (a draft
  * revision awaiting review) is visible only to someone who can edit it, so
  * a draft value is never served.
@@ -24,23 +25,24 @@ class LiteralAccessControlHandler extends EntityAccessControlHandler {
    * {@inheritdoc}
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account) {
-    $pool = $entity->bundle();
     $admin = AccessResult::allowedIfHasPermission($account, $this->entityType->getAdminPermission());
 
     switch ($operation) {
       case 'view':
         $published = $entity instanceof EntityPublishedInterface ? $entity->isPublished() : TRUE;
-        $view = AccessResult::allowedIfHasPermission($account, 'view ' . $pool . ' literals');
+        $audience = in_array($entity->getAudience(), LiteralAudience::visibleTo($account), TRUE)
+          ? AccessResult::allowed()
+          : AccessResult::neutral();
         if (!$published) {
-          $view = AccessResult::allowedIfHasPermission($account, 'edit ' . $pool . ' literals');
+          $audience = $audience->andIf(AccessResult::allowedIfHasPermission($account, 'edit literals'));
         }
-        return $view->orIf($admin)->addCacheableDependency($entity);
+        return $audience->orIf($admin)->addCacheableDependency($entity)->cachePerUser();
 
       case 'update':
-        return AccessResult::allowedIfHasPermission($account, 'edit ' . $pool . ' literals')->orIf($admin);
+        return AccessResult::allowedIfHasPermission($account, 'edit literals')->orIf($admin);
 
       case 'delete':
-        return AccessResult::allowedIfHasPermission($account, 'delete ' . $pool . ' literals')->orIf($admin);
+        return AccessResult::allowedIfHasPermission($account, 'delete literals')->orIf($admin);
     }
 
     return AccessResult::neutral();
@@ -50,7 +52,7 @@ class LiteralAccessControlHandler extends EntityAccessControlHandler {
    * {@inheritdoc}
    */
   protected function checkCreateAccess(AccountInterface $account, array $context, $entity_bundle = NULL) {
-    return AccessResult::allowedIfHasPermission($account, 'create ' . $entity_bundle . ' literals')
+    return AccessResult::allowedIfHasPermission($account, 'create literals')
       ->orIf(AccessResult::allowedIfHasPermission($account, $this->entityType->getAdminPermission()));
   }
 

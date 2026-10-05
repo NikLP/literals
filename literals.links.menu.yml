@@ -4,8 +4,8 @@ entity.literal.collection:
   route_name: entity.literal.collection
   parent: system.admin_content
 
-entity.literal_pool.collection:
-  title: 'Literal pools'
-  description: 'Pools of literals, each a permission boundary.'
-  route_name: entity.literal_pool.collection
+entity.literal_type.collection:
+  title: 'Literal types'
+  description: 'The kinds of value a literal can hold.'
+  route_name: entity.literal_type.collection
   parent: system.admin_structure

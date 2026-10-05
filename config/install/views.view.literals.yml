@@ -3,6 +3,7 @@ status: true
 dependencies:
   module:
     - literals
+    - options
     - user
 id: literals
 label: Literals
@@ -47,20 +48,6 @@ display:
           click_sort_column: value
           type: string
           settings: {  }
-        pool:
-          id: pool
-          table: literal
-          field: pool
-          relationship: none
-          group_type: group
-          entity_type: literal
-          entity_field: pool
-          plugin_id: field
-          label: Pool
-          click_sort_column: target_id
-          type: entity_reference_label
-          settings:
-            link: false
         value:
           id: value
           table: literal
@@ -97,10 +84,42 @@ display:
           entity_type: literal
           plugin_id: entity_operations
           label: Operations
+        type:
+          id: type
+          table: literal
+          field: type
+          relationship: none
+          group_type: group
+          entity_type: literal
+          entity_field: type
+          plugin_id: field
+          label: Type
+          click_sort_column: target_id
+          type: entity_reference_label
+          settings:
+            link: false
+        audience:
+          id: audience
+          table: literal
+          field: audience
+          relationship: none
+          group_type: group
+          entity_type: literal
+          entity_field: audience
+          plugin_id: field
+          label: 'Visible to'
+          click_sort_column: value
+          type: list_default
+          settings: {  }
       pager:
         type: mini
         options:
           items_per_page: 50
+      exposed_form:
+        type: basic
+        options:
+          submit_button: Filter
+          reset_button: true
       access:
         type: perm
         options:
@@ -116,7 +135,46 @@ display:
           plugin_id: standard
           order: ASC
       arguments: {  }
-      filters: {  }
+      filters:
+        type:
+          id: type
+          table: literal
+          field: type
+          relationship: none
+          group_type: group
+          entity_type: literal
+          entity_field: type
+          plugin_id: bundle
+          operator: in
+          value: {  }
+          exposed: true
+          expose:
+            operator_id: type_op
+            label: Type
+            identifier: type
+            required: false
+            remember: false
+            multiple: false
+            reduce: false
+        audience:
+          id: audience
+          table: literal
+          field: audience
+          relationship: none
+          group_type: group
+          entity_type: literal
+          entity_field: audience
+          plugin_id: literal_audience
+          operator: in
+          value: {  }
+          exposed: true
+          expose:
+            operator_id: audience_op
+            label: 'Visible to'
+            identifier: audience
+            required: false
+            remember: false
+            multiple: false
       style:
         type: table
       row:
@@ -131,6 +189,7 @@ display:
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'
+        - url
         - url.query_args
         - user.permissions
       tags: {  }
@@ -147,29 +206,36 @@ display:
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'
+        - url
         - url.query_args
         - user.permissions
       tags: {  }
-  page_pool:
-    id: page_pool
-    display_title: Pool
+  page_type:
+    id: page_type
+    display_title: Type
     display_plugin: page
     position: 2
     display_options:
       arguments:
-        pool:
-          id: pool
+        type:
+          id: type
           table: literal
-          field: pool
+          field: type
           entity_type: literal
-          entity_field: pool
+          entity_field: type
           plugin_id: string
           default_action: 'not found'
           specify_validation: false
+      filters: {  }
+      filter_groups:
+        operator: AND
+        groups: {  }
       defaults:
         arguments: false
+        filters: false
+        filter_groups: false
       display_extenders: {  }
-      path: admin/content/literals/pool/%
+      path: admin/content/literals/type/%
     cache_metadata:
       max-age: -1
       contexts:

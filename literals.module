@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Literals: exact values found by a plain-language description.
+ */
+
+declare(strict_types=1);
+
+use Drupal\literals\LiteralAudience;
+
+/**
+ * Allowed values callback for the literal audience field.
+ *
+ * @return array
+ *   Audience labels keyed by value.
+ */
+function literals_audience_options(): array {
+  return LiteralAudience::options();
+}

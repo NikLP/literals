@@ -1,0 +1,44 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the literals module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\literals\Entity\Literal;
+
+/**
+ * Replaces the pool with an audience: public, signed-in users or a role.
+ */
+function literals_update_10001(): void {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('literal');
+  $audience = Literal::baseFieldDefinitions($entity_type)['audience'];
+  $audience->setProvider('literals')->setName('audience')->setTargetEntityTypeId('literal');
+  if (!$manager->getFieldStorageDefinition('audience', 'literal')) {
+    $manager->installFieldStorageDefinition('audience', 'literal', 'literals', $audience);
+  }
+
+  // A public pool becomes public; any other pool becomes signed-in only.
+  $database = \Drupal::database();
+  $database->update('literal')->fields(['audience' => 'authenticated'])->execute();
+  $database->update('literal')->fields(['audience' => 'public'])->condition('pool', 'public')->execute();
+  $database->update('literal_revision')->fields(['audience' => 'authenticated'])->execute();
+  $database->update('literal_revision')->fields(['audience' => 'public'])
+    ->condition('revision_id', $database->select('literal', 'l')->fields('l', ['revision_id'])->condition('audience', 'public'), 'IN')
+    ->execute();
+
+  // Drop the pool field, then the pool config entity type and its config.
+  if ($pool_field = $manager->getFieldStorageDefinition('pool', 'literal')) {
+    $manager->uninstallFieldStorageDefinition($pool_field);
+  }
+  foreach (\Drupal::configFactory()->listAll('literals.literal_pool.') as $name) {
+    \Drupal::configFactory()->getEditable($name)->delete();
+  }
+  $repository = \Drupal::service('entity.last_installed_schema.repository');
+  if ($definition = $repository->getLastInstalledDefinition('literal_pool')) {
+    $manager->uninstallEntityType($definition);
+  }
+}

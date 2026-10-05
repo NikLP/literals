@@ -1,6 +1,6 @@
-literals.literal_pool.*:
+literals.literal_type.*:
   type: config_entity
-  label: 'Literal pool'
+  label: 'Literal type'
   mapping:
     id:
       type: string
@@ -11,6 +11,17 @@ literals.literal_pool.*:
     description:
       type: text
       label: 'Description'
-    value_pattern:
+    kind:
       type: string
-      label: 'Value pattern'
+      label: 'Kind'
+      constraints:
+        PluginExists:
+          manager: plugin.manager.literal_kind
+          interface: '\Drupal\literals\LiteralKindInterface'
+    validate_as:
+      type: string
+      label: 'Validate as'
+
+views.filter.literal_audience:
+  type: views.filter.in_operator
+  label: 'Literal audience'

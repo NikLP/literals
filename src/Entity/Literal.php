@@ -4,23 +4,31 @@ declare(strict_types=1);
 
 namespace Drupal\literals\Entity;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\ContentEntityDeleteForm;
-use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EditorialContentEntityBase;
+use Drupal\Core\Entity\EntityChangedInterface;
+use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
-use Drupal\views\EntityViewsData;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\literals\Form\LiteralForm;
 use Drupal\literals\LiteralAccessControlHandler;
+use Drupal\literals\LiteralAudience;
+use Drupal\literals\LiteralKindInterface;
+use Drupal\literals\LiteralViewsData;
+use Drupal\user\EntityOwnerInterface;
+use Drupal\user\EntityOwnerTrait;
 
 /**
  * Defines the literal content entity.
  *
  * An exact value (the payload) with a plain-language gist (the address that
- * is matched). A literal is content, not config: pools are config and go
+ * is matched). A literal is content, not config: types are config and go
  * through config sync, the literals themselves are editable on production.
  * Revisionable, with a published status that Content Moderation can drive,
  * so a changed gist or value can sit as a draft until a person promotes it
@@ -35,9 +43,9 @@ use Drupal\literals\LiteralAccessControlHandler;
   handlers: [
     'list_builder' => EntityListBuilder::class,
     'access' => LiteralAccessControlHandler::class,
-    'views_data' => EntityViewsData::class,
+    'views_data' => LiteralViewsData::class,
     'form' => [
-      'default' => ContentEntityForm::class,
+      'default' => LiteralForm::class,
       'delete' => ContentEntityDeleteForm::class,
     ],
     'route_provider' => [
@@ -49,30 +57,74 @@ use Drupal\literals\LiteralAccessControlHandler;
     'revision' => 'revision_id',
     'uuid' => 'uuid',
     'langcode' => 'langcode',
-    'bundle' => 'pool',
+    'bundle' => 'type',
     'label' => 'name',
     'published' => 'status',
+    'owner' => 'uid',
   ],
   revision_metadata_keys: [
     'revision_user' => 'revision_uid',
     'revision_created' => 'revision_timestamp',
     'revision_log_message' => 'revision_log',
   ],
-  bundle_entity_type: 'literal_pool',
-  field_ui_base_route: 'entity.literal_pool.edit_form',
+  bundle_entity_type: 'literal_type',
+  field_ui_base_route: 'entity.literal_type.edit_form',
   links: [
     'add-page' => '/admin/content/literals/add',
-    'add-form' => '/admin/content/literals/add/{literal_pool}',
+    'add-form' => '/admin/content/literals/add/{literal_type}',
     'canonical' => '/admin/content/literals/{literal}',
     'edit-form' => '/admin/content/literals/{literal}/edit',
     'delete-form' => '/admin/content/literals/{literal}/delete',
     'collection' => '/admin/content/literals',
   ],
   admin_permission: 'administer literals',
+  show_revision_ui: TRUE,
   base_table: 'literal',
   revision_table: 'literal_revision',
 )]
-class Literal extends EditorialContentEntityBase {
+class Literal extends EditorialContentEntityBase implements EntityOwnerInterface, EntityChangedInterface {
+
+  use EntityOwnerTrait;
+  use EntityChangedTrait;
+
+  /**
+   * Resolves the value according to the literal's kind.
+   *
+   * @param \Drupal\Core\Session\AccountInterface|null $account
+   *   The account the value is for. Defaults to the current user.
+   * @param \Drupal\Core\Cache\CacheableMetadata|null $metadata
+   *   Collects cache metadata of everything consulted.
+   *
+   * @return string|null
+   *   The resolved value, or NULL when it cannot be resolved for the account.
+   */
+  public function resolve(?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL): ?string {
+    return $this->getKindPlugin()->resolve($this, $account ?? \Drupal::currentUser(), $metadata ?? new CacheableMetadata());
+  }
+
+  /**
+   * Returns the kind plugin that reads this literal's value.
+   *
+   * @return \Drupal\literals\LiteralKindInterface
+   *   The kind plugin of the literal's type.
+   */
+  public function getKindPlugin(): LiteralKindInterface {
+    return \Drupal::service('plugin.manager.literal_kind')->createInstance($this->getType()->getKind());
+  }
+
+  /**
+   * Returns the literal's type.
+   */
+  public function getType(): LiteralType {
+    return LiteralType::load($this->bundle());
+  }
+
+  /**
+   * Returns who can see the literal: "public", "authenticated" or a role ID.
+   */
+  public function getAudience(): string {
+    return (string) $this->get('audience')->value;
+  }
 
   /**
    * {@inheritdoc}
@@ -91,7 +143,7 @@ class Literal extends EditorialContentEntityBase {
 
     $fields['key'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Key'))
-      ->setDescription(t('Machine name, unique within the pool. The exact-lookup handle and the option ID handed to the chooser.'))
+      ->setDescription(t('Machine name, unique across literals. The exact-lookup handle and the option ID handed to the chooser.'))
       ->setRequired(TRUE)
       ->setRevisionable(TRUE)
       ->addConstraint('LiteralKeyUnique')
@@ -99,21 +151,51 @@ class Literal extends EditorialContentEntityBase {
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => 5]);
 
+    $fields['audience'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Visible to'))
+      ->setDescription(t('Who can see this literal, its description and its value.'))
+      ->setRequired(TRUE)
+      ->setRevisionable(TRUE)
+      ->setDefaultValue(LiteralAudience::AUTHENTICATED)
+      ->setSetting('allowed_values_function', 'literals_audience_options')
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayOptions('form', ['type' => 'options_select', 'weight' => 2]);
+
     $fields['value'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Value'))
-      ->setDescription(t('The exact thing returned. Never embedded, paraphrased or sent to the chooser.'))
+      ->setDescription(t('The exact thing returned, read according to its kind. Never embedded, paraphrased or sent to the chooser.'))
       ->setRequired(TRUE)
       ->setRevisionable(TRUE)
       ->addConstraint('LiteralValue')
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayOptions('form', ['type' => 'string_textarea', 'weight' => 10]);
 
-    $fields['gist'] = BaseFieldDefinition::create('string_long')
+    $fields['gist'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Gist'))
       ->setDescription(t('A short description of what the value is, in plain words. This is the only part that is matched.'))
       ->setRevisionable(TRUE)
+      ->setSetting('max_length', 255)
       ->setDisplayConfigurable('form', TRUE)
-      ->setDisplayOptions('form', ['type' => 'string_textarea', 'weight' => 15]);
+      ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => 15]);
+
+    $fields += static::ownerBaseFieldDefinitions($entity_type);
+    $fields['uid']
+      ->setLabel(t('Author'))
+      ->setDescription(t('The user who created the literal.'))
+      ->setRevisionable(TRUE)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayOptions('form', ['region' => 'hidden']);
+
+    $fields['created'] = BaseFieldDefinition::create('created')
+      ->setLabel(t('Authored on'))
+      ->setDescription(t('The time the literal was created.'))
+      ->setRevisionable(TRUE)
+      ->setDisplayOptions('form', ['region' => 'hidden']);
+
+    $fields['changed'] = BaseFieldDefinition::create('changed')
+      ->setLabel(t('Changed'))
+      ->setDescription(t('The time the literal was last saved.'))
+      ->setRevisionable(TRUE);
 
     return $fields;
   }

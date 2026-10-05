@@ -1,7 +1,16 @@
 administer literals:
   title: 'Administer literals'
-  description: 'Create, edit and delete literal pools and every literal in them.'
+  description: 'Create, edit and delete literal types and every literal.'
   restrict access: true
 
-permission_callbacks:
-  - \Drupal\literals\LiteralPermissions::permissions
+create literals:
+  title: 'Create literals'
+
+edit literals:
+  title: 'Edit literals'
+  description: 'Edit any literal, and see unpublished ones.'
+  restrict access: true
+
+delete literals:
+  title: 'Delete literals'
+  restrict access: true

@@ -4,8 +4,8 @@ entity.literal.add_page:
   appears_on:
     - entity.literal.collection
 
-entity.literal_pool.add_form:
-  route_name: entity.literal_pool.add_form
-  title: 'Add literal pool'
+entity.literal_type.add_form:
+  route_name: entity.literal_type.add_form
+  title: 'Add literal type'
   appears_on:
-    - entity.literal_pool.collection
+    - entity.literal_type.collection

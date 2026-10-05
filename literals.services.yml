@@ -1,0 +1,4 @@
+services:
+  plugin.manager.literal_kind:
+    class: Drupal\literals\LiteralKindManager
+    parent: default_plugin_manager

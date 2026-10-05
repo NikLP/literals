@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 
 /**
- * Checks that no other literal in the same pool has this key.
+ * Checks that no other literal has this key.
  */
 final class LiteralKeyUniqueConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
@@ -43,7 +43,6 @@ final class LiteralKeyUniqueConstraintValidator extends ConstraintValidator impl
     $entity = $items->getEntity();
     $query = $this->entityTypeManager->getStorage('literal')->getQuery()
       ->accessCheck(FALSE)
-      ->condition('pool', $entity->bundle())
       ->condition('key', $key);
     if (!$entity->isNew()) {
       $query->condition('id', $entity->id(), '<>');
