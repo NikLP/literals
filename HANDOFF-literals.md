@@ -27,6 +27,16 @@ The progressive-enhancement ladder (no model, full menu, gate, vector index; wha
 - **UI.** Content > Literals is a view (`views.view.literals`) with exposed "Visible to" and Type filters, plus a `page_type` display at `admin/content/literals/type/%` (path kept for later). Structure > Literal types is the type UI. Value widget by kind: URL gets a content title autocomplete (stores `/node/N`); token gets the Token module's browser if that module is installed (it is not on this site yet: `composer require drupal/token`).
 - **Seed data on this site.** Types `text`, `phone`, `url`, `token`, `entity`; five throwaway literals. Config is exported to `config/sync` and the view is copied to `config/install` (no `uuid`/`_core`). `literals.info.yml` lists the view under `config_devel`.
 
+## Phase 3 state (`modules/literals_finder`, needs `drupal/ai`; enabled on this site)
+
+- Services: `literals_finder.finder` (`LiteralFinderInterface::find($question, $account)` returns a `LiteralFindResult`: `match`/`ambiguous`/`none`, literals not values, plus tier and reason), `.chooser` (Decision API `ChoiceQuestion` over key + gist, `__none__` option, default `decision` provider from `ai.settings`), `.embedder` (default `embeddings` provider, cosine in PHP). `logger.channel.literals` lives in the base module.
+- Flow: candidates (published, audience filter in the query *and* `access('view')` per entity) > outcome cache (`cache.default`, key includes the audience set, tag `literal_list`, `none` cached `miss_ttl`s, errors never cached) > gate if `gate_enabled` > chooser. Gate: embed the question, cosine vs stored `gist_vector` (+ `gist_vector_model`, base fields added by the submodule); below `gate_min_similarity` is `none`; lead of `gate_margin` is `match` with no chooser call; else top `gate_top` plus any literal lacking a current vector (queued to `literals_embed`) go to the chooser. No decision model: the shortlist decides alone (`margin` tier); no embeddings either: `none` / `no_backend`. An embedding outage degrades to the full menu; a chooser failure returns `none` / `error` with a warning.
+- Chooser rule: argmax `none` is `none`; lead over the best *other literal* under `choice_margin` is `ambiguous`; below `match_threshold` is `none` (`low_confidence`).
+- Settings: `literals_finder.settings` (`gate_enabled` is **off** on this site: Ollama is stopped). **All thresholds are untuned placeholders** (Phase 4). Observed with hosted Jev, 5 literals: "who is the admin", "where do I sign in" match; "what is your phone number" chose none against "The library main phone number" (the evals should catch this kind of miss).
+- Drush: `literals:find "question" --uid=N` (prints outcome, tier, keys, never values), `literals:embed`.
+- Verified live: chooser path (anonymous cannot match the `authenticated` literal), error paths, gate wiring with a fake embedder. **Not verified against real embeddings** (Ollama down); `literals:embed` and the presave hook need a run with Ollama up.
+- Lint: phpcs clean on `modules/`; phpstan shows the same `ProviderProxy::decision()/embeddings()` "undefined method" noise as aim (needs an ignoreErrors rule in a literals phpstan.neon).
+
 ## Decisions made this session (do not reopen)
 
 - Bundle is the **type** (config entity, kind plugin), not the pool. A literal holds one value; kinds replace per-literal "validate as".
@@ -36,7 +46,7 @@ The progressive-enhancement ladder (no model, full menu, gate, vector index; wha
 ## Not done, in order
 
 1. Phase 2 is next (start here): tokens `[literal:key]` (access check, cache metadata, published revision only), Tool API `literal_get` by key, Guardrails at save (gist and value), audit logging through a literals logger channel.
-2. Phase 3: `LiteralFinder`/`LiteralChooser` interfaces, stored-embedding gate, outcome cache, margin fallback. The finder must filter candidates with the audience rule *before* the gate or chooser sees any gist.
+2. ~~Phase 3~~ BUILT 2026-10-05 as submodule `literals_finder` (see "Phase 3 state" below). Still open from it: the `literal_get` by-question mode (belongs with item 1's tool), tuning of the placeholder thresholds (item 3).
 3. Phase 4 (separate thread): evals in TESTS.md.
 4. Phase 5: aim consumer in `aim_recall`; convert-a-fact; audit line when the finder errors.
 5. Move the literals-only ADRs (0040, superseded 0039, the two 0046 gist ADRs) into `adr/` here. Blocked on numbering: two files share 0046 and one is a duplicate from annopm. Not urgent.

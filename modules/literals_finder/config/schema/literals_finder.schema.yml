@@ -1,0 +1,28 @@
+literals_finder.settings:
+  type: config_object
+  label: 'Literals settings'
+  mapping:
+    gate_enabled:
+      type: boolean
+      label: 'Use stored gist embeddings as a gate before the chooser'
+    gate_min_similarity:
+      type: float
+      label: 'Cosine similarity below which nothing is close (untuned placeholder)'
+    gate_margin:
+      type: float
+      label: 'Lead over the runner-up that decides without the chooser (untuned placeholder)'
+    gate_top:
+      type: integer
+      label: 'Candidates passed to the chooser after the gate'
+    match_threshold:
+      type: float
+      label: 'Chooser probability needed for a match (untuned placeholder)'
+    choice_margin:
+      type: float
+      label: 'Chooser lead that separates a match from a tie (untuned placeholder)'
+    miss_ttl:
+      type: integer
+      label: 'Seconds a "none" outcome is cached'
+    log_audit:
+      type: boolean
+      label: 'Write an audit line per lookup'

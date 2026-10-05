@@ -23,8 +23,8 @@ means a chat, decision or embedding model; "no model" means none of them.
 | Step | You ask with | Needs | Model calls per uncached question | Built |
 | --- | --- | --- | --- | --- |
 | 0. Exact key | A key you already know: a token, `literal_get key=...`, PHP | Nothing beyond `user` and `views` | 0 | Entity, kinds, access: yes. Token and tool: Phase 2, not yet |
-| 1. Full menu | A plain-language question | `drupal/ai` and one decision or chat model | 1 (the chooser), 0 on a cache hit | No (Phase 3) |
-| 2. Gate, then chooser | A plain-language question | Step 1 plus one embedding model | 1 embedding; the chooser only when the answer is not clear-cut | No (Phase 3) |
+| 1. Full menu | A plain-language question | `drupal/ai` and one decision or chat model | 1 (the chooser), 0 on a cache hit | Yes (`literals_finder`) |
+| 2. Gate, then chooser | A plain-language question | Step 1 plus one embedding model | 1 embedding; the chooser only when the answer is not clear-cut | Yes, untuned (`literals_finder`) |
 | 3. Vector index | A plain-language question, thousands of literals | Step 2 plus `search_api`, `ai_search` and a vector DB provider | 1 embedding; chooser as in step 2 | No, and likely not needed |
 
 Step 0 is a complete product on its own. Set "Home page" to the path
