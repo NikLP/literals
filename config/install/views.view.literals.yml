@@ -1,0 +1,181 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - literals
+    - user
+id: literals
+label: Literals
+module: views
+description: ''
+tag: ''
+base_table: literal
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: Literals
+      fields:
+        name:
+          id: name
+          table: literal
+          field: name
+          relationship: none
+          group_type: group
+          entity_type: literal
+          entity_field: name
+          plugin_id: field
+          label: Name
+          click_sort_column: value
+          type: string
+          settings:
+            link_to_entity: true
+        key:
+          id: key
+          table: literal
+          field: key
+          relationship: none
+          group_type: group
+          entity_type: literal
+          entity_field: key
+          plugin_id: field
+          label: Key
+          click_sort_column: value
+          type: string
+          settings: {  }
+        pool:
+          id: pool
+          table: literal
+          field: pool
+          relationship: none
+          group_type: group
+          entity_type: literal
+          entity_field: pool
+          plugin_id: field
+          label: Pool
+          click_sort_column: target_id
+          type: entity_reference_label
+          settings:
+            link: false
+        value:
+          id: value
+          table: literal
+          field: value
+          relationship: none
+          group_type: group
+          entity_type: literal
+          entity_field: value
+          plugin_id: field
+          label: Value
+          click_sort_column: value
+          type: basic_string
+          settings: {  }
+        status:
+          id: status
+          table: literal
+          field: status
+          relationship: none
+          group_type: group
+          entity_type: literal
+          entity_field: status
+          plugin_id: field
+          label: Status
+          click_sort_column: value
+          type: boolean
+          settings:
+            format: custom
+            format_custom_false: Draft
+            format_custom_true: Published
+        operations:
+          id: operations
+          table: literal
+          field: operations
+          entity_type: literal
+          plugin_id: entity_operations
+          label: Operations
+      pager:
+        type: mini
+        options:
+          items_per_page: 50
+      access:
+        type: perm
+        options:
+          perm: 'access content overview'
+      empty: {  }
+      sorts:
+        name:
+          id: name
+          table: literal
+          field: name
+          entity_type: literal
+          entity_field: name
+          plugin_id: standard
+          order: ASC
+      arguments: {  }
+      filters: {  }
+      style:
+        type: table
+      row:
+        type: fields
+      query:
+        type: views_query
+        options:
+          disable_sql_rewrite: false
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url.query_args
+        - user.permissions
+      tags: {  }
+  page_all:
+    id: page_all
+    display_title: All
+    display_plugin: page
+    position: 1
+    display_options:
+      display_extenders: {  }
+      path: admin/content/literals
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url.query_args
+        - user.permissions
+      tags: {  }
+  page_pool:
+    id: page_pool
+    display_title: Pool
+    display_plugin: page
+    position: 2
+    display_options:
+      arguments:
+        pool:
+          id: pool
+          table: literal
+          field: pool
+          entity_type: literal
+          entity_field: pool
+          plugin_id: string
+          default_action: 'not found'
+          specify_validation: false
+      defaults:
+        arguments: false
+      display_extenders: {  }
+      path: admin/content/literals/pool/%
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+        - user.permissions
+      tags: {  }

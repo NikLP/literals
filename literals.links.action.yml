@@ -1,0 +1,11 @@
+entity.literal.add_page:
+  route_name: entity.literal.add_page
+  title: 'Add literal'
+  appears_on:
+    - entity.literal.collection
+
+entity.literal_pool.add_form:
+  route_name: entity.literal_pool.add_form
+  title: 'Add literal pool'
+  appears_on:
+    - entity.literal_pool.collection

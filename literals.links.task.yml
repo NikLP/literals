@@ -1,0 +1,9 @@
+literals.collection_all:
+  title: 'All'
+  route_name: view.literals.page_all
+  base_route: view.literals.page_all
+  weight: -10
+
+literals.pool_tabs:
+  class: Drupal\Core\Menu\LocalTaskDefault
+  deriver: Drupal\literals\Plugin\Derivative\PoolLocalTasks

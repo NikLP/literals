@@ -1,0 +1,16 @@
+literals.literal_pool.*:
+  type: config_entity
+  label: 'Literal pool'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    description:
+      type: text
+      label: 'Description'
+    value_pattern:
+      type: string
+      label: 'Value pattern'
