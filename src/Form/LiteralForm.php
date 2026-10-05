@@ -137,7 +137,7 @@ class LiteralForm extends ContentEntityForm {
       'selection_handler' => 'default:node',
       'selection_settings_key' => $key,
     ];
-    $element['#description'] = $this->t('Start typing a page title, or enter an https URL or a path such as /news.');
+    $element['#description'] = $this->t('Start typing a page title, or enter an internal path such as /news.');
     $element['#element_validate'][] = [static::class, 'pickedContentToPath'];
   }
 

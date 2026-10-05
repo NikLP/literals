@@ -5,27 +5,33 @@ declare(strict_types=1);
 namespace Drupal\literals;
 
 use Drupal\Core\Session\AccountInterface;
-use Drupal\user\Entity\Role;
 
 /**
  * Who a literal is visible to.
  *
- * One value per literal: "public" (everyone, anonymous included),
- * "authenticated" (any signed-in account) or a role ID. The same value
+ * One value per literal: "anonymous" (everyone, anonymous included),
+ * "authenticated" (any signed-in account) or "restricted" (accounts with the
+ * "view restricted literals" permission, so roles are granted it on the
+ * normal permissions page). The same value
  * answers a single access check and a list filter, because the set an
  * account can see is just a list of values to match against.
  */
 final class LiteralAudience {
 
   /**
-   * Visible to everyone, including anonymous.
+   * Visible to everyone, anonymous visitors included.
    */
-  public const PUBLIC = 'public';
+  public const ANONYMOUS = 'anonymous';
 
   /**
    * Visible to any signed-in account.
    */
   public const AUTHENTICATED = 'authenticated';
+
+  /**
+   * Visible only to accounts with the "view restricted literals" permission.
+   */
+  public const RESTRICTED = 'restricted';
 
   /**
    * Returns the audience values an account can see.
@@ -34,15 +40,18 @@ final class LiteralAudience {
    *   The account.
    *
    * @return string[]
-   *   Audience values: public, authenticated if signed in, and the
-   *   account's role IDs.
+   *   Audience values: anonymous, authenticated if signed in, restricted if the
+   *   account holds the permission.
    */
   public static function visibleTo(AccountInterface $account): array {
-    $values = [self::PUBLIC];
+    $values = [self::ANONYMOUS];
     if ($account->isAuthenticated()) {
       $values[] = self::AUTHENTICATED;
     }
-    return array_values(array_unique(array_merge($values, $account->getRoles())));
+    if ($account->hasPermission('view restricted literals')) {
+      $values[] = self::RESTRICTED;
+    }
+    return $values;
   }
 
   /**
@@ -53,14 +62,10 @@ final class LiteralAudience {
    */
   public static function options(): array {
     $options = [
-      self::PUBLIC => t('Everyone (including anonymous)'),
+      self::ANONYMOUS => t('Anonymous (visible to everyone)'),
       self::AUTHENTICATED => t('Signed-in users'),
+      self::RESTRICTED => t('Restricted (needs the "View restricted literals" permission)'),
     ];
-    foreach (Role::loadMultiple() as $id => $role) {
-      if (!in_array($id, ['anonymous', 'authenticated'], TRUE)) {
-        $options[$id] = t('Role: @role', ['@role' => $role->label()]);
-      }
-    }
     return $options;
   }
 

@@ -3,6 +3,11 @@ administer literals:
   description: 'Create, edit and delete literal types and every literal.'
   restrict access: true
 
+view restricted literals:
+  title: 'View restricted literals'
+  description: 'See literals whose audience is Restricted.'
+  restrict access: true
+
 create literals:
   title: 'Create literals'
 

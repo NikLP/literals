@@ -13,8 +13,8 @@ use Drupal\Core\Session\AccountInterface;
 /**
  * Access control handler for the literal entity type.
  *
- * Viewing is decided by the literal's audience (public, signed-in users or
- * one role); editing and deleting by flat permissions, with the flat
+ * Viewing is decided by the literal's audience (anonymous, signed-in users or
+ * restricted); editing and deleting by flat permissions, with the flat
  * administer permission as the bypass. An unpublished literal (a draft
  * revision awaiting review) is visible only to someone who can edit it, so
  * a draft value is never served.

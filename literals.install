@@ -42,3 +42,13 @@ function literals_update_10001(): void {
     $manager->uninstallEntityType($definition);
   }
 }
+
+/**
+ * Renames the "public" audience to "anonymous".
+ */
+function literals_update_10002(): void {
+  $database = \Drupal::database();
+  foreach (['literal', 'literal_revision'] as $table) {
+    $database->update($table)->fields(['audience' => 'anonymous'])->condition('audience', 'public')->execute();
+  }
+}
