@@ -31,8 +31,10 @@ that finds the right one from a description and decides who sees it.
 
 - `literals` - the entity, types, resolvers, audience rules and admin UI. No AI
   needed.
-- `literals_finder` - find by question: an access filter, an optional
-  embedding gate, then a Decision API choice. Needs `drupal/ai`.
+- `literals_finder` - find by question: an access filter, an outcome cache,
+  then a Decision API choice. Needs `drupal/ai`.
+- `literals_tool` - the `literal_lookup` Tool API / MCP tool, by key or (with
+  the finder) by question. Needs `tool`.
 
 ## More
 

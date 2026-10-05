@@ -21,7 +21,13 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
    * Whether a value validates for a type.
    */
   protected function valid(string $type, string $value): bool {
-    $literal = Literal::create(['type' => $type, 'name' => 'n', 'key' => 'k_' . $type, 'value' => $value, 'audience' => 'anonymous']);
+    $literal = Literal::create([
+      'type' => $type,
+      'name' => 'n',
+      'key' => 'k_' . $type,
+      'value' => $value,
+      'audience' => 'anonymous',
+    ]);
     return count($literal->validate()) === 0;
   }
 
@@ -116,7 +122,7 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * [user:...] means the account asked for, not the session user.
+   * The [user:...] token means the account asked for, not the session user.
    */
   public function testTokenResolvesForTheGivenAccount(): void {
     $literal = $this->createLiteral('whoami', 'Hello [user:name]', ['type' => 'token', 'audience' => 'authenticated']);

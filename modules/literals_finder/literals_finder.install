@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the literals finder.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Removes the embedding gate: its stored vectors, queue and settings.
+ */
+function literals_finder_update_10001(): void {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $definitions = \Drupal::service('entity.last_installed_schema.repository')->getLastInstalledFieldStorageDefinitions('literal');
+  foreach (['gist_vector', 'gist_vector_model'] as $name) {
+    if (isset($definitions[$name])) {
+      $manager->uninstallFieldStorageDefinition($definitions[$name]);
+    }
+  }
+  \Drupal::queue('literals_embed')->deleteQueue();
+  $config = \Drupal::configFactory()->getEditable('literals_finder.settings');
+  foreach (['gate_enabled', 'gate_min_similarity', 'gate_margin', 'gate_top'] as $key) {
+    $config->clear($key);
+  }
+  $config->save();
+}

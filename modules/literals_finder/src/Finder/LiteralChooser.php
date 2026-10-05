@@ -42,14 +42,21 @@ class LiteralChooser implements LiteralChooserInterface {
    * {@inheritdoc}
    */
   public function isAvailable(): bool {
-    $default = $this->aiProvider->getDefaultProviderForOperationType('decision');
-    return !empty($default['provider_id']) && !empty($default['model_id']);
+    return $this->modelId() !== '';
   }
 
   /**
    * {@inheritdoc}
    */
-  public function choose(string $question, array $candidates): LiteralFindResult {
+  public function modelId(): string {
+    $default = $this->aiProvider->getDefaultProviderForOperationType('decision');
+    return !empty($default['provider_id']) && !empty($default['model_id']) ? $default['provider_id'] . '__' . $default['model_id'] : '';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function choose(string $question, array $candidates, ?string $context = NULL): LiteralFindResult {
     $default = $this->aiProvider->getDefaultProviderForOperationType('decision');
     if (empty($default['provider_id']) || empty($default['model_id'])) {
       throw new \RuntimeException('No default decision provider is configured.');
@@ -68,10 +75,14 @@ class LiteralChooser implements LiteralChooserInterface {
     }
     $criteria[self::NONE_OPTION] = 'None of the above: the question is not asking for any of these.';
 
-    $instructions = (string) $this->configFactory->get('literals_finder.settings')->get('chooser_instructions');
+    $config = $this->configFactory->get('literals_finder.settings');
+    $instructions = (string) $config->get('chooser_instructions');
+    // Who is being asked, so "you" and "your" resolve to the site's owner. A
+    // caller's own context replaces the site default.
+    $context = trim($context ?? (string) $config->get('chooser_context'));
     $input = new DecisionInput(
       ['question' => $question],
-      ['choice' => new ChoiceQuestion($instructions ?: self::DEFAULT_INSTRUCTIONS, $criteria)],
+      ['choice' => new ChoiceQuestion(trim($context . ' ' . ($instructions ?: self::DEFAULT_INSTRUCTIONS)), $criteria)],
     );
     $answer = $provider->decision($input, $default['model_id'], ['literals_choose'])->getNormalized()->getChoice('choice');
 

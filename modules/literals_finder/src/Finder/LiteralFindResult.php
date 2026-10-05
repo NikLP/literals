@@ -26,7 +26,7 @@ final class LiteralFindResult {
    * @param \Drupal\literals\Entity\Literal[] $literals
    *   One literal for a match, the tied candidates for ambiguous, else none.
    * @param string $tier
-   *   What decided it: "cache", "gate", "margin", "chooser" or "pool".
+   *   What decided it: "cache", "chooser" or "pool".
    * @param string $reason
    *   A short machine reason, for example "no_candidates" or "no_backend".
    */

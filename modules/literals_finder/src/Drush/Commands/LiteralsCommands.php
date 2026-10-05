@@ -9,7 +9,6 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AnonymousUserSession;
-use Drupal\literals_finder\Finder\LiteralEmbedder;
 use Drupal\literals_finder\Finder\LiteralFindResult;
 use Drupal\literals_finder\Finder\LiteralFinderInterface;
 use Drupal\user\Entity\User;
@@ -31,14 +30,11 @@ final class LiteralsCommands extends DrushCommands {
    *   The account switcher.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
-   * @param \Drupal\literals_finder\Finder\LiteralEmbedder $embedder
-   *   The gist embedder.
    */
   public function __construct(
     protected LiteralFinderInterface $finder,
     protected AccountSwitcherInterface $accountSwitcher,
     protected EntityTypeManagerInterface $entityTypeManager,
-    protected LiteralEmbedder $embedder,
   ) {
     parent::__construct();
   }
@@ -54,7 +50,6 @@ final class LiteralsCommands extends DrushCommands {
       $container->get(LiteralFinderInterface::class),
       $container->get('account_switcher'),
       $container->get('entity_type.manager'),
-      $container->get('literals_finder.embedder'),
     );
   }
 
@@ -76,27 +71,6 @@ final class LiteralsCommands extends DrushCommands {
     foreach ($result->literals as $literal) {
       $this->io()->writeln(sprintf('  %s: %s', $literal->get('key')->value, $literal->get('gist')->value));
     }
-  }
-
-  /**
-   * Embeds every literal whose gist vector is missing or from another model.
-   */
-  #[CLI\Command(name: 'literals:embed')]
-  public function embed(): void {
-    $embedder = $this->embedder;
-    if (!$embedder->isAvailable()) {
-      throw new \RuntimeException('The gate is off (literals_finder.settings gate_enabled) or no embeddings provider is set.');
-    }
-    $count = 0;
-    foreach ($this->entityTypeManager->getStorage('literal')->loadMultiple() as $literal) {
-      if (!$embedder->isCurrent($literal)) {
-        // Embed here so a provider error is raised, not swallowed by presave.
-        $embedder->embedLiteral($literal);
-        $literal->save();
-        $count++;
-      }
-    }
-    $this->io()->success("Embedded $count literal(s).");
   }
 
   /**
@@ -126,9 +100,22 @@ final class LiteralsCommands extends DrushCommands {
       $took = microtime(TRUE) - $start;
       $elapsed += $took;
       $keys = array_map(fn ($l) => (string) $l->get('key')->value, $result->literals);
-      $expect = (string) $item['expect'];
+      // "expect" may be a list of acceptable answers: literal keys, and
+      // "ambiguous" for a tie. Nothing is a miss, a pick outside it is wrong.
+      $accepted = is_array($item['expect']) ? array_map('strval', $item['expect']) : NULL;
+      $expect = $accepted ? implode(' or ', $accepted) : (string) $item['expect'];
 
-      if ($expect === 'none' || $expect === 'ambiguous') {
+      if ($accepted) {
+        $answerable++;
+        $verdict = match (TRUE) {
+          $result->outcome === LiteralFindResult::MATCH && count($keys) === 1 && in_array($keys[0], $accepted, TRUE) => 'hit',
+          $result->outcome === LiteralFindResult::AMBIGUOUS && in_array('ambiguous', $accepted, TRUE) => 'hit',
+          $result->outcome === LiteralFindResult::MATCH => 'wrong',
+          $result->outcome === LiteralFindResult::AMBIGUOUS => 'ambiguous',
+          default => 'miss',
+        };
+      }
+      elseif ($expect === 'none' || $expect === 'ambiguous') {
         // Unanswerable, or deliberately vague: showing a tie or nothing is
         // right, picking one literal is the false positive.
         $unanswerable++;

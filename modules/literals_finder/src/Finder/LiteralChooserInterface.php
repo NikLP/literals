@@ -15,6 +15,13 @@ interface LiteralChooserInterface {
   public function isAvailable(): bool;
 
   /**
+   * Returns the configured decision model as provider__model, or ''.
+   *
+   * Part of what a cached outcome depends on.
+   */
+  public function modelId(): string;
+
+  /**
    * Chooses among candidates by key and gist only.
    *
    * Values are never sent to the model.
@@ -23,6 +30,9 @@ interface LiteralChooserInterface {
    *   The plain-language question.
    * @param \Drupal\literals\Entity\Literal[] $candidates
    *   Candidates the asker is allowed to see, already filtered.
+   * @param string|null $context
+   *   Who is being asked and why, put before the instructions. NULL uses the
+   *   site's configured context.
    *
    * @return \Drupal\literals_finder\Finder\LiteralFindResult
    *   Match, ambiguous (the near-tied options) or none.
@@ -30,6 +40,6 @@ interface LiteralChooserInterface {
    * @throws \RuntimeException
    *   When no decision model is configured or the call fails.
    */
-  public function choose(string $question, array $candidates): LiteralFindResult;
+  public function choose(string $question, array $candidates, ?string $context = NULL): LiteralFindResult;
 
 }

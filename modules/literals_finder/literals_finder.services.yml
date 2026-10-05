@@ -1,8 +1,4 @@
 services:
-  literals_finder.embedder:
-    class: Drupal\literals_finder\Finder\LiteralEmbedder
-    arguments: ['@ai.provider', '@config.factory']
-
   literals_finder.chooser:
     class: Drupal\literals_finder\Finder\LiteralChooser
     arguments: ['@ai.provider', '@config.factory']
@@ -13,16 +9,10 @@ services:
       - '@entity_type.manager'
       - '@current_user'
       - '@literals_finder.chooser'
-      - '@literals_finder.embedder'
       - '@cache.default'
       - '@config.factory'
-      - '@queue'
       - '@logger.channel.literals'
   Drupal\literals_finder\Finder\LiteralFinderInterface: '@literals_finder.finder'
-
-  Drupal\literals_finder\Hook\LiteralsFinderHooks:
-    class: Drupal\literals_finder\Hook\LiteralsFinderHooks
-    arguments: ['@literals_finder.embedder', '@logger.channel.literals']
 
   literals.guardrails:
     class: Drupal\literals_finder\Finder\LiteralGuardrails

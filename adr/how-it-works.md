@@ -1,6 +1,6 @@
 # Literals: how it works, where the models run, and how well
 
-A walkthrough of the `literals` module as built on 2026-10-05: what it
+A walkthrough of the `literals` module as built on 2026-10-05 (after Phase 2 and the removal of the embedding gate): what it
 stores, the path a question takes, which model is called when, and what
 the measurements so far say. Not a decision record: for the reasoning see
 [ADR-0040](../../aim/adr/0040-literals-probabilistic-lookup-of-exact-values.md)
@@ -19,16 +19,16 @@ The value is read from the row, never generated. The only probabilistic
 step is choosing *which* literal; a wrong choice is the failure that
 matters, so "no match" is always preferred to a guess.
 
-## The two modules
+## The modules
 
 | Module | Needs | Does |
 | --- | --- | --- |
-| `literals` | `user`, `views` | The entity, types and resolvers, access, the admin UI. Exact lookup by key. **No model of any kind.** |
-| `literals_finder` | `literals`, `drupal/ai` | Lookup by question: the finder, the chooser, the embedding gate, the outcome cache, the eval command. The only part that calls a model. |
+| `literals` | `user`, `views` | The entity, types and resolvers, access, the admin UI, `literals.reader`, the `[literal:key]` token. Exact lookup by key. **No model of any kind.** |
+| `literals_tool` | `literals`, `tool` | The `literal_lookup` Tool API / MCP tool: by key, or by question when `literals_finder` is on. |
+| `literals_finder` | `literals`, `drupal/ai` | Lookup by question: the finder, the chooser, the outcome cache, the eval command, and the Guardrails set applied at save. The only part that calls a model. |
 
 A site that only wants a settings store with access control installs the
-first and never touches AI. Tokens (`[literal:key]`), the Tool API
-`literal_get` and Guardrails at save are Phase 2 and not built yet.
+first and never touches AI.
 
 ## What is stored
 
@@ -40,10 +40,9 @@ plugin that decides how the value is validated and read.
 | --- | --- | --- |
 | `name` | Human label, "Main phone number" | No |
 | `key` | Machine name, unique across all literals | Yes, as the option ID |
-| `gist` | Short description of what the value is | Yes (chooser), embedded (gate) |
+| `gist` | Short description of what the value is | Yes (chooser) |
 | `value` | The exact payload, read through its resolver | **Never** |
 | `audience` | `anonymous`, `authenticated` or `restricted` | No: used to filter before any model |
-| `gist_vector`, `gist_vector_model` | Derived: the gist's embedding as JSON, and the model that made it | No (numbers only) |
 
 Resolvers (`text`, `token`, `entity`, `url`) validate the value on save and
 `resolve($account)` it at read time. `entity` and `url` run a view-access
@@ -56,9 +55,9 @@ lookup. The default is `authenticated`, so a literal whose audience is
 forgotten is hidden rather than published. Drafts are visible only to
 people who can edit.
 
-**Revisions.** Every field except the vectors is revisionable, so a gist
-or value change can sit as a draft revision until published. The
-vectors live on the base row and describe the published gist.
+**Revisions.** Every field is revisionable, so a gist or value change can
+sit as a draft revision until published. Reads serve the published revision
+only.
 
 **Config versus content.** Types, settings and the view go through config
 sync. Literals themselves are content, editable on production. Settings:
@@ -68,20 +67,16 @@ sync. Literals themselves are content, editable on production. Settings:
 
 ```mermaid
 flowchart TD
-  Q[Question + asker] --> C[Candidates: published, audience filter, view access]
+  Q[Question + asker + optional context] --> C[Candidates: published, audience filter, view access]
   C --> N{Any?}
   N -- no --> NONE1[none: no_candidates]
   N -- yes --> OC{Outcome cached?}
   OC -- yes --> R1[Cached answer]
-  OC -- no --> G{Gate on and Ollama up?}
-  G -- no --> CH
-  G -- yes --> E[Embed the question]
-  E --> S{Best similarity per literal}
-  S -- "nothing close" --> NONE2[none: gate]
-  S -- "clear lead, all literals embedded" --> M2[match: margin]
-  S -- "close or unembedded" --> CH[Chooser over the shortlist]
+  OC -- no --> D0{Decision model set?}
+  D0 -- no --> NONE0[none: no_backend]
+  D0 -- yes --> CH[Chooser over the whole menu]
   CH --> D{Decision model}
-  D -- "clear winner" --> M3[match: chooser]
+  D -- "clear winner" --> M3[match]
   D -- "near tie" --> AMB[ambiguous: the tied literals]
   D -- "none or unsure" --> NONE3[none]
 ```
@@ -91,44 +86,50 @@ flowchart TD
    runs **before** any model sees anything, so a gist the asker cannot see
    never appears in a prompt or a result.
 2. **Outcome cache.** Keyed by the normalized question, the asker's
-   audience set and an admin flag, so an answer is never served across
-   permission sets. Tagged `literal_list`, so any literal edit clears it. A
-   `none` is cached for 5 minutes only. Errors are never cached.
-3. **The gate** (optional, `gate_enabled`). Embed the question and compare
-   with each literal's stored gist vector. Below `gate_min_similarity` (0.55) nothing is close: `none`. A
-   lead over the runner-up of at least `gate_margin` (0.2) with every
-   candidate embedded: `match`, no chooser call. Otherwise the top 5, plus
-   any literal lacking a current vector (queued for embedding), go on.
-4. **The chooser.** One Decision API `ChoiceQuestion`: the options are the
-   shortlist's keys, each described by its gist, plus a `__none__` option. The model returns a probability per
-   option. If `__none__` wins, the answer is `none`. If the winner leads the
-   best *other literal* by less than `choice_margin` (0.2), the answer is
+   audience set, an admin flag, and a fingerprint of everything else that
+   decides an outcome (the context, the instructions, the thresholds and the
+   decision model), so an answer is never served across permission sets or
+   after a setting changes. Tagged `literal_list`, so any literal edit
+   clears it. A `none` is cached for 5 minutes only. Errors are never cached.
+3. **The chooser.** One Decision API `ChoiceQuestion`: the options are the
+   candidates' keys, each described by its gist, plus a `__none__` option.
+   The instruction is the optional **context** (who is being asked, for
+   example "Questions are put to the website of the Harbourside Community
+   Library, so 'you' means the library") followed by the instructions. The
+   context is the caller's own if it passes one to `find()`, else the site
+   setting `chooser_context`. The model returns a probability per option. If
+   `__none__` wins, the answer is `none`. If the winner leads the best
+   *other literal* by less than `choice_margin` (0.2), the answer is
    `ambiguous` and the caller gets the tied literals. If the winner is under
    `match_threshold` (0.5), the answer is `none` (`low_confidence`).
    Otherwise `match`.
-5. **The caller resolves the value** for its own account. The finder
+4. **The caller resolves the value** for its own account. The finder
    returns literals, never values.
 
 The result is always `match`, `ambiguous` or `none`, with the tier that
-decided it and a reason. A model or network failure is `none` with reason
-`error` and a warning in the log, never a guess; an embedding outage only
-drops the gate and falls back to the full menu.
+decided it (`cache`, `chooser` or `pool`) and a reason. A model or network
+failure is `none` with reason `error` and a warning in the log, never a
+guess.
+
+**Context is a hint, not a filter.** It changes what the model reads "your"
+to mean; it does not restrict the pool. Without a context line "what is your
+phone number" scored `none` at 0.92 (the model could not tell whose number),
+with it `main_phone` at 0.91, while "phone number of the dentist" stayed
+`none`. A "bakery" context did not stop the library's only phone matching.
 
 ## Where the models are called
 
 | Call | Model | When | What it is sent | Never sent |
 | --- | --- | --- | --- | --- |
-| Question embedding | Embeddings, local `nomic-embed-text` on Ollama | Gate on, every question that is not an alias pin or a cache hit | The question text | |
-| Gist embedding | Same | Once per literal save when the gist changes, when the model changes (queue worker `literals_embed`, `drush literals:embed`) | The gist, each alias | |
-| Chooser | Decision, hosted Jev (`jev-latest`) | Only when the gate cannot decide, or the gate is off | The question, and each shortlisted literal's key and gist | **Values** |
+| Chooser | Decision, hosted Jev | Every uncached question | The question, the context line, and each candidate's key and gist | **Values** |
+| Guardrails at save | Deterministic only on the value; the set may add model-backed ones for the gist | At save, with `literals_finder` | The gist; the value only to deterministic guardrails | A value to any model |
 
-No other step calls a model: the access filter, the cache, the cosine compare (PHP) and `resolve()` are all plain code.
+No other step calls a model: the access filter, the cache, the reader, the
+token and `resolve()` are plain code.
 
 Hosted Jev is a temporary deviation for synthetic or demo data only (see
-ADR-0021's 2026-10-02 addendum). The gists and questions go to
-it, so a real deployment needs a data-handling decision or a local decision
-model first. The embedding model is local here, so nothing leaves the
-machine at the gate.
+ADR-0021's 2026-10-02 addendum). The gists and questions go to it, so a real
+deployment needs a data-handling decision or a local decision model first.
 
 ## Pinned idea: merge a miss into the gist
 
@@ -142,108 +143,82 @@ The gist, not a side list, stays the single description. Recorded as
 
 ## Efficacy so far
 
-Measured with `drush literals:eval` over a hand-written gold set
-(`modules/literals_finder/eval/gold.seed.yml`): 24 answerable questions and
-6 unanswerable or deliberately vague ones, against 9 synthetic literals
-(three phone-like neighbours among them). **Treat these as a smoke test,
-not a benchmark**: the set is small, written by the same hand that tuned
-the thresholds, and the thresholds were tuned on it.
+Measured with `drush literals:eval` over hand-written gold sets. **Treat
+these as smoke tests, not benchmarks**: the sets are small, written by the
+same hand that tuned the settings, and the context line was written after
+seeing the one query it fixed.
 
-| Setup | Answerable hits | Wrong-confident | Unanswerable correct | Time per query | Queries with no model call |
+| Set | Pool | Answerable hits | Wrong-confident | Unanswerable correct | Time per query |
 | --- | --- | --- | --- | --- | --- |
-| Chooser only (full menu) | 23/24 | 0 | 6/6 | 0.30 s | 0 |
-| Gate only, placeholder margin 0.1 | 22/24 | 1 | 6/6 | 0.12 s | n/a |
-| Gate + chooser, tuned (0.2 / 0.55) | 23/24 | 0 | 6/6 | 0.17 s | 16 of 30 |
+| Seed (`eval/gold.seed.yml`, with "you/your" phrasings) | 9 literals | 29/29 | 0 | 10/10 | 0.3 s |
+| Synthetic, near-neighbour heavy (`eval/scale.gen.php.txt`) | 60 | 60/60 | 0 | 10/10 | 0.4 s |
+| Synthetic | 234 | 60/60 | 0 | 10/10 (3 repeat runs) | 0.4 s |
 
 What the numbers say:
 
-- **Wrong answers were rare; misses were the common failure.** Across every
-  run, the only wrong-confident answer was the untuned gate-only run. The
-  chooser prefers `none`, which is the right bias for exact values.
-- **The embedding alone cannot separate near neighbours.** Phone-like
-  literals sit at leads of 0.01 to 0.15 in cosine similarity; every correct
-  answer with a lead of 0.2 or more was right. That is why the margin is
-  0.2 and why close pairs go to the chooser. It also cannot tell "email
-  address of the librarian" from a phone literal (similarity 0.67): only
-  the chooser rejects that.
-- **The gate roughly halves the model calls and the latency** at no
-  measured accuracy cost on this set (16 of 30 queries answered without
-  the chooser).
+- **Wrong answers were rare; misses and false "found" were the failures.**
+  The chooser prefers `none`, the right bias for exact values.
+- **The one early miss was a missing input, not model confusion.** "what is
+  your phone number" never tied between the phones (the other two scored 0);
+  `none` won because "your" named no one. The context line fixed it. Before
+  it, on the 234 pool, the chooser picked a plausible but wrong literal for
+  two unanswerable questions ("phone number of the dentist", "opening hours
+  of the town swimming baths"); the context line removed both. Raising
+  `match_threshold` did not help: 0.7 removed one, 0.85 started losing hits.
 - **Prompt rewording did not help.** Three versions of the chooser
-  instruction were tried; none beat the default, and softer wording turned
-  the vague "phone number" into a wrong pick. One version that scored 24/24
-  had the test query written into the prompt, so it was discarded as
-  contaminated.
-- **One miss may be a wrong expectation.** With three phone numbers on the
-  site, "what is your phone number" is arguably ambiguous, not clearly the
-  main line.
+  instruction were tried before the context line; none beat the default.
+- **Pool size did not hurt up to 234.** The full menu works at that size
+  with no accuracy loss and about the same latency.
 
-Latency: hosted Jev took about 0.25 to 0.6 s per chooser call here
-(consistent with 0.41 s in ADR-0021); a gate-only answer is 0.03 to 0.07 s.
-The first query after Ollama idles can take over a second while the model
-loads.
+### Why there is no embedding gate
 
-## Short answers: scale, safety, no models, more models
+A gate (embed the question, compare with stored gist vectors, decide alone
+or shortlist) was built and removed on 2026-10-05. Measured against the
+chooser alone: identical hits and correct-none at 9 and at 234 literals;
+faster at 9 (0.18 s against 0.31 s, 20 of 39 queries answered with no model
+call) and not at 234 (0.44 s against 0.41 s, 5 of 70). Without a decision
+model it was a shortlister: at margin 0.2, 17 of 29 hits, 12 candidate
+lists, no wrong picks, but 3 of 10 unanswerable questions got candidates
+instead of `none`; a looser margin picked wrongly. See
+[progressive-enhancement.md](progressive-enhancement.md).
 
-**At scale: not known, and one known cost.** Nothing past 9 literals has
-been run. The design intent is that the chooser's menu stops growing: the
-gate hands it the top 5, so a larger pool should cost more cosine compares,
-not a bigger prompt (the full-menu estimate is about 4,000 tokens at 200
-literals, unmeasured). But the finder currently loads every visible literal
-on each uncached lookup to read its vector, so the work is linear in pool
-size and likely to hurt in the low thousands. Repeated questions are served
-by the outcome cache. The measurements that would settle it (cosine time at
-2,000 and 10,000 vectors, chooser reliability at 50, 200 and 500 options)
-are listed below and not done.
+## Short answers: scale, safety, no models
+
+**At scale: fine to 234, unknown past it.** The finder sends every visible
+literal's key and gist to the chooser on each uncached question, so the
+prompt grows with the pool (about 4,000 tokens at 200 literals, estimated).
+Repeated questions are served by the outcome cache. If a real pool outgrows
+the chooser, measure first; see the ladder.
 
 **Safely: acceptable for the stated scope, with one condition.**
-- Values never leave the app. The chooser and the embedder receive only the
-  question and gists; `resolve()` runs afterwards in the caller's own
+- Values never leave the app. The chooser receives only the question, the
+  context and gists; `resolve()` runs afterwards in the caller's own
   account.
 - Access is enforced before any model: a literal the asker cannot view is
-  not a candidate, so its gist is in no prompt, no embedding comparison and
-  no result. The outcome cache never crosses permission sets.
+  not a candidate, so its gist is in no prompt and no result. The outcome
+  cache never crosses permission sets.
 - The audit log records outcome, tier and IDs, never question text.
 - The condition: gists and questions do go to the decision model, and that
   is hosted Jev today. Keep gists free of anything sensitive, use demo data
-  only, or use a local decision model. The embedder is local, so the gate
-  sends nothing out.
+  only, or use a local decision model.
 - A wrong answer is possible (the chooser can pick the wrong literal), so
   anything that must never be wrong should be called by key, not by
   question.
 
-**Without any AI model: yes, by key only.** The `literals` module works with
-no model and no `drupal/ai`: create, validate, restrict by audience,
-revision, list, and read through `$literal->resolve()`. Today that read is
-PHP-only, because tokens and the `literal_get` tool are Phase 2. By-question
-lookup does not work without a model: the finder returns `none` with reason
-`no_backend` rather than guess, and there is no keyword fallback built (the
-ADR sketches one).
-
-**Better with models, and how.**
-
-| Add | Gains | Measured here |
-| --- | --- | --- |
-| A decision model (chooser) | Natural-language lookup over the whole pool; refuses rather than guesses | 23/24 answerable, 6/6 unanswerable, 0.30 s per query, 0 wrong-confident |
-| An embedding model (gate) | Answers roughly half of questions with no model call, about half the latency; empties the chooser's menu to the top 5 | 16 of 30 queries gated, 0.17 s, same accuracy |
-| Neither: gate without a decision model | Possible in code (the margin decides alone) | Not evaluated |
-| A vector index (Search API) | Only for thousands of literals | Not built, not needed yet |
-
-The gate is the better value of the two models: cheap, local, and it cuts
-both cost and the chance of a wrong pick. It cannot replace the chooser,
-because near neighbours (three phone numbers) and off-topic questions that
-resemble a literal (an email address versus a phone number) look alike to an
-embedding.
+**Without any AI model: yes, by key.** The `literals` module works with no
+model and no `drupal/ai`: create, validate, restrict by audience, revision,
+list, read through `$literal->resolve()` or `literals.reader`, `[literal:key]`
+tokens, and the `literal_lookup` tool by key. By-question lookup needs a
+decision model: without one the finder returns `none` with reason
+`no_backend` rather than guess.
 
 ## What has not been measured
 
-- Menu sizes of 50, 200 and 500 (the chooser's probability reliability and
-  latency at scale), and whether the full menu is still viable there.
+- Pools past 234 literals, and whether the full menu stays viable there.
 - A keyword baseline, to show what the models add over a plain search.
 - A second language, and a local decision model (only hosted Jev has run).
-- Cosine compare time in PHP at 2,000 and 10,000 vectors.
-- A larger, independently written gold set. The thresholds should be
-  re-tuned on one before they are trusted.
+- A larger, independently written gold set. The context line and the
+  thresholds should be checked on one written blind before they are trusted.
 - Live traffic: the real share of questions each tier absorbs, and the real
   miss rate. There is no miss log yet to find out.
 
@@ -252,5 +227,4 @@ embedding.
 | Command | Does |
 | --- | --- |
 | `drush literals:find "question" [--uid=N]` | Runs the finder as a user (default anonymous), prints outcome, tier and keys, never values |
-| `drush literals:eval [file]` | Scores a gold set: hit, miss, ambiguous, wrong-confident, unanswerable, time. Clears the cache first |
-| `drush literals:embed` | Embeds every literal whose vectors are missing or from another model |
+| `drush literals:eval [file]` | Scores a gold set: hit, miss, ambiguous, wrong-confident, unanswerable, time. `expect` may be a key, `none`, `ambiguous` or a list of acceptable answers. Clears the cache first |

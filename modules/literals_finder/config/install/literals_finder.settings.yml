@@ -1,8 +1,5 @@
-gate_enabled: false
-gate_min_similarity: 0.5
-gate_margin: 0.1
-gate_top: 5
 match_threshold: 0.5
 choice_margin: 0.2
 miss_ttl: 300
 log_audit: true
+chooser_context: ''

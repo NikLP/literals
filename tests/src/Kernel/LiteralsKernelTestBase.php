@@ -119,7 +119,12 @@ abstract class LiteralsKernelTestBase extends KernelTestBase {
     if (!NodeType::load('page')) {
       NodeType::create(['type' => 'page', 'name' => 'Page'])->save();
     }
-    $node = Node::create(['type' => 'page', 'title' => $title, 'status' => $published ? 1 : 0, 'uid' => $this->admin->id()]);
+    $node = Node::create([
+      'type' => 'page',
+      'title' => $title,
+      'status' => $published ? 1 : 0,
+      'uid' => $this->admin->id(),
+    ]);
     $node->save();
     return $node;
   }

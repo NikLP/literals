@@ -7,19 +7,19 @@ namespace Drupal\literals_finder\Finder;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralAudience;
 use Psr\Log\LoggerInterface;
 
 /**
- * The finder: access filter, outcome cache, gate, then the chooser.
+ * The finder: access filter, outcome cache, then the chooser.
  *
- * Tiers (ADR-0040 Addendums 4 and 6): the outcome cache; the gate (embed the
- * question, compare with stored gist vectors in PHP) when switched on; the
- * chooser over the remaining menu. Without a decision model the gate's
- * margin decides alone; without either, nothing is guessed.
+ * The chooser (a Decision API model) sees the whole access-filtered menu of
+ * keys and gists. Without a decision model nothing is guessed: the answer is
+ * none. An embedding gate that shortlisted the menu was built and removed
+ * (2026-10-05): with a decision model it added no accuracy and, past a few
+ * hundred literals, no speed.
  */
 class LiteralFinder implements LiteralFinderInterface {
 
@@ -32,14 +32,10 @@ class LiteralFinder implements LiteralFinderInterface {
    *   The current user.
    * @param \Drupal\literals_finder\Finder\LiteralChooserInterface $chooser
    *   The chooser.
-   * @param \Drupal\literals_finder\Finder\LiteralEmbedder $embedder
-   *   The gist and question embedder.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The outcome cache.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The config factory.
-   * @param \Drupal\Core\Queue\QueueFactory $queueFactory
-   *   The queue factory.
    * @param \Psr\Log\LoggerInterface $logger
    *   The literals logger channel.
    */
@@ -47,17 +43,15 @@ class LiteralFinder implements LiteralFinderInterface {
     protected EntityTypeManagerInterface $entityTypeManager,
     protected AccountInterface $currentUser,
     protected LiteralChooserInterface $chooser,
-    protected LiteralEmbedder $embedder,
     protected CacheBackendInterface $cache,
     protected ConfigFactoryInterface $configFactory,
-    protected QueueFactory $queueFactory,
     protected LoggerInterface $logger,
   ) {}
 
   /**
    * {@inheritdoc}
    */
-  public function find(string $question, ?AccountInterface $account = NULL): LiteralFindResult {
+  public function find(string $question, ?AccountInterface $account = NULL, ?string $context = NULL): LiteralFindResult {
     $account ??= $this->currentUser;
     $question = trim($question);
     $candidates = $this->candidates($account);
@@ -69,7 +63,7 @@ class LiteralFinder implements LiteralFinderInterface {
     $normalized = mb_strtolower(preg_replace('/\s+/', ' ', $question));
     $audiences = implode(',', LiteralAudience::visibleTo($account));
     $admin = (int) $account->hasPermission('administer literals');
-    $cid = 'literals:find:' . hash('sha256', "$normalized|$audiences|$admin");
+    $cid = 'literals:find:' . hash('sha256', "$normalized|$audiences|$admin|" . $this->settingsFingerprint($context));
     if ($hit = $this->cache->get($cid)) {
       $by_id = $this->entityTypeManager->getStorage('literal')->loadMultiple($hit->data['ids']);
       // A cached id the asker can no longer see just drops out.
@@ -80,7 +74,7 @@ class LiteralFinder implements LiteralFinderInterface {
     }
 
     try {
-      $result = $this->lookup($question, $candidates);
+      $result = $this->lookup($question, $candidates, $context);
     }
     catch (\Throwable $e) {
       // A model failure is not a "none": it is reported, never cached.
@@ -106,108 +100,49 @@ class LiteralFinder implements LiteralFinderInterface {
   }
 
   /**
-   * Runs the gate and the chooser over an access-filtered pool.
+   * Fingerprints everything besides the question that decides an outcome.
+   *
+   * A cached outcome is only valid for the same context, instructions,
+   * thresholds and decision model, so changing any of them (or
+   * asking with another context) never serves a stale answer.
+   *
+   * @param string|null $context
+   *   The caller's context, if any.
+   *
+   * @return string
+   *   A hash.
+   */
+  protected function settingsFingerprint(?string $context): string {
+    $settings = $this->configFactory->get('literals_finder.settings')->getRawData();
+    unset($settings['_core'], $settings['log_audit']);
+    $settings['context'] = $context ?? '';
+    $settings['model'] = $this->chooser->modelId();
+    ksort($settings);
+    return hash('sha256', serialize($settings));
+  }
+
+  /**
+   * Runs the chooser over an access-filtered pool.
    *
    * @param string $question
    *   The question.
    * @param \Drupal\literals\Entity\Literal[] $candidates
    *   Literals the asker may see.
+   * @param string|null $context
+   *   The caller's context for the chooser, if any.
    */
-  protected function lookup(string $question, array $candidates): LiteralFindResult {
-    $menu = $candidates;
-    $tier = 'pool';
-    if ($this->embedder->isAvailable()) {
-      try {
-        $gated = $this->gate($question, $candidates);
-        if ($gated instanceof LiteralFindResult) {
-          return $gated;
-        }
-        $menu = $gated;
-        $tier = 'gate';
-      }
-      catch (\Throwable $e) {
-        // An embedding outage degrades to the full menu, not to an error.
-        $this->logger->warning('Gate unavailable (@class); using the full menu.', ['@class' => get_class($e)]);
-      }
+  protected function lookup(string $question, array $candidates, ?string $context = NULL): LiteralFindResult {
+    if (!$this->chooser->isAvailable()) {
+      return new LiteralFindResult(LiteralFindResult::NONE, [], 'pool', 'no_backend');
     }
-    if ($this->chooser->isAvailable()) {
-      return $this->chooser->choose($question, $menu);
-    }
-    if ($tier === 'gate') {
-      // No decision model: the shortlist itself is the honest answer.
-      return new LiteralFindResult(count($menu) === 1 ? LiteralFindResult::MATCH : LiteralFindResult::AMBIGUOUS, $menu, 'margin');
-    }
-    return new LiteralFindResult(LiteralFindResult::NONE, [], 'pool', 'no_backend');
-  }
-
-  /**
-   * Compares the question with stored gist vectors.
-   *
-   * @param string $question
-   *   The question.
-   * @param \Drupal\literals\Entity\Literal[] $candidates
-   *   Literals the asker may see.
-   *
-   * @return \Drupal\literals_finder\Finder\LiteralFindResult|\Drupal\literals\Entity\Literal[]
-   *   A final result when the gate decides alone, else the shortlist for the
-   *   chooser. Literals without a current vector always stay in the shortlist
-   *   and are queued for embedding, so a stale vector never hides one.
-   */
-  protected function gate(string $question, array $candidates): LiteralFindResult|array {
-    $settings = $this->configFactory->get('literals_finder.settings');
-    $query_vector = $this->embedder->embed($question);
-
-    $scored = [];
-    $unembedded = [];
-    foreach ($candidates as $literal) {
-      if ($this->embedder->isCurrent($literal)) {
-        $scored[(int) $literal->id()] = LiteralEmbedder::cosine($query_vector, $this->embedder->vectorOf($literal));
-      }
-      else {
-        $unembedded[] = $literal;
-        $this->queueFactory->get('literals_embed')->createItem(['id' => (int) $literal->id()]);
-      }
-    }
-    arsort($scored);
-    $ids = array_keys($scored);
-    $top = $scored ? reset($scored) : 0.0;
-    $second = count($scored) > 1 ? array_values($scored)[1] : 0.0;
-
-    if ($unembedded === []) {
-      if ($top < (float) $settings->get('gate_min_similarity')) {
-        return new LiteralFindResult(LiteralFindResult::NONE, [], 'gate', 'nothing_close');
-      }
-      if ($top - $second >= (float) $settings->get('gate_margin')) {
-        return new LiteralFindResult(LiteralFindResult::MATCH, [$this->byId($candidates, $ids[0])], 'margin');
-      }
-    }
-
-    $shortlist = array_map(fn (int $id) => $this->byId($candidates, $id), array_slice($ids, 0, (int) $settings->get('gate_top')));
-    return array_merge($shortlist, $unembedded);
-  }
-
-  /**
-   * Returns the pool's literal with an ID.
-   *
-   * @param \Drupal\literals\Entity\Literal[] $candidates
-   *   The pool.
-   * @param int $id
-   *   The literal ID.
-   */
-  protected function byId(array $candidates, int $id): Literal {
-    foreach ($candidates as $literal) {
-      if ((int) $literal->id() === $id) {
-        return $literal;
-      }
-    }
-    throw new \LogicException('Literal not in the pool.');
+    return $this->chooser->choose($question, $candidates, $context);
   }
 
   /**
    * Loads the published literals the account may view.
    *
    * The audience rule is applied to the query and again per entity, before
-   * the gate or the chooser sees any gist.
+   * the chooser sees any gist.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The asker.

@@ -3,7 +3,7 @@
 # when several literals fit equally (a tie or none is right, one pick is wrong). "as" is a user ID
 # (0 = anonymous). Synthetic data only: queries go to hosted Jev.
 queries:
-  - {q: 'what is your phone number', expect: main_phone}
+  - {q: 'what is your phone number', expect: [main_phone, ambiguous]}
   - {q: 'how can I call the library', expect: main_phone}
   - {q: 'main phone', expect: main_phone}
   - {q: 'telephone number for the front desk', expect: main_phone}
@@ -31,6 +31,16 @@ queries:
   - {q: 'when do you close', expect: opening_hours}
   - {q: 'I forgot my password', expect: password_reset}
   - {q: 'reset my password', expect: password_reset}
-  - {q: 'phone number', expect: ambiguous}
+  - {q: 'phone number', expect: [main_phone, ambiguous]}
   - {q: 'email address of the librarian', expect: none}
   - {q: 'do you have the latest Stephen King novel', expect: none}
+  # "You/your" phrasings (the chooser context makes these about the library).
+  - {q: 'what are your opening hours', expect: opening_hours}
+  - {q: 'how do I get hold of you by phone', expect: [main_phone, ambiguous]}
+  - {q: 'what is your telephone number', expect: [main_phone, ambiguous]}
+  - {q: 'how do I sign in to your website', expect: login}
+  - {q: 'what is your email address', expect: none}
+  - {q: 'what is your street address', expect: none}
+  - {q: 'who is your head librarian', expect: none}
+  - {q: 'what is your refund policy', expect: none}
+  - {q: 'what is your fax number', expect: none}

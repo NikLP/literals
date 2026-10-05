@@ -1,6 +1,6 @@
 name: 'Literals finder'
 type: module
-description: 'Finds a literal by plain-language question: access filter, optional embedding gate, then a Decision API chooser. Needs drupal/ai.'
+description: 'Finds a literal by plain-language question: access filter, outcome cache, then a Decision API chooser. Needs drupal/ai.'
 package: AIM
 core_version_requirement: ^11
 dependencies:

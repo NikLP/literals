@@ -105,9 +105,10 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
    */
   public function testTokenLiteralValidatesReferencedKeys(): void {
     $this->createLiteral('real', 'x');
-    $ok = Literal::create(['type' => 'token', 'name' => 'a', 'key' => 'ref_ok', 'value' => '[literal:real]', 'audience' => 'anonymous']);
+    $base = ['type' => 'token', 'audience' => 'anonymous'];
+    $ok = Literal::create($base + ['name' => 'a', 'key' => 'ref_ok', 'value' => '[literal:real]']);
     $this->assertCount(0, $ok->validate());
-    $bad = Literal::create(['type' => 'token', 'name' => 'b', 'key' => 'ref_bad', 'value' => '[literal:imaginary]', 'audience' => 'anonymous']);
+    $bad = Literal::create($base + ['name' => 'b', 'key' => 'ref_bad', 'value' => '[literal:imaginary]']);
     $this->assertGreaterThan(0, count($bad->validate()));
   }
 

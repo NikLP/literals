@@ -1,0 +1,36 @@
+<?php
+// Scale eval: SCALE_N=60 drush php:script <this file> creates N synthetic zz_ literals (max 225) and writes /var/www/html/scale-gold.yml; run drush literals:eval /var/www/html/scale-gold.yml; SCALE_CLEAN=1 removes the zz_ literals. Delete scale-gold.yml afterwards.
+use Drupal\literals\Entity\Literal;
+use Drupal\user\Entity\User;
+\Drupal::currentUser()->setAccount(User::load(1));
+$storage = \Drupal::entityTypeManager()->getStorage('literal');
+$old = $storage->loadByProperties(['type' => 'text']);
+foreach ($old as $l) { if (str_starts_with($l->get('key')->value, 'zz_')) { $l->delete(); } }
+$phones = \Drupal::entityTypeManager()->getStorage('literal')->loadByProperties(['type' => 'phone']);
+foreach ($phones as $l) { if (str_starts_with($l->get('key')->value, 'zz_')) { $l->delete(); } }
+if (getenv('SCALE_CLEAN')) { echo "cleaned\n"; return; }
+$n = (int) getenv('SCALE_N');
+$depts = ['Cataloguing','Childrens room','Archives','Local history','Interlibrary loans','Periodicals','Music and film','Teen zone','Makerspace','Genealogy','Maps and atlases','Rare books','Reference desk','Large print','Audiobooks','Language learning','Business corner','Job centre help','Digital skills','Art gallery','Cafe','Gift shop','Events booking','Volunteer office','Friends of the library','Bookbinding workshop','Microfilm room','Study pods','Reading garden','Outreach van','Schools liaison','Prison library','Hospital library','Housebound service','Accessibility team','Facilities','Security desk','Lost property','Photocopying','Printing and scanning','3D printing','Podcast studio','Seed library','Tool library','Game lending','Newspaper archive','Poetry society','Writers group','Coding club','Chess club','Knitting circle','Toddler rhyme time','Homework help','Exam invigilation','Tax help','Legal advice clinic','Health information','Council services','Planning records','Marriage records','Oral history','Photograph collection','Sound archive','Conservation lab','Donations','Fundraising','Press office','Human resources','Payroll','Procurement','Board secretary','Data protection officer','Website support','IT helpdesk','Building manager'];
+$kinds = [
+  'phone' => ['type' => 'phone', 'gist' => 'Phone number for the %s', 'val' => fn($i) => sprintf('+44 1223 %06d', 100000 + $i), 'qs' => ['how do I phone the %s', 'number to ring the %s']],
+  'hours' => ['type' => 'text', 'gist' => 'Opening hours of the %s', 'val' => fn($i) => 'Mon-Fri 9-17 (variant ' . $i . ')', 'qs' => ['when is the %s open', 'what time does the %s close']],
+  'email' => ['type' => 'text', 'gist' => 'Email address of the %s', 'val' => fn($i) => "desk$i@example.org", 'qs' => ['email the %s', 'what is the %s email address']],
+];
+$gold = [];
+$count = 0; $i = 0;
+foreach ($depts as $d) {
+  foreach ($kinds as $kind => $k) {
+    if ($count >= $n) { break 2; }
+    $slug = 'zz_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($d)) . '_' . $kind;
+    $l = Literal::create(['type' => $k['type'], 'name' => ucfirst(sprintf($k['gist'], $d)), 'key' => $slug, 'value' => $k['val']($i), 'gist' => sprintf($k['gist'], $d), 'audience' => 'anonymous', 'status' => 1]);
+    $v = $l->validate(); if (count($v)) { echo "INVALID $slug: $v\n"; continue; }
+    $l->save();
+    foreach ($k['qs'] as $q) { $gold[] = ['q' => sprintf($q, strtolower($d)), 'expect' => $slug]; }
+    $count++; $i++;
+  }
+}
+// Sample so the gold set is a fixed size regardless of pool size.
+mt_srand(42); shuffle($gold); $gold = array_slice($gold, 0, 60);
+foreach (['what is the wifi password', 'who won the football last night', 'how tall is mount everest', 'recipe for sourdough bread', 'phone number of the dentist', 'email the prime minister', 'what is the weather forecast', 'when does the moon rise', 'how do I phone the zeppelin hangar', 'opening hours of the town swimming baths'] as $q) { $gold[] = ['q' => $q, 'expect' => 'none']; }
+file_put_contents('/var/www/html/scale-gold.yml', \Symfony\Component\Yaml\Yaml::dump(['queries' => $gold], 3));
+echo "literals: $count, gold: " . count($gold) . "\n";

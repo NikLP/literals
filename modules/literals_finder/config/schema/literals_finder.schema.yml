@@ -2,18 +2,6 @@ literals_finder.settings:
   type: config_object
   label: 'Literals settings'
   mapping:
-    gate_enabled:
-      type: boolean
-      label: 'Use stored gist embeddings as a gate before the chooser'
-    gate_min_similarity:
-      type: float
-      label: 'Cosine similarity below which nothing is close (untuned placeholder)'
-    gate_margin:
-      type: float
-      label: 'Lead over the runner-up that decides without the chooser (untuned placeholder)'
-    gate_top:
-      type: integer
-      label: 'Candidates passed to the chooser after the gate'
     match_threshold:
       type: float
       label: 'Chooser probability needed for a match (untuned placeholder)'
@@ -26,6 +14,9 @@ literals_finder.settings:
     log_audit:
       type: boolean
       label: 'Write an audit line per lookup'
+    chooser_context:
+      type: string
+      label: 'Who is being asked, put before the chooser instructions'
     chooser_instructions:
       type: string
       label: 'Instructions put to the chooser model (empty uses the built-in default)'
