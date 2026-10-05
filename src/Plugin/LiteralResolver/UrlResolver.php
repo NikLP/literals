@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Drupal\literals\Plugin\LiteralKind;
+namespace Drupal\literals\Plugin\LiteralResolver;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
-use Drupal\literals\Attribute\LiteralKind;
+use Drupal\literals\Attribute\LiteralResolver;
 use Drupal\literals\Entity\Literal;
-use Drupal\literals\LiteralKindBase;
+use Drupal\literals\LiteralResolverBase;
 
 /**
  * An internal path, resolved to an absolute URL after an access check.
  */
-#[LiteralKind(
+#[LiteralResolver(
   id: 'url',
   label: new TranslatableMarkup('Internal path'),
   description: new TranslatableMarkup('An internal path such as /news, access checked for the viewer.'),
 )]
-class UrlKind extends LiteralKindBase {
+class UrlResolver extends LiteralResolverBase {
 
   /**
    * Builds the Url object for a stored value, or NULL if it is not a path.

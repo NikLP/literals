@@ -40,8 +40,8 @@ class LiteralForm extends ContentEntityForm {
       unset($element);
     }
 
-    $kind = $literal->getType()->getKind();
-    if ($kind === 'token' && isset($form['value'])) {
+    $resolver = $literal->getType()->getResolver();
+    if ($resolver === 'token' && isset($form['value'])) {
       // The token browser comes from the contrib Token module, if present.
       if (\Drupal::moduleHandler()->moduleExists('token')) {
         $form['value']['token_help'] = [
@@ -55,7 +55,7 @@ class LiteralForm extends ContentEntityForm {
         $form['value']['widget'][0]['value']['#description'] = $this->t('Install the Token module for a token browser.');
       }
     }
-    if ($kind === 'url' && isset($form['value']['widget'][0]['value'])) {
+    if ($resolver === 'url' && isset($form['value']['widget'][0]['value'])) {
       $this->addContentAutocomplete($form['value']['widget'][0]['value']);
     }
 

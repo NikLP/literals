@@ -71,7 +71,7 @@ class LiteralEmbedder {
   }
 
   /**
-   * Whether the literal has a vector made by the current model for its gist.
+   * Whether the literal has a vector made by the current model.
    *
    * @param \Drupal\literals\Entity\Literal $literal
    *   The literal.
@@ -82,13 +82,13 @@ class LiteralEmbedder {
   }
 
   /**
-   * Returns the stored vector, or NULL.
+   * Returns the stored gist vector, or NULL.
    *
    * @param \Drupal\literals\Entity\Literal $literal
    *   The literal.
    *
    * @return float[]|null
-   *   The vector.
+   *   The vector. NULL when none.
    */
   public function vectorOf(Literal $literal): ?array {
     $json = (string) $literal->get('gist_vector')->value;
@@ -96,11 +96,11 @@ class LiteralEmbedder {
       return NULL;
     }
     $vector = json_decode($json, TRUE);
-    return is_array($vector) && $vector !== [] ? $vector : NULL;
+    return is_array($vector) && $vector !== [] && !is_array($vector[0] ?? NULL) ? $vector : NULL;
   }
 
   /**
-   * Embeds the literal's gist and stores the vector on it (no save).
+   * Embeds the gist and stores the vector on the literal (no save).
    *
    * @param \Drupal\literals\Entity\Literal $literal
    *   The literal.
@@ -112,8 +112,7 @@ class LiteralEmbedder {
       $literal->set('gist_vector_model', NULL);
       return;
     }
-    $vector = $this->embed($gist);
-    $literal->set('gist_vector', json_encode($vector));
+    $literal->set('gist_vector', json_encode($this->embed($gist)));
     $literal->set('gist_vector_model', $this->modelId());
   }
 

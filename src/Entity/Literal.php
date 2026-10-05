@@ -19,7 +19,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Form\LiteralForm;
 use Drupal\literals\LiteralAccessControlHandler;
 use Drupal\literals\LiteralAudience;
-use Drupal\literals\LiteralKindInterface;
+use Drupal\literals\LiteralResolverInterface;
 use Drupal\literals\LiteralViewsData;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
@@ -68,7 +68,6 @@ use Drupal\user\EntityOwnerTrait;
     'revision_log_message' => 'revision_log',
   ],
   bundle_entity_type: 'literal_type',
-  field_ui_base_route: 'entity.literal_type.edit_form',
   links: [
     'add-page' => '/admin/content/literals/add',
     'add-form' => '/admin/content/literals/add/{literal_type}',
@@ -88,7 +87,7 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
   use EntityChangedTrait;
 
   /**
-   * Resolves the value according to the literal's kind.
+   * Resolves the value according to the literal's resolver.
    *
    * @param \Drupal\Core\Session\AccountInterface|null $account
    *   The account the value is for. Defaults to the current user.
@@ -99,17 +98,17 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
    *   The resolved value, or NULL when it cannot be resolved for the account.
    */
   public function resolve(?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL): ?string {
-    return $this->getKindPlugin()->resolve($this, $account ?? \Drupal::currentUser(), $metadata ?? new CacheableMetadata());
+    return $this->getResolverPlugin()->resolve($this, $account ?? \Drupal::currentUser(), $metadata ?? new CacheableMetadata());
   }
 
   /**
-   * Returns the kind plugin that reads this literal's value.
+   * Returns the resolver plugin that reads this literal's value.
    *
-   * @return \Drupal\literals\LiteralKindInterface
-   *   The kind plugin of the literal's type.
+   * @return \Drupal\literals\LiteralResolverInterface
+   *   The resolver plugin of the literal's type.
    */
-  public function getKindPlugin(): LiteralKindInterface {
-    return \Drupal::service('plugin.manager.literal_kind')->createInstance($this->getType()->getKind());
+  public function getResolverPlugin(): LiteralResolverInterface {
+    return \Drupal::service('plugin.manager.literal_resolver')->createInstance($this->getType()->getResolver());
   }
 
   /**
@@ -163,7 +162,7 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
 
     $fields['value'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Value'))
-      ->setDescription(t('The exact thing returned, read according to its kind. Never embedded, paraphrased or sent to the chooser.'))
+      ->setDescription(t('The exact thing returned, read according to its resolver. Never embedded, paraphrased or sent to the chooser.'))
       ->setRequired(TRUE)
       ->setRevisionable(TRUE)
       ->addConstraint('LiteralValue')

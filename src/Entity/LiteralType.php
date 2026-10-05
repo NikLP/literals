@@ -14,8 +14,8 @@ use Drupal\literals\Form\LiteralTypeForm;
 /**
  * Defines the literal type config entity, the bundle of literal.
  *
- * A type says what kind of value its literals hold (text, token, entity,
- * URL: a LiteralKind plugin) and carries that kind's settings, e.g. a Text
+ * A type says what sort of value its literals hold (text, token, entity,
+ * URL: a LiteralResolver plugin) and carries that resolver's settings, e.g. a Text
  * type validated as a phone number. Fieldable, so a type can carry extra
  * fields beside the shared name, key, value and gist.
  */
@@ -52,7 +52,7 @@ use Drupal\literals\Form\LiteralTypeForm;
     'id',
     'label',
     'description',
-    'kind',
+    'resolver',
     'validate_as',
   ],
 )]
@@ -74,22 +74,22 @@ class LiteralType extends ConfigEntityBundleBase {
   protected string $description = '';
 
   /**
-   * The LiteralKind plugin ID that reads and checks this type's values.
+   * The LiteralResolver plugin ID that reads and checks this type's values.
    */
-  protected string $kind = 'text';
+  protected string $resolver = 'text';
 
   /**
-   * For the text kind: how values are validated on save.
+   * For the text resolver: how values are validated on save.
    *
    * One of string, int, phone, email or url.
    */
   protected string $validate_as = 'string';
 
   /**
-   * Returns the kind plugin ID.
+   * Returns the resolver plugin ID.
    */
-  public function getKind(): string {
-    return $this->kind;
+  public function getResolver(): string {
+    return $this->resolver;
   }
 
   /**

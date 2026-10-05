@@ -1,0 +1,7 @@
+literals.admin_config:
+  path: '/admin/config/literals'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Literals'
+  requirements:
+    _permission: 'administer literals'

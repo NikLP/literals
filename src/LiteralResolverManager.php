@@ -7,12 +7,12 @@ namespace Drupal\literals;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
-use Drupal\literals\Attribute\LiteralKind;
+use Drupal\literals\Attribute\LiteralResolver;
 
 /**
- * Plugin manager for literal kinds.
+ * Plugin manager for literal resolvers.
  */
-class LiteralKindManager extends DefaultPluginManager {
+class LiteralResolverManager extends DefaultPluginManager {
 
   /**
    * Constructs the manager.
@@ -25,13 +25,13 @@ class LiteralKindManager extends DefaultPluginManager {
    *   The module handler.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler) {
-    parent::__construct('Plugin/LiteralKind', $namespaces, $module_handler, LiteralKindInterface::class, LiteralKind::class);
-    $this->alterInfo('literal_kind_info');
-    $this->setCacheBackend($cache_backend, 'literal_kind_plugins');
+    parent::__construct('Plugin/LiteralResolver', $namespaces, $module_handler, LiteralResolverInterface::class, LiteralResolver::class);
+    $this->alterInfo('literal_resolver_info');
+    $this->setCacheBackend($cache_backend, 'literal_resolver_plugins');
   }
 
   /**
-   * Returns the kind options for a select element.
+   * Returns the resolver options for a select element.
    *
    * @return array<string, \Drupal\Core\StringTranslation\TranslatableMarkup>
    *   Plugin labels keyed by ID.

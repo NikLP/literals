@@ -21,6 +21,11 @@ class LiteralChooser implements LiteralChooserInterface {
   protected const NONE_OPTION = '__none__';
 
   /**
+   * The default question put to the model.
+   */
+  protected const DEFAULT_INSTRUCTIONS = 'Which description says what the question is asking for? Choose none when no description clearly fits; a wrong answer is worse than none.';
+
+  /**
    * Constructs the chooser.
    *
    * @param \Drupal\ai\AiProviderPluginManager $aiProvider
@@ -63,9 +68,10 @@ class LiteralChooser implements LiteralChooserInterface {
     }
     $criteria[self::NONE_OPTION] = 'None of the above: the question is not asking for any of these.';
 
+    $instructions = (string) $this->configFactory->get('literals_finder.settings')->get('chooser_instructions');
     $input = new DecisionInput(
       ['question' => $question],
-      ['choice' => new ChoiceQuestion('Which description says what the question is asking for? Choose none when no description clearly fits; a wrong answer is worse than none.', $criteria)],
+      ['choice' => new ChoiceQuestion($instructions ?: self::DEFAULT_INSTRUCTIONS, $criteria)],
     );
     $answer = $provider->decision($input, $default['model_id'], ['literals_choose'])->getNormalized()->getChoice('choice');
 

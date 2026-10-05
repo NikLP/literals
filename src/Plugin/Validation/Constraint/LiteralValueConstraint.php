@@ -9,7 +9,7 @@ use Drupal\Core\Validation\Attribute\Constraint;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
- * Validates a literal's value against its kind.
+ * Validates a literal's value against its resolver.
  *
  * Runs in the entity layer (not Form API #pattern), so agents, tools and
  * Drush get the same check as the edit form (ADR-0040 piece 1).

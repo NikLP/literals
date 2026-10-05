@@ -11,13 +11,13 @@ literals.literal_type.*:
     description:
       type: text
       label: 'Description'
-    kind:
+    resolver:
       type: string
-      label: 'Kind'
+      label: 'Resolver'
       constraints:
         PluginExists:
-          manager: plugin.manager.literal_kind
-          interface: '\Drupal\literals\LiteralKindInterface'
+          manager: plugin.manager.literal_resolver
+          interface: '\Drupal\literals\LiteralResolverInterface'
     validate_as:
       type: string
       label: 'Validate as'

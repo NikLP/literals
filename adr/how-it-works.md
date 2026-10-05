@@ -23,7 +23,7 @@ matters, so "no match" is always preferred to a guess.
 
 | Module | Needs | Does |
 | --- | --- | --- |
-| `literals` | `user`, `views` | The entity, types and kinds, access, the admin UI. Exact lookup by key. **No model of any kind.** |
+| `literals` | `user`, `views` | The entity, types and resolvers, access, the admin UI. Exact lookup by key. **No model of any kind.** |
 | `literals_finder` | `literals`, `drupal/ai` | Lookup by question: the finder, the chooser, the embedding gate, the outcome cache, the eval command. The only part that calls a model. |
 
 A site that only wants a settings store with access control installs the
@@ -33,7 +33,7 @@ first and never touches AI. Tokens (`[literal:key]`), the Tool API
 ## What is stored
 
 One content entity, `literal`, revisionable, with a published status. The
-bundle is a **type** (a config entity), and the type picks a **kind**
+bundle is a **type** (a config entity), and the type picks a **resolver**
 plugin that decides how the value is validated and read.
 
 | Field | Holds | Seen by a model? |
@@ -41,11 +41,11 @@ plugin that decides how the value is validated and read.
 | `name` | Human label, "Main phone number" | No |
 | `key` | Machine name, unique across all literals | Yes, as the option ID |
 | `gist` | Short description of what the value is | Yes (chooser), embedded (gate) |
-| `value` | The exact payload, read through its kind | **Never** |
+| `value` | The exact payload, read through its resolver | **Never** |
 | `audience` | `anonymous`, `authenticated` or `restricted` | No: used to filter before any model |
 | `gist_vector`, `gist_vector_model` | Derived: the gist's embedding as JSON, and the model that made it | No (numbers only) |
 
-Kinds (`text`, `token`, `entity`, `url`) validate the value on save and
+Resolvers (`text`, `token`, `entity`, `url`) validate the value on save and
 `resolve($account)` it at read time. `entity` and `url` run a view-access
 check at read, and a `url` is an internal path only. `$literal->resolve()`
 is the one call that turns a literal into a value.

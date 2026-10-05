@@ -6,7 +6,7 @@ namespace Drupal\literals\Form;
 
 use Drupal\Core\Entity\BundleEntityFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\literals\LiteralKindManager;
+use Drupal\literals\LiteralResolverManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -17,16 +17,16 @@ class LiteralTypeForm extends BundleEntityFormBase {
   /**
    * Constructs the form.
    *
-   * @param \Drupal\literals\LiteralKindManager $kindManager
-   *   The literal kind plugin manager.
+   * @param \Drupal\literals\LiteralResolverManager $resolverManager
+   *   The literal resolver plugin manager.
    */
-  public function __construct(protected LiteralKindManager $kindManager) {}
+  public function __construct(protected LiteralResolverManager $resolverManager) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('plugin.manager.literal_kind'));
+    return new static($container->get('plugin.manager.literal_resolver'));
   }
 
   /**
@@ -58,12 +58,12 @@ class LiteralTypeForm extends BundleEntityFormBase {
       '#title' => $this->t('Description'),
       '#default_value' => $type->get('description'),
     ];
-    $form['kind'] = [
+    $form['resolver'] = [
       '#type' => 'select',
-      '#title' => $this->t('Kind'),
+      '#title' => $this->t('Resolver'),
       '#description' => $this->t('What the value of a literal of this type is. Fixed once literals exist.'),
-      '#options' => $this->kindManager->getOptions(),
-      '#default_value' => $type->getKind(),
+      '#options' => $this->resolverManager->getOptions(),
+      '#default_value' => $type->getResolver(),
       '#required' => TRUE,
       '#disabled' => !$type->isNew(),
     ];
@@ -79,7 +79,7 @@ class LiteralTypeForm extends BundleEntityFormBase {
         'url' => $this->t('URL'),
       ],
       '#default_value' => $type->getValidateAs(),
-      '#states' => ['visible' => [':input[name="kind"]' => ['value' => 'text']]],
+      '#states' => ['visible' => [':input[name="resolver"]' => ['value' => 'text']]],
     ];
 
     return $this->protectBundleIdElement($form);

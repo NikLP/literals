@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\literals_finder\Drush\Commands;
 
+use Drupal\Component\Serialization\Yaml;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\literals_finder\Finder\LiteralEmbedder;
+use Drupal\literals_finder\Finder\LiteralFindResult;
 use Drupal\literals_finder\Finder\LiteralFinderInterface;
 use Drupal\user\Entity\User;
 use Drush\Attributes as CLI;
@@ -94,6 +97,67 @@ final class LiteralsCommands extends DrushCommands {
       }
     }
     $this->io()->success("Embedded $count literal(s).");
+  }
+
+  /**
+   * Runs a gold set of questions through the finder and scores it.
+   *
+   * Clears the outcome cache first. Reports per-query results, then recall,
+   * misses, wrong-confident matches (the costly kind: a wrong value served)
+   * and time. Never prints values.
+   */
+  #[CLI\Command(name: 'literals:eval')]
+  #[CLI\Argument(name: 'file', description: 'YAML gold set (default: the module\'s eval/gold.seed.yml).')]
+  public function evaluate(?string $file = NULL): void {
+    $file ??= \Drupal::service('extension.list.module')->getPath('literals_finder') . '/eval/gold.seed.yml';
+    $gold = Yaml::decode(file_get_contents($file))['queries'] ?? [];
+    Cache::invalidateTags(['literal_list']);
+
+    $score = ['hit' => 0, 'miss' => 0, 'wrong' => 0, 'ambiguous' => 0, 'none_ok' => 0, 'none_fp' => 0];
+    $answerable = 0;
+    $unanswerable = 0;
+    $elapsed = 0.0;
+    $rows = [];
+    foreach ($gold as $item) {
+      $uid = (int) ($item['as'] ?? 0);
+      $account = $uid === 0 ? new AnonymousUserSession() : User::load($uid);
+      $start = microtime(TRUE);
+      $result = $this->finder->find($item['q'], $account);
+      $took = microtime(TRUE) - $start;
+      $elapsed += $took;
+      $keys = array_map(fn ($l) => (string) $l->get('key')->value, $result->literals);
+      $expect = (string) $item['expect'];
+
+      if ($expect === 'none' || $expect === 'ambiguous') {
+        // Unanswerable, or deliberately vague: showing a tie or nothing is
+        // right, picking one literal is the false positive.
+        $unanswerable++;
+        $ok = $result->outcome === LiteralFindResult::NONE
+          || ($expect === 'ambiguous' && $result->outcome === LiteralFindResult::AMBIGUOUS);
+        $verdict = $ok ? 'none_ok' : 'none_fp';
+      }
+      else {
+        $answerable++;
+        $verdict = match (TRUE) {
+          $result->outcome === LiteralFindResult::MATCH && $keys === [$expect] => 'hit',
+          $result->outcome === LiteralFindResult::MATCH => 'wrong',
+          $result->outcome === LiteralFindResult::AMBIGUOUS => 'ambiguous',
+          default => 'miss',
+        };
+      }
+      $score[$verdict]++;
+      $got = $result->outcome . ($keys ? ' ' . implode('|', $keys) : '');
+      $tier = $result->tier . ($result->reason ? "/$result->reason" : '');
+      $rows[] = [$verdict, $item['q'], $expect, $got, $tier, sprintf('%.2fs', $took)];
+    }
+
+    $this->io()->table(['', 'Question', 'Expected', 'Got', 'Tier', 'Time'], $rows);
+    $pct = fn (int $n, int $d) => $d ? sprintf('%d/%d (%d%%)', $n, $d, round(100 * $n / $d)) : '-';
+    $this->io()->writeln([
+      'Answerable:   hit ' . $pct($score['hit'], $answerable) . ', miss ' . $score['miss'] . ', ambiguous ' . $score['ambiguous'] . ', WRONG-CONFIDENT ' . $score['wrong'],
+      'Unanswerable: correct none ' . $pct($score['none_ok'], $unanswerable) . ', false positive ' . $score['none_fp'],
+      sprintf('Mean time %.2fs per query', $gold ? $elapsed / count($gold) : 0),
+    ]);
   }
 
 }

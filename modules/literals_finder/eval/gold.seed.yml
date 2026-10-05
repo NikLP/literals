@@ -1,0 +1,36 @@
+# Gold queries for the five seed literals on the dev site. "expect" is a
+# literal key, "none" when nothing should match, or "ambiguous"
+# when several literals fit equally (a tie or none is right, one pick is wrong). "as" is a user ID
+# (0 = anonymous). Synthetic data only: queries go to hosted Jev.
+queries:
+  - {q: 'what is your phone number', expect: main_phone}
+  - {q: 'how can I call the library', expect: main_phone}
+  - {q: 'main phone', expect: main_phone}
+  - {q: 'telephone number for the front desk', expect: main_phone}
+  - {q: 'who is the admin', expect: admin_user}
+  - {q: 'which account runs the site', expect: admin_user}
+  - {q: 'where do I sign in', expect: login}
+  - {q: 'how do I log in', expect: login}
+  - {q: 'login page', expect: login}
+  - {q: 'what is the name of this site', expect: site_name, as: 1}
+  - {q: 'what is the website called', expect: site_name, as: 1}
+  - {q: 'what is the name of this site', expect: none, as: 0}
+  - {q: 'where are the dimwits', expect: dimwit}
+  - {q: 'what is the capital of France', expect: none}
+  - {q: 'what is the weather', expect: none}
+  # Near neighbours: the wrong-confident risk.
+  - {q: 'phone number to book a study room', expect: reservations_phone}
+  - {q: 'reservations phone', expect: reservations_phone}
+  - {q: 'who do I call to reserve a meeting room', expect: reservations_phone}
+  - {q: 'phone number for my library fine', expect: accounts_phone}
+  - {q: 'call billing about an overdue charge', expect: accounts_phone}
+  - {q: 'main phone', expect: main_phone}
+  - {q: 'general enquiries phone number', expect: main_phone}
+  - {q: 'what time do you open', expect: opening_hours}
+  - {q: 'are you open on Sunday', expect: opening_hours}
+  - {q: 'when do you close', expect: opening_hours}
+  - {q: 'I forgot my password', expect: password_reset}
+  - {q: 'reset my password', expect: password_reset}
+  - {q: 'phone number', expect: ambiguous}
+  - {q: 'email address of the librarian', expect: none}
+  - {q: 'do you have the latest Stephen King novel', expect: none}

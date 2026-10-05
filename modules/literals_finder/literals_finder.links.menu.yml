@@ -1,0 +1,6 @@
+literals_finder.settings:
+  title: 'Finder settings'
+  description: 'Tune how a plain-language question finds a literal.'
+  parent: literals.admin_config
+  route_name: literals_finder.settings
+  weight: 10

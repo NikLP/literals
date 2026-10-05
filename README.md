@@ -19,17 +19,17 @@ literal, and the value comes back if the viewer is allowed to see it.
 The value does not have to live in `literals`:
 
 - If a module already holds it (Site Settings, Custom Tokens, core tokens),
-  the literal points at it with the **token** or **entity** kind and adds the
+  the literal points at it with the **token** or **entity** resolver and adds the
   gist and the audience rules. Nothing is copied.
 - If nothing holds it, the literal stores it itself with the **text** or
-  **url** kind, so no second module is needed to start.
+  **url** resolver, so no second module is needed to start.
 
 So `literals` is not another place to keep site-wide values. It is the layer
 that finds the right one from a description and decides who sees it.
 
 ## Modules
 
-- `literals` - the entity, types, kinds, audience rules and admin UI. No AI
+- `literals` - the entity, types, resolvers, audience rules and admin UI. No AI
   needed.
 - `literals_finder` - find by question: an access filter, an optional
   embedding gate, then a Decision API choice. Needs `drupal/ai`.

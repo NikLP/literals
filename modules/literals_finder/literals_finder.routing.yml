@@ -1,0 +1,7 @@
+literals_finder.settings:
+  path: '/admin/config/literals/finder'
+  defaults:
+    _form: '\Drupal\literals_finder\Form\LiteralsFinderSettingsForm'
+    _title: 'Literals finder settings'
+  requirements:
+    _permission: 'administer literals'

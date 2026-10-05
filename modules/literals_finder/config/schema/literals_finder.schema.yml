@@ -26,3 +26,6 @@ literals_finder.settings:
     log_audit:
       type: boolean
       label: 'Write an audit line per lookup'
+    chooser_instructions:
+      type: string
+      label: 'Instructions put to the chooser model (empty uses the built-in default)'

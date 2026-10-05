@@ -9,12 +9,12 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\literals\Entity\Literal;
 
 /**
- * A kind of literal value: plain text, a token, an entity, a URL.
+ * A resolver of literal value: plain text, a token, an entity, a URL.
  *
- * The stored value is always a string. The kind says what it means and how
- * to turn it into the thing handed to the caller (ADR-0040 "value kinds").
+ * The stored value is always a string. The resolver says what it means and how
+ * to turn it into the thing handed to the caller (ADR-0040 "value resolvers").
  */
-interface LiteralKindInterface {
+interface LiteralResolverInterface {
 
   /**
    * Returns the problems with a literal's stored value.
@@ -33,7 +33,7 @@ interface LiteralKindInterface {
    * @param \Drupal\literals\Entity\Literal $literal
    *   The literal.
    * @param \Drupal\Core\Session\AccountInterface $account
-   *   The account the value is for; kinds that point at other things check
+   *   The account the value is for; resolvers that point at other things check
    *   that account's access to them.
    * @param \Drupal\Core\Cache\CacheableMetadata $metadata
    *   Collects the cache metadata of everything consulted.

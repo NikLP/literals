@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Drupal\literals\Plugin\LiteralKind;
+namespace Drupal\literals\Plugin\LiteralResolver;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\literals\Attribute\LiteralKind;
+use Drupal\literals\Attribute\LiteralResolver;
 use Drupal\literals\Entity\Literal;
-use Drupal\literals\LiteralKindBase;
+use Drupal\literals\LiteralResolverBase;
 
 /**
  * A pointer to an entity, stored as "entity_type:id", resolved to its URL.
  */
-#[LiteralKind(
+#[LiteralResolver(
   id: 'entity',
   label: new TranslatableMarkup('Entity'),
   description: new TranslatableMarkup('An entity as type:id, e.g. node:12. Resolves to its URL.'),
 )]
-class EntityKind extends LiteralKindBase {
+class EntityResolver extends LiteralResolverBase {
 
   /**
    * Loads the entity a stored value points at.

@@ -1,6 +1,6 @@
 services:
-  plugin.manager.literal_kind:
-    class: Drupal\literals\LiteralKindManager
+  plugin.manager.literal_resolver:
+    class: Drupal\literals\LiteralResolverManager
     parent: default_plugin_manager
 
   logger.channel.literals:

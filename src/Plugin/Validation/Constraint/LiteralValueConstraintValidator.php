@@ -10,7 +10,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 
 /**
- * Validates the value field through the literal's kind plugin.
+ * Validates the value field through the literal's resolver plugin.
  */
 final class LiteralValueConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
@@ -30,7 +30,7 @@ final class LiteralValueConstraintValidator extends ConstraintValidator implemen
       return;
     }
     $literal = $items->getEntity();
-    $plugin = $literal->getKindPlugin();
+    $plugin = $literal->getResolverPlugin();
     foreach ($plugin->validate($literal) as $message) {
       $this->context->addViolation($message);
     }

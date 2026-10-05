@@ -9,9 +9,9 @@ use Drupal\Core\Plugin\PluginBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Base class for literal kinds.
+ * Base class for literal resolvers.
  */
-abstract class LiteralKindBase extends PluginBase implements LiteralKindInterface, ContainerFactoryPluginInterface {
+abstract class LiteralResolverBase extends PluginBase implements LiteralResolverInterface, ContainerFactoryPluginInterface {
 
   /**
    * {@inheritdoc}
