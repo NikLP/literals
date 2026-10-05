@@ -27,6 +27,16 @@ The progressive-enhancement ladder (no model, full menu, gate, vector index; wha
 - **UI.** Content > Literals is a view (`views.view.literals`) with exposed "Visible to" and Type filters, plus a `page_type` display at `admin/content/literals/type/%` (path kept for later). Structure > Literal types is the type UI. Value widget by resolver: URL gets a content title autocomplete (stores `/node/N`); token gets the Token module's browser if that module is installed (it is not on this site yet: `composer require drupal/token`).
 - **Seed data on this site.** Types `text`, `phone`, `url`, `token`, `entity`; five throwaway literals. Config is exported to `config/sync` and the view is copied to `config/install` (no `uuid`/`_core`). `literals.info.yml` lists the view under `config_devel`.
 
+## Phase 2 state
+
+- **Reader.** `literals.reader` (`LiteralReader`): `load($key, $account)` (published revision only, `access('view')` for the account, missing and not-visible both give NULL) and `read(...)` (resolved value, cycle guard so token literals cannot loop). Bubbles `literal_list`, the entity's tags, and the access result's contexts.
+- **Token `[literal:key]`.** `hook_token_info` lists published literals (reset on every literal save/delete); `hook_tokens` reads for `$options['literals_account']` if given (a token-resolver literal passes the asked account so a nested `[literal:x]` is not evaluated for the session user), else the current user. Unreadable gives nothing under `clear`. Keys that equal a literal field name or entity token (`url`, `name`, `value`, ...) are refused by validation: the Token module adds entity tokens under the same `literal` namespace.
+- **Tool `literal_lookup`** (submodule `literals_tool`, needs `tool`): `key` (precedence) or `question` (uses `literals_finder.finder` if enabled, else a clear failure). Outputs `outcome` (match/ambiguous/none), `key`, `value` (empty unless match). Permission `use literal lookup tool`. Missing, draft and not-visible are one identical "none" answer. Renamed from the working name `literal_get`.
+- **Guardrails.** Base constraint `LiteralGuardrails` on `gist` and `value`, no-op unless a `literals.guardrails` service exists (`literals_finder` provides it, set `literals_write_guardrails`: max length 2000, no HTML). The value is checked with `deterministic_only`: a model-backed guardrail added later still never sees a value. Runs at entity validation, so a programmatic writer must call `validate()` before `save()` (same as aim). The two guardrail configs trigger a schema warning about `check_all_messages` (same as aim's copy: upstream schema gap).
+- **Audit.** `literals.settings:log_audit` (off). Writes (insert/update/delete) and reads log id/key/type/audience/uid/outcome, never gist or value.
+- **Tests.** PHPUnit kernel tests in `tests/src/Kernel` and `modules/literals_tool/tests`: `ddev exec "cd /var/www/html && SIMPLETEST_DB='sqlite://localhost/sites/default/files/literals-test.sqlite' SIMPLETEST_BASE_URL=http://localhost vendor/bin/phpunit -c web/core web/modules/custom/literals/tests"` (about 2 minutes, separate processes). Covers audience/access matrix, query filtering, every resolver, reader, token, key rules, guardrail wiring, tool. Finder and guardrail runner are test doubles; the real finder is covered by `drush literals:eval`, not PHPUnit.
+- Core's access handler memoizes per entity per request: a test that edits then re-reads in one process must `resetCache()` the handler.
+
 ## Phase 3 state (`modules/literals_finder`, needs `drupal/ai`; enabled on this site)
 
 - Services: `literals_finder.finder` (`LiteralFinderInterface::find($question, $account)` returns a `LiteralFindResult`: `match`/`ambiguous`/`none`, literals not values, plus tier and reason), `.chooser` (Decision API `ChoiceQuestion` over key + gist, `__none__` option, default `decision` provider from `ai.settings`), `.embedder` (default `embeddings` provider, cosine in PHP). `logger.channel.literals` lives in the base module.
@@ -48,7 +58,7 @@ The progressive-enhancement ladder (no model, full menu, gate, vector index; wha
 
 ## Not done, in order
 
-1. Phase 2 is next (start here): tokens `[literal:key]` (access check, cache metadata, published revision only), Tool API `literal_get` by key, Guardrails at save (gist and value), audit logging through a literals logger channel.
+1. ~~Phase 2~~ BUILT 2026-10-05 (see "Phase 2 state" below). Still open from it: nothing blocking; the `[literal:key]` output is plain text (escaping is the caller's job, like core tokens).
 2. ~~Phase 3~~ BUILT 2026-10-05 as submodule `literals_finder` (see "Phase 3 state" below). Still open from it: the `literal_get` by-question mode (belongs with item 1's tool), tuning of the placeholder thresholds (item 3).
 3. Phase 4 (separate thread): evals in TESTS.md.
 4. Phase 5: aim consumer in `aim_recall`; convert-a-fact; audit line when the finder errors.
