@@ -1,0 +1,7 @@
+literals_search.autocomplete:
+  path: '/literals/search/autocomplete'
+  defaults:
+    _controller: '\Drupal\literals_search\Controller\LiteralSearchController::autocomplete'
+  methods: [GET]
+  requirements:
+    _permission: 'search literals'

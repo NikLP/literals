@@ -12,7 +12,7 @@ use Drupal\literals\Entity\Literal;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests the literal_lookup tool: access, key mode, question mode.
+ * Tests the literals:lookup tool: access, key mode, question mode.
  *
  * @group literals
  */
@@ -33,6 +33,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     'views',
     'literals',
     'tool',
+    'literals_search',
     'literals_tool',
   ];
 
@@ -60,7 +61,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    */
   protected function runTool(array $input, AccountInterface $account): array {
     $this->setCurrentUser($account);
-    $tool = $this->container->get('plugin.manager.tool')->createInstance('literal_lookup');
+    $tool = $this->container->get('plugin.manager.tool')->createInstance('literals:lookup');
     foreach ($input as $name => $value) {
       $tool->setInputValue($name, $value);
     }
@@ -72,7 +73,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    * The tool needs its permission.
    */
   public function testAccess(): void {
-    $tool = $this->container->get('plugin.manager.tool')->createInstance('literal_lookup');
+    $tool = $this->container->get('plugin.manager.tool')->createInstance('literals:lookup');
     $this->assertFalse($tool->access($this->member));
     $this->assertTrue($tool->access($this->createUser(['use literal lookup tool'])));
   }
@@ -88,7 +89,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
 
     [$ok, , $values] = $this->runTool(['key' => 'main_phone'], $caller);
     $this->assertTrue($ok);
-    $this->assertSame(['outcome' => 'match', 'key' => 'main_phone', 'value' => '+44 1223 000000'], $values);
+    $this->assertSame(['outcome' => 'match', 'key' => 'main_phone', 'candidates' => '', 'value' => '+44 1223 000000'], $values);
 
     $misses = [];
     foreach (['nosuchkey', 'internal', 'draft'] as $key) {
@@ -132,13 +133,16 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     $caller = $this->createUser(['use literal lookup tool']);
 
     [, , $values] = $this->runTool(['question' => 'phone'], $caller);
-    $this->assertSame(['outcome' => 'match', 'key' => 'phone_a', 'value' => '111 1111'], $values);
+    $this->assertSame(['outcome' => 'match', 'key' => 'phone_a', 'candidates' => '', 'value' => '111 1111'], $values);
 
     [, $message, $values] = $this->runTool(['question' => 'ambiguous'], $caller);
     $this->assertSame('ambiguous', $values['outcome']);
     $this->assertSame('phone_a,phone_b', $values['key']);
     $this->assertSame('', $values['value'], 'No value is returned for an ambiguous question');
     $this->assertStringNotContainsString('111 1111', $message);
+    $this->assertStringNotContainsString('111 1111', $values['candidates']);
+    $this->assertStringContainsString('phone_a: Phone_a', $values['candidates']);
+    $this->assertStringContainsString('phone_b: Phone_b', $values['candidates']);
 
     [, , $values] = $this->runTool(['question' => 'gibberish'], $caller);
     $this->assertSame('none', $values['outcome']);
@@ -157,6 +161,64 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     $this->assertSame('', $values['value']);
   }
 
+  /**
+   * Search mode lists candidates (key, name, gist), never values.
+   */
+  public function testSearchMode(): void {
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone', 'name' => 'Main phone', 'gist' => 'The switchboard']);
+    $this->createLiteral('internal_line', '222 2222', [
+      'type' => 'phone',
+      'name' => 'Staff phone',
+      'audience' => 'restricted',
+    ]);
+    $caller = $this->createUser(['use literal lookup tool']);
+
+    [$ok, , $values] = $this->runTool(['search' => 'phone'], $caller);
+    $this->assertTrue($ok);
+    $this->assertSame('candidates', $values['outcome']);
+    $this->assertSame('phone_a', $values['key'], 'The restricted literal is not offered');
+    $this->assertSame("phone_a: Main phone - The switchboard", $values['candidates']);
+    $this->assertSame('', $values['value']);
+    $this->assertStringNotContainsString('111 1111', json_encode($values));
+
+    [, , $values] = $this->runTool(['search' => 'zeppelin'], $caller);
+    $this->assertSame('none', $values['outcome']);
+
+    $restricted = $this->createUser(['use literal lookup tool', 'view restricted literals']);
+    [, , $values] = $this->runTool(['search' => 'phone'], $restricted);
+    $this->assertSame('phone_a,internal_line', $values['key'], 'Name order: Main phone, then Staff phone');
+  }
+
+  /**
+   * The admin-set context reaches the finder; a caller cannot supply one.
+   */
+  public function testQuestionContextIsAdminSet(): void {
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone']);
+    $caller = $this->createUser(['use literal lookup tool']);
+
+    $this->runTool(['question' => 'phone'], $caller);
+    $this->assertNull(FakeFinder::$lastContext, 'No setting: the finder uses its own site context');
+
+    $this->config('literals_tool.settings')->set('question_context', "  Staff of the library are asking.  ")->save();
+    $this->runTool(['question' => 'phone'], $caller);
+    $this->assertSame('Staff of the library are asking.', FakeFinder::$lastContext);
+
+    $definition = $this->container->get('plugin.manager.tool')->getDefinition('literals:lookup');
+    $this->assertArrayNotHasKey('context', $definition->getInputDefinitions());
+  }
+
+  /**
+   * Key beats question beats search.
+   */
+  public function testModePrecedence(): void {
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone']);
+    $caller = $this->createUser(['use literal lookup tool']);
+    [, , $values] = $this->runTool(['key' => 'phone_a', 'question' => 'ambiguous', 'search' => 'phone'], $caller);
+    $this->assertSame('match', $values['outcome']);
+    [, , $values] = $this->runTool(['question' => 'ambiguous', 'search' => 'phone'], $caller);
+    $this->assertSame('ambiguous', $values['outcome']);
+  }
+
 }
 
 /**
@@ -173,9 +235,15 @@ class FakeFinder {
   public function __construct(protected $entityTypeManager) {}
 
   /**
+   * The context of the most recent call.
+   */
+  public static ?string $lastContext = NULL;
+
+  /**
    * Finds literals by canned question.
    */
-  public function find(string $question, ?AccountInterface $account = NULL): object {
+  public function find(string $question, ?AccountInterface $account = NULL, ?string $context = NULL): object {
+    self::$lastContext = $context;
     $by_key = function (array $keys) use ($account): array {
       $found = [];
       foreach ($keys as $key) {

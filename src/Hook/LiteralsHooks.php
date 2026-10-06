@@ -84,7 +84,7 @@ class LiteralsHooks {
     if ($alias === NULL) {
       return;
     }
-    $account = $query->getMetaData('account') ?: \Drupal::currentUser();
+    $account = $query->getMetaData('account') ?: $this->currentUser;
     if ($account->hasPermission('administer literals')) {
       return;
     }

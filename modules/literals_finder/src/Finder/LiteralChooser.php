@@ -42,15 +42,8 @@ class LiteralChooser implements LiteralChooserInterface {
    * {@inheritdoc}
    */
   public function isAvailable(): bool {
-    return $this->modelId() !== '';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function modelId(): string {
     $default = $this->aiProvider->getDefaultProviderForOperationType('decision');
-    return !empty($default['provider_id']) && !empty($default['model_id']) ? $default['provider_id'] . '__' . $default['model_id'] : '';
+    return !empty($default['provider_id']) && !empty($default['model_id']);
   }
 
   /**

@@ -7,6 +7,7 @@ namespace Drupal\literals_finder\Drush\Commands;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\literals_finder\Finder\LiteralFindResult;
@@ -30,11 +31,14 @@ final class LiteralsCommands extends DrushCommands {
    *   The account switcher.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
+   * @param \Drupal\Core\Extension\ModuleExtensionList $moduleList
+   *   The module extension list.
    */
   public function __construct(
     protected LiteralFinderInterface $finder,
     protected AccountSwitcherInterface $accountSwitcher,
     protected EntityTypeManagerInterface $entityTypeManager,
+    protected ModuleExtensionList $moduleList,
   ) {
     parent::__construct();
   }
@@ -50,6 +54,7 @@ final class LiteralsCommands extends DrushCommands {
       $container->get(LiteralFinderInterface::class),
       $container->get('account_switcher'),
       $container->get('entity_type.manager'),
+      $container->get('extension.list.module'),
     );
   }
 
@@ -83,7 +88,7 @@ final class LiteralsCommands extends DrushCommands {
   #[CLI\Command(name: 'literals:eval')]
   #[CLI\Argument(name: 'file', description: 'YAML gold set (default: the module\'s eval/gold.seed.yml).')]
   public function evaluate(?string $file = NULL): void {
-    $file ??= \Drupal::service('extension.list.module')->getPath('literals_finder') . '/eval/gold.seed.yml';
+    $file ??= $this->moduleList->getPath('literals_finder') . '/eval/gold.seed.yml';
     $gold = Yaml::decode(file_get_contents($file))['queries'] ?? [];
     Cache::invalidateTags(['literal_list']);
 

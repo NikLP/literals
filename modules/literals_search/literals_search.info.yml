@@ -1,0 +1,7 @@
+name: 'Literals search'
+type: module
+description: 'Plain search and autocomplete over literal names, keys and gists. No AI.'
+package: AIM
+core_version_requirement: ^11
+dependencies:
+  - literals:literals

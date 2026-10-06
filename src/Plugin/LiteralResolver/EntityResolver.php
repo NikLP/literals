@@ -6,11 +6,13 @@ namespace Drupal\literals\Plugin\LiteralResolver;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Attribute\LiteralResolver;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralResolverBase;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * A pointer to an entity, stored as "entity_type:id", resolved to its URL.
@@ -23,6 +25,34 @@ use Drupal\literals\LiteralResolverBase;
 class EntityResolver extends LiteralResolverBase {
 
   /**
+   * Constructs the resolver.
+   *
+   * @param array $configuration
+   *   The plugin configuration.
+   * @param string $plugin_id
+   *   The plugin ID.
+   * @param mixed $plugin_definition
+   *   The plugin definition.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
+   */
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    protected EntityTypeManagerInterface $entityTypeManager,
+  ) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
+    return new static($configuration, $plugin_id, $plugin_definition, $container->get('entity_type.manager'));
+  }
+
+  /**
    * Loads the entity a stored value points at.
    *
    * @param string $value
@@ -33,7 +63,7 @@ class EntityResolver extends LiteralResolverBase {
    */
   protected function load(string $value): ?EntityInterface {
     [$type, $id] = array_pad(explode(':', trim($value), 2), 2, '');
-    $manager = \Drupal::entityTypeManager();
+    $manager = $this->entityTypeManager;
     if ($id === '' || !$manager->hasDefinition($type)) {
       return NULL;
     }

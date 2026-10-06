@@ -4,6 +4,7 @@ description: 'Exact values (a phone number, a URL) found by a plain-language des
 package: AIM
 core_version_requirement: ^11
 dependencies:
+  - drupal:options
   - drupal:user
   - drupal:views
 config_devel:

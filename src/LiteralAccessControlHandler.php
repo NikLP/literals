@@ -36,7 +36,11 @@ class LiteralAccessControlHandler extends EntityAccessControlHandler {
         if (!$published) {
           $audience = $audience->andIf(AccessResult::allowedIfHasPermission($account, 'edit literals'));
         }
-        return $audience->orIf($admin)->addCacheableDependency($entity)->cachePerUser();
+        // The answer depends on being signed in and on the permission set (the
+        // restricted audience and the admin bypass), not on the individual.
+        return $audience->orIf($admin)
+          ->addCacheableDependency($entity)
+          ->addCacheContexts(['user.roles:authenticated', 'user.permissions']);
 
       case 'update':
         return AccessResult::allowedIfHasPermission($account, 'edit literals')->orIf($admin);

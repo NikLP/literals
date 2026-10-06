@@ -19,9 +19,15 @@ by access, check the cache, ask the chooser, return `match`, `ambiguous` or
 
 | Step | You ask with | Needs | Model calls per uncached question | Built |
 | --- | --- | --- | --- | --- |
-| 0. Exact key | A key you already know: `[literal:key]`, the `literal_lookup` tool with `key`, PHP | Nothing beyond `user` and `views` (the tool needs `tool`) | 0 | Yes |
+| 0. Exact key | A key you already know: `[literal:key]`, the `literals:lookup` tool with `key`, PHP | Nothing beyond `user` and `views` (the tool needs `tool`) | 0 | Yes |
+| 0b. Search | Words from a name, key or gist | `literals_search` (no AI) | 0 | Yes |
 | 1. Decision model | A plain-language question | `drupal/ai` and one decision model | 1 (the chooser), 0 on a cache hit | Yes (`literals_finder`) |
 | 2. Large pools | A plain-language question, thousands of literals | Unknown | Unknown | No, and not needed so far |
+
+Step 0b is discovery without a model: a plain search and autocomplete (every
+typed word must appear in the name, key or gist). It lists candidates for a
+person or agent to pick from, then the pick is read by key. It finds only
+what shares words with the gist; it does not decide.
 
 Step 0 is a complete product on its own: nothing in the base module calls an
 AI service. A site that has no decision model gets key lookups, tokens and
@@ -97,11 +103,32 @@ Hosted Jev is a temporary deviation recorded in ADR-0021's 2026-10-02
 addendum and fits synthetic or demo data only. A local decision model swaps
 in as a settings change.
 
+## Considered, not built: stacked questions in the chooser call
+
+The Decision API takes a keyed array of questions, and `LiteralChooser`
+sends only one (`choice`). More questions can ride in the same call, so they
+cost no extra round trip. Candidates:
+
+- `one_shot` (boolean): is this one self-contained lookup, or does it need
+  follow-up or several values? A `false` returns `none` with reason
+  `not_one_shot`, leaving the caller to handle it.
+- `asks_for_value` (boolean): is the question asking for a stored value at
+  all, or is it small talk? Would cut false matches on chat.
+- `sensitive` (boolean): does it ask for something secret-like? Advisory
+  only. The real gate stays `LiteralAudience::visibleTo()`, never the model.
+
+Each boolean is a gate that runs before the `choice` margin and threshold
+logic and short-circuits to `none`; it does not change how `choice`
+probabilities are read. Start with `one_shot`, and add the others only if
+`eval/gold.seed.yml` shows false matches they would catch. Unmeasured: the
+extra questions may shift `choice` probabilities, so re-run `literals:eval`
+before trusting the thresholds.
+
 ## What is built today
 
 - Step 0: the `literal` entity, `literal_type` bundles, the four resolver
   plugins, the audience access rule (single checks, entity queries and
-  Views), `literals.reader`, the `[literal:key]` token, the `literal_lookup`
+  Views), `literals.reader`, the `[literal:key]` token, the `literals:lookup`
   tool (`literals_tool`), and Guardrails at save.
 - Step 1: `literals_finder`: the chooser with a site-wide or per-call
   context, the outcome cache, `literals:find` and `literals:eval`.

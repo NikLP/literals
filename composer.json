@@ -1,0 +1,26 @@
+{
+    "name": "drupal/literals",
+    "type": "drupal-module",
+    "description": "Exact values (phone numbers, URLs, names) kept as governed literals: audience-based access, a [literal:key] token, search, and an optional model-assisted lookup by question.",
+    "keywords": ["Drupal", "literals", "tokens", "AI"],
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": "^8.3",
+        "drupal/core": "^11"
+    },
+    "suggest": {
+        "drupal/ai": "^1.4. Required by literals_finder: the Decision API chooser (find a literal by plain-language question) and Guardrails checks at save. A decision provider module (Ollama, Anthropic, ...) must also be configured.",
+        "drupal/tool": "^1.0@beta. Required by literals_tool, which exposes literals:lookup (key, search, and question modes) over Tool API.",
+        "drupal/mcp_server_tool_bridge": "Exposes literals_tool's literals:lookup to MCP clients.",
+        "drupal/token": "Adds a token browser to the value field of token-type literals.",
+        "drupal/gin": "Gives the literal edit form a node-style sidebar layout."
+    },
+    "autoload": {
+        "psr-4": {
+            "Drupal\\literals\\": "src/",
+            "Drupal\\literals_finder\\": "modules/literals_finder/src/",
+            "Drupal\\literals_search\\": "modules/literals_search/src/",
+            "Drupal\\literals_tool\\": "modules/literals_tool/src/"
+        }
+    }
+}

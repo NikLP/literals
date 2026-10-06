@@ -31,10 +31,14 @@ that finds the right one from a description and decides who sees it.
 
 - `literals` - the entity, types, resolvers, audience rules and admin UI. No AI
   needed.
+- `literals_search` - plain search and autocomplete over names, keys and
+  gists (every typed word must appear). No AI, no scoring: a person or agent
+  picks from the matches.
 - `literals_finder` - find by question: an access filter, an outcome cache,
   then a Decision API choice. Needs `drupal/ai`.
-- `literals_tool` - the `literal_lookup` Tool API / MCP tool, by key or (with
-  the finder) by question. Needs `tool`.
+- `literals_tool` - the `literals:lookup` Tool API / MCP tool: by key, by
+  search words (with `literals_search`) or by question (with the finder).
+  Needs `tool`.
 
 ## More
 

@@ -15,8 +15,8 @@ use Drupal\literals\Form\LiteralTypeForm;
  * Defines the literal type config entity, the bundle of literal.
  *
  * A type says what sort of value its literals hold (text, token, entity,
- * URL: a LiteralResolver plugin) and carries that resolver's settings, e.g. a Text
- * type validated as a phone number. Fieldable, so a type can carry extra
+ * URL: a LiteralResolver plugin) and carries that resolver's settings, e.g. a
+ * Text type validated as a phone number. Fieldable, so a type can carry extra
  * fields beside the shared name, key, value and gist.
  */
 #[ConfigEntityType(

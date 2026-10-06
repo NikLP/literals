@@ -68,11 +68,13 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
     $this->replace('[literal:main_phone]', $metadata);
     $this->assertContains('literal:' . $literal->id(), $metadata->getCacheTags());
     $this->assertContains('literal_list', $metadata->getCacheTags());
-    $this->assertContains('user', $metadata->getCacheContexts());
+    $this->assertContains('user.permissions', $metadata->getCacheContexts());
+    $this->assertContains('user.roles:authenticated', $metadata->getCacheContexts());
+    $this->assertNotContains('user', $metadata->getCacheContexts());
   }
 
   /**
-   * A token literal embedding another literal resolves it for the asked account.
+   * A token literal embedding another literal resolves it for the asker.
    */
   public function testNestedTokenUsesTheAskedAccount(): void {
     $this->createLiteral('members_phone', '555-MEMBERS', ['audience' => 'authenticated']);
@@ -101,7 +103,7 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * A token literal may reference an existing literal key but not a made-up one.
+   * A token literal may reference an existing key but not a made-up one.
    */
   public function testTokenLiteralValidatesReferencedKeys(): void {
     $this->createLiteral('real', 'x');

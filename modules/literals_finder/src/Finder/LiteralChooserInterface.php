@@ -15,13 +15,6 @@ interface LiteralChooserInterface {
   public function isAvailable(): bool;
 
   /**
-   * Returns the configured decision model as provider__model, or ''.
-   *
-   * Part of what a cached outcome depends on.
-   */
-  public function modelId(): string;
-
-  /**
    * Chooses among candidates by key and gist only.
    *
    * Values are never sent to the model.

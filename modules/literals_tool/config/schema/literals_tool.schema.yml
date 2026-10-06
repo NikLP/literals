@@ -1,0 +1,7 @@
+literals_tool.settings:
+  type: config_object
+  label: 'Literals tool settings'
+  mapping:
+    question_context:
+      type: string
+      label: 'Who is asking through the tool, put to the finder in place of the site context (empty uses the finder site context)'

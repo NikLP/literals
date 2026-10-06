@@ -1,4 +1,4 @@
 use literal lookup tool:
   title: 'Use the literal lookup tool'
-  description: 'Look literals up through the literal_lookup Tool API/MCP tool. Each literal is still only returned if the caller may view it.'
+  description: 'Look literals up through the literals:lookup Tool API/MCP tool. Each literal is still only returned if the caller may view it.'
   restrict access: true

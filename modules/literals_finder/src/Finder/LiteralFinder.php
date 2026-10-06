@@ -102,9 +102,10 @@ class LiteralFinder implements LiteralFinderInterface {
   /**
    * Fingerprints everything besides the question that decides an outcome.
    *
-   * A cached outcome is only valid for the same context, instructions,
-   * thresholds and decision model, so changing any of them (or
-   * asking with another context) never serves a stale answer.
+   * A cached outcome is only valid for the same context, instructions and
+   * thresholds, so changing any of them (or asking with another context)
+   * never serves a stale answer. A decision model swap is not part of it:
+   * clear the cache when changing models.
    *
    * @param string|null $context
    *   The caller's context, if any.
@@ -116,7 +117,6 @@ class LiteralFinder implements LiteralFinderInterface {
     $settings = $this->configFactory->get('literals_finder.settings')->getRawData();
     unset($settings['_core'], $settings['log_audit']);
     $settings['context'] = $context ?? '';
-    $settings['model'] = $this->chooser->modelId();
     ksort($settings);
     return hash('sha256', serialize($settings));
   }

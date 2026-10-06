@@ -24,7 +24,8 @@ matters, so "no match" is always preferred to a guess.
 | Module | Needs | Does |
 | --- | --- | --- |
 | `literals` | `user`, `views` | The entity, types and resolvers, access, the admin UI, `literals.reader`, the `[literal:key]` token. Exact lookup by key. **No model of any kind.** |
-| `literals_tool` | `literals`, `tool` | The `literal_lookup` Tool API / MCP tool: by key, or by question when `literals_finder` is on. |
+| `literals_search` | `literals` | Plain search and autocomplete: every typed word must appear in the name, key or gist; results in name order, for a person or agent to pick from. Access-filtered, published only, never values. No model, no scoring, no `search_api` (a plain entity query; swap in an index if a pool ever needs it). |
+| `literals_tool` | `literals`, `tool` | The `literals:lookup` Tool API / MCP tool: by key, by search words (when `literals_search` is on, returns candidates), or by question (when `literals_finder` is on). Key beats question beats search. |
 | `literals_finder` | `literals`, `drupal/ai` | Lookup by question: the finder, the chooser, the outcome cache, the eval command, and the Guardrails set applied at save. The only part that calls a model. |
 
 A site that only wants a settings store with access control installs the
@@ -205,10 +206,16 @@ the chooser, measure first; see the ladder.
   anything that must never be wrong should be called by key, not by
   question.
 
-**Without any AI model: yes, by key.** The `literals` module works with no
+**Without any AI model: yes, by key or by search.** With `literals_search` a
+person or agent can find a literal by typing words from its name or gist.
+That is keyword matching only: "where do I sign in" finds nothing when the
+gist says "log in", which the chooser matches. Search lists candidates; it
+never decides.
+
+**Without any AI model, by key:** The `literals` module works with no
 model and no `drupal/ai`: create, validate, restrict by audience, revision,
 list, read through `$literal->resolve()` or `literals.reader`, `[literal:key]`
-tokens, and the `literal_lookup` tool by key. By-question lookup needs a
+tokens, and the `literals:lookup` tool by key. By-question lookup needs a
 decision model: without one the finder returns `none` with reason
 `no_backend` rather than guess.
 

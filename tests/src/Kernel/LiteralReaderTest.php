@@ -115,7 +115,9 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
     $this->reader()->read('cached', $this->member, $metadata);
     $this->assertContains('literal_list', $metadata->getCacheTags());
     $this->assertContains('literal:' . $literal->id(), $metadata->getCacheTags());
-    $this->assertContains('user', $metadata->getCacheContexts());
+    $this->assertContains('user.permissions', $metadata->getCacheContexts());
+    $this->assertContains('user.roles:authenticated', $metadata->getCacheContexts());
+    $this->assertNotContains('user', $metadata->getCacheContexts(), 'Varies on permissions and sign-in, not per individual');
 
     // A miss still bubbles the list tag, so creating the literal later
     // invalidates the cached "nothing here".
@@ -131,7 +133,7 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
     $this->createLiteral('first', 'plain', ['type' => 'text']);
     // Reference known keys only (validation), then re-point to form a cycle.
     $a = $this->createLiteral('cycle_a', '[literal:first]', ['type' => 'token']);
-    $b = $this->createLiteral('cycle_b', '[literal:cycle_a]', ['type' => 'token']);
+    $this->createLiteral('cycle_b', '[literal:cycle_a]', ['type' => 'token']);
     $a->set('value', '[literal:cycle_b]')->save();
     $result = $this->reader()->read('cycle_a', new AnonymousUserSession());
     // The loop is cut: the inner read gives nothing, the outer returns text.

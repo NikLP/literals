@@ -1,0 +1,7 @@
+literals_tool.settings:
+  path: '/admin/config/literals/tool'
+  defaults:
+    _form: '\Drupal\literals_tool\Form\LiteralsToolSettingsForm'
+    _title: 'Literals tool settings'
+  requirements:
+    _permission: 'administer literals'
