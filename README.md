@@ -1,4 +1,4 @@
-# Literals
+# Literals (experimental, probably doesn't work)
 
 Tell the site what you want in words, and it finds the exact value, and
 shows it only to the people allowed to see it. Semantic value lookup?
