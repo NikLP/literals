@@ -155,6 +155,12 @@ seeing the one query it fixed.
 | Synthetic, near-neighbour heavy (`eval/scale.gen.php.txt`) | 60 | 60/60 | 0 | 10/10 | 0.4 s |
 | Synthetic | 234 | 60/60 | 0 | 10/10 (3 repeat runs) | 0.4 s |
 
+Keyword baseline on the seed set (2026-10-06, same 39 queries): the
+module's own search (every word must appear) 4/29 hits, 0 wrong, 10/10
+nones; a crude variant (filler words dropped, rank by word hits) 17/29 hits,
+1 wrong, 2 of 10 false positives. The chooser's lead is paraphrase and
+saying none; the same caveats apply (nine literals, one hand).
+
 What the numbers say:
 
 - **Wrong answers were rare; misses and false "found" were the failures.**
@@ -222,7 +228,7 @@ decision model: without one the finder returns `none` with reason
 ## What has not been measured
 
 - Pools past 234 literals, and whether the full menu stays viable there.
-- A keyword baseline, to show what the models add over a plain search.
+- A keyword baseline beyond the crude one in the table above (no stemming, no index).
 - A second language, and a local decision model (only hosted Jev has run).
 - A larger, independently written gold set. The context line and the
   thresholds should be checked on one written blind before they are trusted.

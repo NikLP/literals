@@ -134,3 +134,21 @@ before trusting the thresholds.
   context, the outcome cache, `literals:find` and `literals:eval`.
 - The one access rule the finder must keep: filter by
   `LiteralAudience::visibleTo($account)` before the chooser sees any gist.
+
+## Jev limits that shape the menu (TypeSafe docs, read 2026-10-06)
+
+- A Choice takes up to 255 options. Per request, 64k tokens for state plus
+  all questions, and 32k for state plus the single longest question. The
+  whole menu is one question here, so about 32k is the ceiling. Input costs
+  $42 per billion tokens (output is free).
+- Option descriptions may be strings or objects (`{what, not_for,
+  examples}`, field names free); drupal/ai's `ChoiceQuestion` passes both.
+  Not used: a plain string tested as well as an alias convention needs.
+- Jev 1.13 leans toward the first option, loses accuracy when similar
+  options have long descriptions, and reads negation literally. The docs say
+  keep descriptions concise; the gist cap stays 255.
+- Open models are far tighter (Ollaya docs): `laya:en` takes 512 tokens for
+  state plus questions, about 125 options; `laya:multilingual` 1,024 tokens,
+  about 250. A small local model would need a per-send gist budget or the
+  menu split into pages (parallel questions in one request on Jev, one
+  request per page locally). Not built; measure a real local model first.

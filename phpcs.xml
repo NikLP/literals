@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ruleset name="annotations">
-  <description>Drupal coding standards for the AIM module suite.</description>
+<ruleset name="literals">
+  <description>Drupal coding standards for the literals module.</description>
 
   <file>.</file>
   <arg name="extensions" value="php,module,inc,install,info.yml"/>
