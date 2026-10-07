@@ -1,4 +1,0 @@
-services:
-  literals_search.search:
-    class: Drupal\literals_search\LiteralSearch
-    arguments: ['@entity_type.manager', '@current_user']

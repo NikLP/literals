@@ -31,18 +31,24 @@ that finds the right one from a description and decides who sees it.
 
 - `literals` - the entity, types, resolvers, audience rules and admin UI. No AI
   needed.
-- `literals_search` - plain search and autocomplete over names, keys and
+- Search, in `literals` itself - plain search and autocomplete over names, keys and
   gists (every typed word must appear). No AI, no scoring: a person or agent
   picks from the matches.
 - `literals_finder` - find by question: an access filter, an outcome cache,
   then a Decision API choice. Needs `drupal/ai`.
 - `literals_tool` - the `literals:lookup` Tool API / MCP tool: by key, by
-  search words (with `literals_search`) or by question (with the finder).
+  search words or by question (with the finder).
   Needs `tool`.
 
 ## More
 
 Design and decisions live in the `aim` module's ADRs, starting at
-[ADR-0040](../aim/adr/0040-literals-probabilistic-lookup-of-exact-values.md)
-and [ADR-0047](../aim/adr/0047-literal-candidates-and-tracked-gists.md).
+[ADR-0040](adr/0040-literals-probabilistic-lookup-of-exact-values.md)
+and [ADR-0047](adr/0047-literal-candidates-and-tracked-gists.md).
 [HANDOFF-literals.md](HANDOFF-literals.md) has the current build state.
+
+## Drush commands
+
+ddev drush tool:run literals:lookup --uid=1 --input=question="how do I ring the library" --json
+ddev drush tool:run literals:lookup --uid=1 --input=search=phone --json
+ddev drush tool:run literals:lookup --uid=1 --input=key=main_phone --json

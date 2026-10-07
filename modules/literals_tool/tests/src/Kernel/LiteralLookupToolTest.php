@@ -33,7 +33,6 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     'views',
     'literals',
     'tool',
-    'literals_search',
     'literals_tool',
   ];
 
@@ -93,8 +92,6 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     $this->assertSame('+44 1223 000000', $values['value']);
     $this->assertSame('Main_phone', $values['label']);
     $this->assertSame('phone', $values['kind']);
-    $expected = [['key' => 'main_phone', 'value' => '+44 1223 000000', 'label' => 'Main_phone', 'kind' => 'phone']];
-    $this->assertSame($expected, json_decode($values['items'], TRUE));
 
     $misses = [];
     foreach (['nosuchkey', 'internal', 'draft'] as $key) {
@@ -185,7 +182,6 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     $this->assertSame('candidates', $values['outcome']);
     $this->assertSame('phone_a', $values['key'], 'The restricted literal is not offered');
     $this->assertSame("phone_a: Main phone - The switchboard", $values['candidates']);
-    $this->assertSame([['key' => 'phone_a', 'label' => 'Main phone', 'gist' => 'The switchboard']], json_decode($values['items'], TRUE));
     $this->assertSame('', $values['value']);
     $this->assertStringNotContainsString('111 1111', json_encode($values));
 
@@ -198,18 +194,14 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * The admin-set context reaches the finder; a caller cannot supply one.
+   * The tool passes no context to the finder, and a caller cannot supply one.
    */
-  public function testQuestionContextIsAdminSet(): void {
+  public function testNoCallerContext(): void {
     $this->createLiteral('phone_a', '111 1111', ['type' => 'phone']);
     $caller = $this->createUser(['use literal lookup tool']);
 
     $this->runTool(['question' => 'phone'], $caller);
-    $this->assertNull(FakeFinder::$lastContext, 'No setting: the finder uses its own site context');
-
-    $this->config('literals_tool.settings')->set('question_context', "  Staff of the library are asking.  ")->save();
-    $this->runTool(['question' => 'phone'], $caller);
-    $this->assertSame('Staff of the library are asking.', FakeFinder::$lastContext);
+    $this->assertNull(FakeFinder::$lastContext, 'The finder uses its own site context');
 
     $definition = $this->container->get('plugin.manager.tool')->getDefinition('literals:lookup');
     $this->assertArrayNotHasKey('context', $definition->getInputDefinitions());

@@ -12,6 +12,10 @@ services:
     class: Drupal\literals\LiteralReader
     arguments: ['@entity_type.manager', '@current_user', '@config.factory', '@logger.channel.literals']
 
+  literals.search:
+    class: Drupal\literals\LiteralSearch
+    arguments: ['@entity_type.manager', '@current_user']
+
   Drupal\literals\Hook\LiteralsHooks:
     class: Drupal\literals\Hook\LiteralsHooks
     arguments: ['@literals.reader', '@token', '@current_user', '@entity_type.manager']

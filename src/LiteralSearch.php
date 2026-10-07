@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\literals_search;
+namespace Drupal\literals;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\literals\LiteralAudience;
 
 /**
  * Plain search over published literals: name, key and gist.

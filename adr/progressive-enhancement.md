@@ -2,7 +2,7 @@
 
 Where the `literals` module needs a model, what each step up costs, and what
 it buys. Not a decision record: for the reasoning see
-[ADR-0040](../../aim/adr/0040-literals-probabilistic-lookup-of-exact-values.md)
+[ADR-0040](0040-literals-probabilistic-lookup-of-exact-values.md)
 and, for the same sort of accounting on the sibling module,
 [model-call-budget.md](../../aim/adr/model-call-budget.md).
 
@@ -10,7 +10,7 @@ The short version: **literals works with no model at all, and the one model
 it can use is a decision model.** Nothing is locked in: adding the finder is
 a module install and a provider setting, not a rewrite.
 
-Terms follow ADR-0040 Addendum 6. The **finder** is the whole lookup (filter
+Terms follow ADR-0040 ("The finder and the chooser"). The **finder** is the whole lookup (filter
 by access, check the cache, ask the chooser, return `match`, `ambiguous` or
 `none`). The **chooser** is the one model call inside it (a Decision API
 `ChoiceQuestion` over each literal's key and gist).
@@ -20,7 +20,7 @@ by access, check the cache, ask the chooser, return `match`, `ambiguous` or
 | Step | You ask with | Needs | Model calls per uncached question | Built |
 | --- | --- | --- | --- | --- |
 | 0. Exact key | A key you already know: `[literal:key]`, the `literals:lookup` tool with `key`, PHP | Nothing beyond `user` and `views` (the tool needs `tool`) | 0 | Yes |
-| 0b. Search | Words from a name, key or gist | `literals_search` (no AI) | 0 | Yes |
+| 0b. Search | Words from a name, key or gist | `literals.search` in `literals` (no AI) | 0 | Yes |
 | 1. Decision model | A plain-language question | `drupal/ai` and one decision model | 1 (the chooser), 0 on a cache hit | Yes (`literals_finder`) |
 | 2. Large pools | A plain-language question, thousands of literals | Unknown | Unknown | No, and not needed so far |
 

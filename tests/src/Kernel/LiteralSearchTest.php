@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\literals_search\Kernel;
+namespace Drupal\Tests\literals\Kernel;
 
 use Drupal\Core\Session\AnonymousUserSession;
-use Drupal\Tests\literals\Kernel\LiteralsKernelTestBase;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -30,14 +29,13 @@ class LiteralSearchTest extends LiteralsKernelTestBase {
     'node',
     'views',
     'literals',
-    'literals_search',
   ];
 
   /**
    * Runs a search and returns the matching keys, sorted.
    */
   protected function keys(string $text, $account = NULL, int $limit = 10): array {
-    $found = $this->container->get('literals_search.search')->search($text, $account ?? new AnonymousUserSession(), $limit);
+    $found = $this->container->get('literals.search')->search($text, $account ?? new AnonymousUserSession(), $limit);
     $keys = array_map(fn ($l) => $l->get('key')->value, array_values($found));
     sort($keys);
     return $keys;
@@ -109,7 +107,7 @@ class LiteralSearchTest extends LiteralsKernelTestBase {
     foreach (['c', 'a', 'b'] as $letter) {
       $this->createLiteral("lit_$letter", '1', ['name' => "Thing $letter"]);
     }
-    $found = $this->container->get('literals_search.search')->search('thing', new AnonymousUserSession(), 2);
+    $found = $this->container->get('literals.search')->search('thing', new AnonymousUserSession(), 2);
     $this->assertSame(['lit_a', 'lit_b'], array_values(array_map(fn ($l) => $l->get('key')->value, $found)));
   }
 

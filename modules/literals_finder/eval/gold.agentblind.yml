@@ -1,0 +1,46 @@
+queries:
+  - {q: 'whats the library''s phone number', expect: main_phone}
+  - {q: 'can i talk to a librarian', expect: main_phone}
+  - {q: 'customer service number pls', expect: main_phone}
+  - {q: 'I''ve been trying to reach someone at your library for ages, how do I ring you?', expect: main_phone}
+  - {q: 'phone #', expect: main_phone}
+  - {q: 'what is this website called', expect: site_name, as: 1}
+  - {q: 'name of this site?', expect: site_name, as: 1}
+  - {q: 'which library''s website am I on', expect: site_name, as: 1}
+  - {q: 'who is the administrator account', expect: admin_user}
+  - {q: 'what''s the admin username', expect: admin_user}
+  - {q: 'where do i sign in', expect: login}
+  - {q: 'log in link', expect: login}
+  - {q: 'i want to access my account, where do I enter my details', expect: login}
+  - {q: 'number to book a meeting room', expect: reservations_phone}
+  - {q: 'How do I reserve a study space by phone?', expect: reservations_phone}
+  - {q: 'room booking tel', expect: reservations_phone}
+  - {q: 'my book club needs a room next Tuesday, who do I call', expect: reservations_phone}
+  - {q: 'who do I call about my overdue fines', expect: accounts_phone}
+  - {q: 'billing department number', expect: accounts_phone}
+  - {q: 'I was charged on my card and don''t recognise it, who do I phone?', expect: accounts_phone}
+  - {q: 'finance dept phone', expect: accounts_phone}
+  - {q: 'what time do you open', expect: opening_hours}
+  - {q: 'are you open on sundays', expect: opening_hours}
+  - {q: 'closing time?', expect: opening_hours}
+  - {q: 'wen are u open', expect: opening_hours}
+  - {q: 'i forgot my password', expect: password_reset}
+  - {q: 'reset pasword', expect: password_reset}
+  - {q: 'can''t remember my login password how do I get a new one', expect: password_reset}
+  - {q: 'where to change a forgotten pw', expect: password_reset}
+  - {q: 'I need to speak to someone about my account', expect: ambiguous}
+  - {q: 'I can''t get in to my account', expect: ambiguous}
+  - {q: 'what''s the wifi password', expect: none}
+  - {q: 'do you have the new Sally Rooney novel', expect: none}
+  - {q: 'how much is the late fee per day', expect: none}
+  - {q: 'where is the library located, what is the address', expect: none}
+  - {q: 'phone number for the city council', expect: none}
+  - {q: 'when does the Northfield public library open', expect: none}
+  - {q: 'how do I renew a book', expect: none}
+  - {q: 'what''s the weather like today', expect: none}
+  - {q: 'who is the head librarian', expect: none}
+  - {q: 'how do I get a library card', expect: none}
+  - {q: 'how do I delete my account', expect: none}
+  - {q: 'is there parking nearby', expect: none}
+  - {q: 'what is the library''s email address', expect: none}
+  - {q: 'what''s 2+2', expect: none}

@@ -119,6 +119,12 @@ class LiteralsChatResponder {
   /**
    * Backslash-escapes Markdown and HTML characters in plain text.
    *
+   * Only characters that can start emphasis, code, a link or tag, a table
+   * cell or an entity. Characters that matter only at the start of a line
+   * (#, +, -, digits with a dot) are left alone, so line breaks are
+   * collapsed to spaces: every line this builds then starts with a fixed
+   * "- " or the fixed message.
+   *
    * @param string $text
    *   The text.
    *
@@ -126,7 +132,8 @@ class LiteralsChatResponder {
    *   The escaped text.
    */
   protected function escape(string $text): string {
-    return preg_replace_callback('/[\\\\`*_{}\\[\\]()<>#+\\-.!|~&]/', fn (array $m): string => '\\' . $m[0], $text);
+    $text = preg_replace('/\s+/', ' ', $text);
+    return preg_replace_callback('/[\\\\`*_\\[\\]()<>|~&]/', fn (array $m): string => '\\' . $m[0], $text);
   }
 
   /**

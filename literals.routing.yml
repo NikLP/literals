@@ -5,3 +5,11 @@ literals.admin_config:
     _title: 'Literals'
   requirements:
     _permission: 'administer literals'
+
+literals.search_autocomplete:
+  path: '/literals/search/autocomplete'
+  defaults:
+    _controller: '\Drupal\literals\Controller\LiteralSearchController::autocomplete'
+  methods: [GET]
+  requirements:
+    _permission: 'search literals'

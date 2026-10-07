@@ -3,8 +3,8 @@
 A walkthrough of the `literals` module as built on 2026-10-05 (after Phase 2 and the removal of the embedding gate): what it
 stores, the path a question takes, which model is called when, and what
 the measurements so far say. Not a decision record: for the reasoning see
-[ADR-0040](../../aim/adr/0040-literals-probabilistic-lookup-of-exact-values.md)
-(Addendums 4 to 7), and for the step-by-step "what do I add when" ladder see
+[ADR-0040](0040-literals-probabilistic-lookup-of-exact-values.md)
+(the current-state rewrite), and for the step-by-step "what do I add when" ladder see
 [progressive-enhancement.md](progressive-enhancement.md). Current build
 state and open work are in [HANDOFF-literals.md](../HANDOFF-literals.md).
 
@@ -24,8 +24,8 @@ matters, so "no match" is always preferred to a guess.
 | Module | Needs | Does |
 | --- | --- | --- |
 | `literals` | `user`, `views` | The entity, types and resolvers, access, the admin UI, `literals.reader`, the `[literal:key]` token. Exact lookup by key. **No model of any kind.** |
-| `literals_search` | `literals` | Plain search and autocomplete: every typed word must appear in the name, key or gist; results in name order, for a person or agent to pick from. Access-filtered, published only, never values. No model, no scoring, no `search_api` (a plain entity query; swap in an index if a pool ever needs it). |
-| `literals_tool` | `literals`, `tool` | The `literals:lookup` Tool API / MCP tool: by key, by search words (when `literals_search` is on, returns candidates), or by question (when `literals_finder` is on). Key beats question beats search. |
+| (in `literals`) | none | Plain search and autocomplete (service `literals.search`): every typed word must appear in the name, key or gist; results in name order, for a person or agent to pick from. Access-filtered, published only, never values. No model, no scoring, no `search_api` (a plain entity query; swap in an index if a pool ever needs it). |
+| `literals_tool` | `literals`, `tool` | The `literals:lookup` Tool API / MCP tool: by key, by search words (returns candidates), or by question (when `literals_finder` is on). Key beats question beats search. |
 | `literals_finder` | `literals`, `drupal/ai` | Lookup by question: the finder, the chooser, the outcome cache, the eval command, and the Guardrails set applied at save. The only part that calls a model. |
 
 A site that only wants a settings store with access control installs the
@@ -139,8 +139,8 @@ against a literal whose gist is "main telephone number"), treat the question
 the way consolidation treats a candidate fact: a model proposes a refined
 gist ("main telephone contact number"), a verifier checks it is faithful
 and still one-intent, and a person approves it before it replaces the gist.
-The gist, not a side list, stays the single description. Recorded as
-[ADR-0040 Addendum 8](../../aim/adr/0040-literals-probabilistic-lookup-of-exact-values.md).
+The gist, not a side list, stays the single description. Recorded in
+[ADR-0040](0040-literals-probabilistic-lookup-of-exact-values.md).
 
 ## Efficacy so far
 
@@ -212,7 +212,7 @@ the chooser, measure first; see the ladder.
   anything that must never be wrong should be called by key, not by
   question.
 
-**Without any AI model: yes, by key or by search.** With `literals_search` a
+**Without any AI model: yes, by key or by search.** With the built-in search a
 person or agent can find a literal by typing words from its name or gist.
 That is keyword matching only: "where do I sign in" finds nothing when the
 gist says "log in", which the chooser matches. Search lists candidates; it

@@ -7,11 +7,11 @@ namespace Drupal\literals_tool\Plugin\tool\Tool;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralReader;
+use Drupal\literals\LiteralSearch;
 use Drupal\literals\ResolvedLiteral;
 use Drupal\tool\Attribute\Tool;
 use Drupal\tool\ExecutableResult;
@@ -51,7 +51,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
     'search' => new InputDefinition(
       data_type: 'string',
       label: new TranslatableMarkup('Search words'),
-      description: new TranslatableMarkup('Words from a literal name, key or description, e.g. "phone". Returns the matching literals (key, name, description) to choose from, never values. Used only when no key or question is given. Needs the literals_search module.'),
+      description: new TranslatableMarkup('Words from a literal name, key or description, e.g. "phone". Returns the matching literals (key, name, description) to choose from, never values. Used only when no key or question is given.'),
       required: FALSE,
     ),
   ],
@@ -86,11 +86,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
       label: new TranslatableMarkup('Kind'),
       description: new TranslatableMarkup('What the value is: url, phone, email or text. Empty unless the outcome is match.'),
     ),
-    'items' => new OutputDefinition(
-      data_type: 'string',
-      label: new TranslatableMarkup('Items'),
-      description: new TranslatableMarkup('A JSON list of the literals involved. For a match: one {key, label, kind, value}. For ambiguous or search: {key, label, gist} per candidate, never values.'),
-    ),
   ],
 )]
 final class LiteralLookup extends ToolBase {
@@ -112,19 +107,14 @@ final class LiteralLookup extends ToolBase {
   protected LiteralReader $reader;
 
   /**
-   * The config factory.
-   */
-  protected ConfigFactoryInterface $configFactory;
-
-  /**
    * The finder, when literals_finder is enabled.
    */
   protected ?object $finder = NULL;
 
   /**
-   * The search, when literals_search is enabled.
+   * The literal search.
    */
-  protected ?object $search = NULL;
+  protected LiteralSearch $search;
 
   /**
    * {@inheritdoc}
@@ -134,9 +124,8 @@ final class LiteralLookup extends ToolBase {
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
     $instance->reader = $container->get('literals.reader');
-    $instance->configFactory = $container->get('config.factory');
     $instance->finder = $container->has('literals_finder.finder') ? $container->get('literals_finder.finder') : NULL;
-    $instance->search = $container->has('literals_search.search') ? $container->get('literals_search.search') : NULL;
+    $instance->search = $container->get('literals.search');
     return $instance;
   }
 
@@ -158,9 +147,6 @@ final class LiteralLookup extends ToolBase {
       return $this->byQuestion($question);
     }
     if ($words !== '') {
-      if (!$this->search) {
-        return ExecutableResult::failure(new TranslatableMarkup('Searching needs the literals_search module. Give a key.'), NULL);
-      }
       return $this->bySearch($words);
     }
     return ExecutableResult::failure(new TranslatableMarkup('Give a key, a question or search words.'), NULL);
@@ -192,9 +178,8 @@ final class LiteralLookup extends ToolBase {
   protected function byQuestion(string $question): ExecutableResult {
     /** @var \Drupal\literals_finder\Finder\LiteralFinderInterface $finder */
     $finder = $this->finder;
-    // An admin-set context for this medium, never a caller input.
-    $context = trim((string) $this->configFactory->get('literals_tool.settings')->get('question_context'));
-    $result = $finder->find($question, $this->currentUser, $context !== '' ? $context : NULL);
+    // No per-call context: the finder uses its site context.
+    $result = $finder->find($question, $this->currentUser);
     $keys = array_map(fn (Literal $literal): string => (string) $literal->get('key')->value, $result->literals);
 
     if ($result->outcome === self::MATCH && $keys) {
@@ -206,7 +191,6 @@ final class LiteralLookup extends ToolBase {
         new TranslatableMarkup('More than one literal fits: @keys. Ask again with a key or a clearer question.', ['@keys' => implode(', ', $keys)]),
         $this->output(self::AMBIGUOUS, implode(',', $keys), [
           'candidates' => $this->describe($result->literals),
-          'items' => $this->candidateItems($result->literals),
         ]),
       );
     }
@@ -223,9 +207,7 @@ final class LiteralLookup extends ToolBase {
    *   The result: candidates, never values.
    */
   protected function bySearch(string $words): ExecutableResult {
-    /** @var \Drupal\literals_search\LiteralSearch $search */
-    $search = $this->search;
-    $literals = array_values($search->search($words, $this->currentUser, 10));
+    $literals = array_values($this->search->search($words, $this->currentUser, 10));
     if (!$literals) {
       return $this->notFound();
     }
@@ -234,7 +216,6 @@ final class LiteralLookup extends ToolBase {
       new TranslatableMarkup('Found @count literal(s). Call again with a key to get a value.', ['@count' => count($literals)]),
       $this->output(self::CANDIDATES, implode(',', $keys), [
         'candidates' => $this->describe($literals),
-        'items' => $this->candidateItems($literals),
       ]),
     );
   }
@@ -284,31 +265,8 @@ final class LiteralLookup extends ToolBase {
   protected function matched(string $key, ResolvedLiteral $item): ExecutableResult {
     return ExecutableResult::success(
       new TranslatableMarkup('Found literal @key.', ['@key' => $key]),
-      $this->output(self::MATCH, $key, $item->toArray() + [
-        'items' => json_encode([['key' => $key] + $item->toArray()], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-      ]),
+      $this->output(self::MATCH, $key, $item->toArray()),
     );
-  }
-
-  /**
-   * Lists literals as JSON candidates (key, label, gist), never values.
-   *
-   * @param \Drupal\literals\Entity\Literal[] $literals
-   *   The literals.
-   *
-   * @return string
-   *   A JSON list.
-   */
-  protected function candidateItems(array $literals): string {
-    $items = [];
-    foreach ($literals as $literal) {
-      $items[] = [
-        'key' => (string) $literal->get('key')->value,
-        'label' => (string) $literal->label(),
-        'gist' => $literal->getGist(),
-      ];
-    }
-    return json_encode($items, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
   }
 
   /**
@@ -319,7 +277,7 @@ final class LiteralLookup extends ToolBase {
    * @param string $key
    *   The key, or the comma-separated candidate keys.
    * @param array $values
-   *   Any of candidates, value, label, kind and items.
+   *   Any of candidates, value, label and kind.
    *
    * @return array
    *   The complete output values.
@@ -332,7 +290,6 @@ final class LiteralLookup extends ToolBase {
       'value' => '',
       'label' => '',
       'kind' => '',
-      'items' => '[]',
     ];
   }
 

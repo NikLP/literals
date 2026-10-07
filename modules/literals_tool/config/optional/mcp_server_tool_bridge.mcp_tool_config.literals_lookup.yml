@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - literals_tool
+id: literals_lookup
+tool_id: 'literals:lookup'
+description: 'Looks up an exact value (phone number, address, link) from the site''s curated literals, by key, search words, or a question.'

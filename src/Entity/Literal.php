@@ -33,7 +33,7 @@ use Drupal\user\EntityOwnerTrait;
  * through config sync, the literals themselves are editable on production.
  * Revisionable, with a published status that Content Moderation can drive,
  * so a changed gist or value can sit as a draft until a person promotes it
- * (ADR-0040 pieces 7 and 12).
+ * (ADR-0040 "Deferred and pinned").
  */
 #[ContentEntityType(
   id: 'literal',

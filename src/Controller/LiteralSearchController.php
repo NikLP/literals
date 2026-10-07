@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\literals_search\Controller;
+namespace Drupal\literals\Controller;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\literals_search\LiteralSearch;
+use Drupal\literals\LiteralSearch;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -21,7 +21,7 @@ class LiteralSearchController extends ControllerBase {
   /**
    * Constructs the controller.
    *
-   * @param \Drupal\literals_search\LiteralSearch $search
+   * @param \Drupal\literals\LiteralSearch $search
    *   The literal search.
    */
   public function __construct(protected LiteralSearch $search) {}
@@ -30,7 +30,7 @@ class LiteralSearchController extends ControllerBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('literals_search.search'));
+    return new static($container->get('literals.search'));
   }
 
   /**

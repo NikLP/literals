@@ -1,6 +1,0 @@
-literals_tool.settings:
-  title: 'Tool settings'
-  description: 'Set who is asking when a question comes in through the literals:lookup tool.'
-  parent: literals.admin_config
-  route_name: literals_tool.settings
-  weight: 20

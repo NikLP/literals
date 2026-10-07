@@ -95,13 +95,16 @@ class LiteralsChatResponderTest extends LiteralsKernelTestBase {
         ['label' => 'Home', 'kind' => 'url', 'value' => 'https://example.com/a b'],
         ['label' => 'Evil', 'kind' => 'url', 'value' => 'javascript:alert(1)'],
         ['label' => 'Note', 'kind' => 'text', 'value' => '<script>x</script>'],
+        ['label' => 'Multi', 'kind' => 'text', 'value' => "Mon-Fri 9-17.\n# Heading\n- bullet"],
       ],
     ]);
-    $this->assertStringContainsString('- Main \\*phone\\*: [\\+44 1223 000000](tel:+441223000000)', $md);
+    $this->assertStringContainsString('- Main \\*phone\\*: [+44 1223 000000](tel:+441223000000)', $md);
     $this->assertStringContainsString('- [Home](https://example.com/a%20b)', $md);
     $this->assertStringNotContainsString('](javascript', $md);
     $this->assertStringContainsString('- Evil: javascript:alert\\(1\\)', $md);
     $this->assertStringContainsString('\\<script\\>x\\</script\\>', $md);
+    $this->assertStringContainsString('- Multi: Mon-Fri 9-17. # Heading - bullet', $md);
+    $this->assertStringNotContainsString("\n#", $md);
   }
 
   /**

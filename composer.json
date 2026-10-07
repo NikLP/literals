@@ -19,7 +19,6 @@
         "psr-4": {
             "Drupal\\literals\\": "src/",
             "Drupal\\literals_finder\\": "modules/literals_finder/src/",
-            "Drupal\\literals_search\\": "modules/literals_search/src/",
             "Drupal\\literals_tool\\": "modules/literals_tool/src/"
         }
     }
