@@ -1,0 +1,9 @@
+name: 'Literals chat'
+type: module
+description: 'A chat processor for the AI chatbot block that answers only from literals: the finder picks one, the reply is a fixed template. No chat model.'
+package: AIM
+core_version_requirement: ^11
+dependencies:
+  - literals:literals
+  - literals:literals_finder
+  - ai:ai_chatbot

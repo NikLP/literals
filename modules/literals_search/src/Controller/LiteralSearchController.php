@@ -51,7 +51,7 @@ class LiteralSearchController extends ControllerBase {
     $suggestions = [];
     foreach ($this->search->search((string) $request->query->get('q', ''), NULL, 10) as $literal) {
       $metadata->addCacheableDependency($literal);
-      $gist = trim((string) $literal->get('gist')->value);
+      $gist = $literal->getGist();
       $suggestions[] = [
         'value' => (string) $literal->get('key')->value,
         'label' => Html::escape((string) $literal->label()) . ($gist !== '' ? ' - ' . Html::escape(Unicode::truncate($gist, 80, TRUE, TRUE)) : ''),

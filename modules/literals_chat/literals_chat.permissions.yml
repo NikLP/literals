@@ -1,0 +1,3 @@
+use literals chat:
+  title: 'Use the literals chat'
+  description: 'Ask the literals chat box for a value or link. Each answer is still only returned if the asker may view it.'

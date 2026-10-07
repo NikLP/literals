@@ -44,4 +44,21 @@ interface LiteralResolverInterface {
    */
   public function resolve(Literal $literal, AccountInterface $account, CacheableMetadata $metadata): ?string;
 
+  /**
+   * Resolves a literal to its value plus a label and a kind.
+   *
+   * @param \Drupal\literals\Entity\Literal $literal
+   *   The literal.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   The account the value is for.
+   * @param \Drupal\Core\Cache\CacheableMetadata $metadata
+   *   Collects the cache metadata of everything consulted.
+   *
+   * @return \Drupal\literals\ResolvedLiteral|null
+   *   The resolved literal, or NULL when resolve() would give NULL. The value
+   *   may be empty (a token that expands to nothing); callers decide whether
+   *   that is an answer.
+   */
+  public function resolveItem(Literal $literal, AccountInterface $account, CacheableMetadata $metadata): ?ResolvedLiteral;
+
 }

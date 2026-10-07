@@ -1,0 +1,65 @@
+# Questions for the 91 pl_* literals (pool100.seed.php.txt). Written by Claude,
+# not blind. Run alongside gold.seed/blind/paraphrase to see regressions from a
+# bigger pool. Nones are things no literal covers (and no old none-query is
+# made answerable by the pool).
+queries:
+  - {q: 'phone number for story time', expect: pl_childrens_phone}
+  - {q: 'who do I call about the teen zone', expect: pl_teen_phone}
+  - {q: 'ring the local history archive', expect: pl_archive_phone}
+  - {q: 'help finding my ancestors, who do I ring', expect: pl_genealogy_phone}
+  - {q: 'phone number to borrow a book from another library', expect: pl_ill_phone}
+  - {q: 'I am blind, can I get audiobooks, who do I phone', expect: pl_largeprint_phone}
+  - {q: 'my mother cant leave the house, can books be delivered, number', expect: pl_housebound_phone}
+  - {q: 'the computer is broken, who do I call', expect: pl_it_phone}
+  - {q: 'I want to volunteer, who do I speak to', expect: pl_volunteer_phone}
+  - {q: 'number for the events team', expect: pl_events_phone}
+  - {q: 'I am a teacher arranging a class trip, phone number', expect: pl_schools_phone}
+  - {q: 'phone for 3d printing', expect: pl_makerspace_phone}
+  - {q: 'I am starting a business, who can help me, phone', expect: pl_business_phone}
+  - {q: 'help with my CV, number to ring', expect: pl_jobs_phone}
+  - {q: 'I left my umbrella in the library, who do I call', expect: pl_lostprop_phone}
+  - {q: 'there is a leak in the ceiling, who do I phone', expect: pl_facilities_phone}
+  - {q: 'journalist phone number', expect: pl_press_phone}
+  - {q: 'call about a job vacancy', expect: pl_hr_phone}
+  - {q: 'I have boxes of books to give away, who do I call', expect: pl_donations_phone}
+  - {q: 'where is the mobile library van today, phone number', expect: pl_outreach_phone}
+  - {q: 'what are the archive opening times', expect: pl_archive_hours}
+  - {q: 'when can I use the 3d printer', expect: pl_makerspace_hours}
+  - {q: 'when is the childrens room open', expect: pl_childrens_hours}
+  - {q: 'when does the knitting group meet', expect: pl_knitting_hours}
+  - {q: 'baby rhyme time days', expect: pl_rhyme_hours}
+  - {q: 'which villages does the mobile library visit', expect: pl_van_schedule}
+  - {q: 'what day does the chess club meet', expect: pl_chess_hours}
+  - {q: 'when can my child go to coding club', expect: pl_coding_hours}
+  - {q: 'search the catalogue', expect: pl_catalogue}
+  - {q: 'where can I borrow ebooks', expect: pl_ebooks}
+  - {q: 'old newspapers online', expect: pl_newspapers}
+  - {q: 'what is on at the library this week', expect: pl_events_cal}
+  - {q: 'how do I give money to the library', expect: pl_donate}
+  - {q: 'jobs at the library', expect: pl_jobs_page}
+  - {q: 'how do you use my personal data', expect: pl_privacy}
+  - {q: 'I want to complain', expect: pl_complaints}
+  - {q: 'can you buy a book for me', expect: pl_suggest}
+  - {q: 'top up my printing money', expect: pl_print_credit}
+  - {q: 'learn french online', expect: pl_languages}
+  - {q: 'summer reading for kids', expect: pl_readingchallenge}
+  - {q: 'where is the map of the building', expect: pl_floorplan}
+  - {q: 'how long can I keep a book for', expect: pl_loan_period}
+  - {q: 'how many books can I take out', expect: pl_loan_limit}
+  - {q: 'how much to print a page', expect: pl_print_price}
+  - {q: 'how much does it cost to reserve a book', expect: pl_holds_fee}
+  - {q: 'how old do you have to be for a childs card', expect: pl_junior_age}
+  - {q: 'how much to hire a meeting room', expect: pl_roomrate}
+  - {q: 'where can I park', expect: pl_parking}
+  - {q: 'which bus goes to the library', expect: pl_bus}
+  - {q: 'when was the library built', expect: pl_founded}
+  - {q: 'charity registration number', expect: pl_charity}
+  # Unanswerable near neighbours (no literal for these).
+  - {q: 'phone number for the swimming pool', expect: none}
+  - {q: 'who is the head of the archive', expect: none}
+  - {q: 'how much is a coffee', expect: none}
+  - {q: 'what books do you have about gardening', expect: none}
+  - {q: 'is the 3d printer broken today', expect: none}
+  - {q: 'what is the wifi network name', expect: none}
+  - {q: 'phone number for the police', expect: none}
+  - {q: 'what is the loan period at the university library', expect: none}

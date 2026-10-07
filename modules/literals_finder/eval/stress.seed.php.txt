@@ -1,0 +1,26 @@
+<?php
+use Drupal\user\Entity\User;
+\Drupal::currentUser()->setAccount(User::load(1));
+$s = \Drupal::entityTypeManager()->getStorage('literal');
+$rows = [
+ ['phone','st_cafe_phone','Cafe phone','The phone number for the library cafe','+44 20 7946 0001','anonymous'],
+ ['phone','st_fax','Fax','The fax number for sending documents to the library','+44 20 7946 0002','anonymous'],
+ ['phone','st_security_phone','Security phone','Out-of-hours security desk phone, staff only','+44 20 7946 0003','restricted'],
+ ['phone','st_children_phone','Childrens library phone','The phone number for the childrens library and story time bookings','+44 20 7946 0004','anonymous'],
+ ['text','st_late_fee','Late fee','How much the daily late fee is for an overdue book','20p per day','anonymous'],
+ ['text','st_wifi','Wifi password','The guest wifi password inside the library','guest-books-2026','authenticated'],
+ ['text','st_director_email','Director email','The email address of the library director, for formal complaints','director@example.org','anonymous'],
+ ['text','st_wheelchair','Accessibility','Wheelchair and step-free access information','Step-free entrance on Mill Street','anonymous'],
+ ['text','st_membership_cost','Membership cost','How much it costs to join the library','Free for residents','anonymous'],
+ ['url','st_renew','Renew books','Where to renew borrowed books online','/user/login','anonymous'],
+ ['url','st_events','Events','Where to see upcoming events and talks','/user/login','anonymous'],
+ ['url','st_staff_login','Staff login','Sign in page for library staff only','/user/login','restricted'],
+ ['text','st_open_sunday','Sunday hours','Opening hours on Sundays and bank holidays only','11:00-16:00','anonymous'],
+ ['text','st_open_weekday','Weekday hours','Opening hours Monday to Friday','09:00-19:00','anonymous'],
+];
+foreach ($rows as [$b,$k,$n,$g,$v,$a]) {
+  $l = $s->create(['type'=>$b,'bundle'=>$b,'name'=>$n,'key'=>$k,'gist'=>$g,'value'=>$v,'audience'=>$a,'status'=>1]);
+  $viol = $l->validate();
+  if (count($viol)) { echo "FAIL $k: ", $viol[0]->getMessage(), "\n"; continue; }
+  $l->save(); echo "ok $k\n";
+}

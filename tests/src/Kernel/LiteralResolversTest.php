@@ -63,11 +63,35 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
     $this->assertFalse($this->valid('url', '//evil.example/path'));
     $this->assertFalse($this->valid('url', 'news'));
     $this->assertFalse($this->valid('url', 'javascript:alert(1)'));
+    $this->assertFalse($this->valid('url', '/no/such/page'), 'A path that matches no route');
     $this->assertTrue($this->valid('url', '/user/login'));
     $literal = $this->createLiteral('login', '/user/login', ['type' => 'url']);
     $resolved = $literal->resolve(new AnonymousUserSession(), new CacheableMetadata());
     $this->assertStringEndsWith('/user/login', $resolved);
     $this->assertStringStartsWith('http', $resolved);
+  }
+
+  /**
+   * Each resolver reports a label and a kind with the value.
+   */
+  public function testResolveItemCarriesLabelAndKind(): void {
+    $anon = new AnonymousUserSession();
+    $text = $this->createLiteral('hours', 'Mon-Fri 9-17', ['name' => 'Opening hours'])->resolveItem($anon, new CacheableMetadata());
+    $this->assertSame(['value' => 'Mon-Fri 9-17', 'label' => 'Opening hours', 'kind' => 'text'], $text->toArray());
+
+    $link = $this->createLiteral('login', '/user/login', ['type' => 'url', 'name' => 'Sign in'])->resolveItem($anon, new CacheableMetadata());
+    $this->assertSame('url', $link->kind);
+    $this->assertSame('Sign in', $link->label);
+    $this->assertStringEndsWith('/user/login', $link->value);
+
+    $page = $this->createPage('Open page');
+    $viewer = $this->createUser(['access content']);
+    $entity = $this->createLiteral('open_page', 'node:' . $page->id(), ['type' => 'entity', 'name' => 'Ignored name'])->resolveItem($viewer, new CacheableMetadata());
+    $this->assertSame('Open page', $entity->label, 'Entity literals label with the entity title');
+    $this->assertSame('url', $entity->kind);
+
+    $denied = $this->createLiteral('admin_page', '/admin/config', ['type' => 'url'])->resolveItem($anon, new CacheableMetadata());
+    $this->assertNull($denied);
   }
 
   /**

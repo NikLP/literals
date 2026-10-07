@@ -89,7 +89,12 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
 
     [$ok, , $values] = $this->runTool(['key' => 'main_phone'], $caller);
     $this->assertTrue($ok);
-    $this->assertSame(['outcome' => 'match', 'key' => 'main_phone', 'candidates' => '', 'value' => '+44 1223 000000'], $values);
+    $this->assertSame('match', $values['outcome']);
+    $this->assertSame('+44 1223 000000', $values['value']);
+    $this->assertSame('Main_phone', $values['label']);
+    $this->assertSame('phone', $values['kind']);
+    $expected = [['key' => 'main_phone', 'value' => '+44 1223 000000', 'label' => 'Main_phone', 'kind' => 'phone']];
+    $this->assertSame($expected, json_decode($values['items'], TRUE));
 
     $misses = [];
     foreach (['nosuchkey', 'internal', 'draft'] as $key) {
@@ -133,7 +138,9 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     $caller = $this->createUser(['use literal lookup tool']);
 
     [, , $values] = $this->runTool(['question' => 'phone'], $caller);
-    $this->assertSame(['outcome' => 'match', 'key' => 'phone_a', 'candidates' => '', 'value' => '111 1111'], $values);
+    $this->assertSame('match', $values['outcome']);
+    $this->assertSame('phone_a', $values['key']);
+    $this->assertSame('111 1111', $values['value']);
 
     [, $message, $values] = $this->runTool(['question' => 'ambiguous'], $caller);
     $this->assertSame('ambiguous', $values['outcome']);
@@ -178,6 +185,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     $this->assertSame('candidates', $values['outcome']);
     $this->assertSame('phone_a', $values['key'], 'The restricted literal is not offered');
     $this->assertSame("phone_a: Main phone - The switchboard", $values['candidates']);
+    $this->assertSame([['key' => 'phone_a', 'label' => 'Main phone', 'gist' => 'The switchboard']], json_decode($values['items'], TRUE));
     $this->assertSame('', $values['value']);
     $this->assertStringNotContainsString('111 1111', json_encode($values));
 

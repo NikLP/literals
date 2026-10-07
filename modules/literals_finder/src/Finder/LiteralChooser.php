@@ -64,7 +64,7 @@ class LiteralChooser implements LiteralChooserInterface {
     foreach ($candidates as $literal) {
       $key = (string) $literal->get('key')->value;
       $by_key[$key] = $literal;
-      $criteria[$key] = trim((string) $literal->get('gist')->value) ?: (string) $literal->label();
+      $criteria[$key] = $literal->getGist() ?: (string) $literal->label();
     }
     $criteria[self::NONE_OPTION] = 'None of the above: the question is not asking for any of these.';
 

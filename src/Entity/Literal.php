@@ -21,6 +21,7 @@ use Drupal\literals\LiteralAccessControlHandler;
 use Drupal\literals\LiteralAudience;
 use Drupal\literals\LiteralResolverInterface;
 use Drupal\literals\LiteralViewsData;
+use Drupal\literals\ResolvedLiteral;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
 
@@ -99,6 +100,34 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
    */
   public function resolve(?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL): ?string {
     return $this->getResolverPlugin()->resolve($this, $account ?? \Drupal::currentUser(), $metadata ?? new CacheableMetadata());
+  }
+
+  /**
+   * Resolves the literal to its value plus a label and a kind.
+   *
+   * @param \Drupal\Core\Session\AccountInterface|null $account
+   *   The account the value is for. Defaults to the current user.
+   * @param \Drupal\Core\Cache\CacheableMetadata|null $metadata
+   *   Collects cache metadata of everything consulted.
+   *
+   * @return \Drupal\literals\ResolvedLiteral|null
+   *   The resolved literal, or NULL when it cannot be resolved for the account.
+   */
+  public function resolveItem(?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL): ?ResolvedLiteral {
+    return $this->getResolverPlugin()->resolveItem($this, $account ?? \Drupal::currentUser(), $metadata ?? new CacheableMetadata());
+  }
+
+  /**
+   * Returns the gist, the plain-language description that is matched.
+   *
+   * Every reader goes through here, so the gist can later come from
+   * somewhere other than the stored field (ADR-0047's tracked gists).
+   *
+   * @return string
+   *   The trimmed gist, empty when there is none.
+   */
+  public function getGist(): string {
+    return trim((string) $this->get('gist')->value);
   }
 
   /**

@@ -10,6 +10,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Attribute\LiteralResolver;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralResolverBase;
+use Drupal\literals\ResolvedLiteral;
 
 /**
  * A plain text value, optionally validated as a number, phone, email or URL.
@@ -49,6 +50,18 @@ class TextResolver extends LiteralResolverBase {
    */
   public function resolve(Literal $literal, AccountInterface $account, CacheableMetadata $metadata): ?string {
     return (string) $literal->get('value')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function kind(Literal $literal): string {
+    return match ($literal->getType()->getValidateAs()) {
+      'phone' => ResolvedLiteral::KIND_PHONE,
+      'email' => ResolvedLiteral::KIND_EMAIL,
+      'url' => ResolvedLiteral::KIND_URL,
+      default => ResolvedLiteral::KIND_TEXT,
+    };
   }
 
 }

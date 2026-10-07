@@ -1,0 +1,112 @@
+<?php
+// Grows the dev pool from 9 to 100 hand-written literals (pl_* keys), none of
+// which should make an existing none-expecting gold query answerable.
+// POOL_CLEAN=1 removes them. Run: ddev exec DEMO=1 drush php:script <this file>.
+use Drupal\user\Entity\User;
+\Drupal::currentUser()->setAccount(User::load(1));
+$s = \Drupal::entityTypeManager()->getStorage('literal');
+foreach ($s->loadMultiple() as $l) { if (str_starts_with((string) $l->get('key')->value, 'pl_')) { $l->delete(); } }
+if (getenv('POOL_CLEAN')) { echo "cleaned\n"; return; }
+$rows = [
+ // Phones.
+ ['phone','pl_childrens_phone','Childrens library phone','The phone number for the childrens library and story time sessions','+44 20 7946 0101'],
+ ['phone','pl_teen_phone','Teen zone phone','The phone number for the teen zone and young adult programmes','+44 20 7946 0102'],
+ ['phone','pl_archive_phone','Local history archive phone','The phone number for the local history archive and enquiries about old records','+44 20 7946 0103'],
+ ['phone','pl_genealogy_phone','Family history phone','The phone number for help tracing your family history and ancestors','+44 20 7946 0104'],
+ ['phone','pl_ill_phone','Interlibrary loans phone','The phone number for requesting books from other libraries','+44 20 7946 0105'],
+ ['phone','pl_largeprint_phone','Large print and audio phone','The phone number for large print books and audiobooks for people with sight loss','+44 20 7946 0106'],
+ ['phone','pl_housebound_phone','Housebound service phone','The phone number for the home delivery service for people who cannot visit','+44 20 7946 0107'],
+ ['phone','pl_it_phone','IT helpdesk phone','The phone number for the IT helpdesk and computer problems on library PCs','+44 20 7946 0108'],
+ ['phone','pl_volunteer_phone','Volunteer coordinator phone','The phone number for the volunteer coordinator, for people who want to help out','+44 20 7946 0109'],
+ ['phone','pl_events_phone','Events team phone','The phone number for the events team about talks, workshops and tickets','+44 20 7946 0110'],
+ ['phone','pl_schools_phone','Schools liaison phone','The phone number for teachers arranging class visits and school loans','+44 20 7946 0111'],
+ ['phone','pl_makerspace_phone','Makerspace phone','The phone number for the makerspace and 3D printing slots','+44 20 7946 0112'],
+ ['phone','pl_business_phone','Business corner phone','The phone number for the business corner, for small business owners and start-ups','+44 20 7946 0113'],
+ ['phone','pl_jobs_phone','Job club phone','The phone number for the job club, CV help and job searching support','+44 20 7946 0114'],
+ ['phone','pl_exams_phone','Exam invigilation phone','The phone number for arranging to sit a distance learning exam at the library','+44 20 7946 0115'],
+ ['phone','pl_lostprop_phone','Lost property phone','The phone number to ask about something you left behind in the building','+44 20 7946 0116'],
+ ['phone','pl_facilities_phone','Facilities phone','The phone number for reporting a building fault such as a broken light or leak','+44 20 7946 0117'],
+ ['phone','pl_press_phone','Press office phone','The phone number for journalists and media enquiries','+44 20 7946 0118'],
+ ['phone','pl_hr_phone','Recruitment phone','The phone number for questions about working at the library and job vacancies','+44 20 7946 0119'],
+ ['phone','pl_donations_phone','Book donations phone','The phone number for donating books or other items to the library','+44 20 7946 0120'],
+ ['phone','pl_rarebooks_phone','Rare books phone','The phone number for the rare books room and special collections appointments','+44 20 7946 0121'],
+ ['phone','pl_council_phone','Council services desk phone','The phone number for the council services desk located inside the library','+44 20 7946 0122'],
+ ['phone','pl_outreach_phone','Outreach van phone','The phone number to ask where the mobile library van will be','+44 20 7946 0123'],
+ ['phone','pl_print_phone','Printing help phone','The phone number for help with printing, scanning and photocopying','+44 20 7946 0124'],
+ ['phone','pl_dpo_phone','Data protection phone','The phone number for the data protection officer, about your personal data','+44 20 7946 0125'],
+ // Hours and times.
+ ['text','pl_archive_hours','Archive hours','When the local history archive is open to visitors','Tue and Thu 10:00-16:00, by appointment'],
+ ['text','pl_makerspace_hours','Makerspace hours','When the makerspace and 3D printers can be used','Wed-Sat 12:00-18:00'],
+ ['text','pl_childrens_hours','Childrens room hours','When the childrens room is open','Mon-Sat 09:30-17:30'],
+ ['text','pl_reference_hours','Reference desk hours','When a member of staff is on the reference desk to help with research','Mon-Fri 10:00-17:00'],
+ ['text','pl_genealogy_hours','Family history sessions','When the drop-in family history help sessions run','First Saturday of the month, 10:00-12:00'],
+ ['text','pl_microfilm_hours','Microfilm room hours','When the microfilm reader room can be used','Mon-Fri 10:00-16:00'],
+ ['text','pl_study_hours','Study pod hours','When the individual study pods are available','Daily 08:00-22:00'],
+ ['text','pl_garden_hours','Reading garden hours','When the outdoor reading garden is open','April to October, dawn to dusk'],
+ ['text','pl_homework_hours','Homework club times','When the after-school homework club meets','Mon-Thu 15:30-17:00'],
+ ['text','pl_coding_hours','Coding club times','When the children coding club meets','Fridays 16:00-17:30'],
+ ['text','pl_chess_hours','Chess club times','When the chess club meets','Tuesdays 18:30-20:30'],
+ ['text','pl_knitting_hours','Knitting circle times','When the knitting circle meets','Wednesdays 14:00-16:00'],
+ ['text','pl_rhyme_hours','Rhyme time sessions','When baby and toddler rhyme time sessions are held','Mon and Thu 10:30-11:00'],
+ ['text','pl_van_schedule','Mobile library schedule','Which villages the mobile library van visits and on which days','Mon: Ashby; Tue: Greystone; Thu: Hallam'],
+ ['text','pl_housebound_days','Home delivery days','Which days the home delivery service runs','Wednesdays and Fridays'],
+ ['text','pl_volunteer_shifts','Volunteer shifts','When volunteer shifts are available','Mornings 09:00-13:00, afternoons 13:00-17:00'],
+ ['text','pl_rarebooks_hours','Rare books room hours','When the rare books room can be visited','By appointment only, Mon-Fri'],
+ ['text','pl_printing_hours','Printing service hours','When the staffed print and copy service is available','Mon-Sat 10:00-16:00'],
+ ['text','pl_exam_days','Exam days','Which days exams can be sat at the library','Tuesdays and Thursdays'],
+ ['text','pl_council_hours','Council desk hours','When the council services desk in the library is staffed','Mon-Fri 09:00-16:30'],
+ ['text','pl_jobs_hours','Job club times','When the job club runs','Mondays 10:00-12:00 and Thursdays 13:00-15:00'],
+ ['text','pl_business_hours','Business corner times','When the business adviser is in','Second Wednesday of the month, 09:00-12:00'],
+ ['text','pl_teen_hours','Teen zone times','When the teen zone is open to young people','Mon-Fri 15:30-19:00'],
+ ['text','pl_storytime_hours','Story time sessions','When story time for older children happens','Saturdays 11:00-11:45'],
+ // Links.
+ ['url','pl_catalogue','Catalogue','Where to search the library catalogue for books and other items','/user/login'],
+ ['url','pl_ebooks','E-books','Where to borrow e-books on your phone or tablet','/user/login'],
+ ['url','pl_audiobooks','Digital audiobooks','Where to borrow downloadable audiobooks','/user/login'],
+ ['url','pl_newspapers','Newspaper archive','Where to search digitised old local newspapers','/user/login'],
+ ['url','pl_localhistory','Local history collection','Where to browse historic photographs and maps online','/user/login'],
+ ['url','pl_events_cal','Events calendar','Where to see the calendar of talks, workshops and activities','/user/login'],
+ ['url','pl_volunteer_form','Volunteer sign up','The form to apply to become a volunteer','/user/login'],
+ ['url','pl_donate','Donate','Where to give money to support the library','/user/login'],
+ ['url','pl_newsletter','Newsletter','Where to subscribe to the library newsletter','/user/login'],
+ ['url','pl_jobs_page','Vacancies','Where to see job vacancies at the library','/user/login'],
+ ['url','pl_privacy','Privacy policy','The privacy policy page explaining how personal data is used','/user/login'],
+ ['url','pl_a11y','Accessibility statement','The website accessibility statement','/user/login'],
+ ['url','pl_complaints','Complaints form','The online form for making a complaint or giving feedback','/user/login'],
+ ['url','pl_suggest','Suggest a book','The form to suggest the library buys a book','/user/login'],
+ ['url','pl_ill_form','Interlibrary loan request','The online form to request a book from another library','/user/login'],
+ ['url','pl_print_credit','Printing credit','Where to top up your printing credit','/user/login'],
+ ['url','pl_languages','Language learning','Where to access the online language learning courses','/user/login'],
+ ['url','pl_digitalskills','Digital skills course','Where to sign up for free digital skills classes','/user/login'],
+ ['url','pl_readingchallenge','Summer reading challenge','Where children can sign up for the summer reading challenge','/user/login'],
+ ['url','pl_school_visits','School visit booking','The form for schools to book a class visit','/user/login'],
+ ['url','pl_presskit','Press kit','Logos, photos and facts for journalists','/user/login'],
+ ['url','pl_annual','Annual report','The annual report','/user/login'],
+ ['url','pl_terms','Terms of use','The terms and conditions of using library services','/user/login'],
+ ['url','pl_cookies','Cookie policy','The cookie policy','/user/login'],
+ ['url','pl_floorplan','Floor plan','A map showing where everything is inside the building','/user/login'],
+ // Facts.
+ ['text','pl_loan_period','Loan period','How many weeks you can borrow a book for','3 weeks'],
+ ['text','pl_loan_limit','Loan limit','The maximum number of items you can have on loan at once','20 items'],
+ ['text','pl_print_price','Printing price','How much printing and photocopying costs per page','10p black and white, 30p colour'],
+ ['text','pl_holds_fee','Reservation fee','The charge for reserving a book that is out on loan','50p per item'],
+ ['text','pl_ill_fee','Interlibrary loan fee','The charge for borrowing a book from another library','3 pounds per item'],
+ ['text','pl_junior_age','Junior card age','The age range for a junior library card','Under 16'],
+ ['text','pl_card_format','Card number format','How many digits a library card number has','14 digits starting with 2500'],
+ ['text','pl_charity','Charity number','The registered charity number of the friends of the library','1234567'],
+ ['text','pl_company','Company number','The company registration number','01234567'],
+ ['text','pl_vat','VAT number','The VAT registration number','GB123456789'],
+ ['text','pl_roomrate','Room hire rate','How much it costs per hour to hire a meeting room','15 pounds per hour, free for registered charities'],
+ ['text','pl_capacity','Room capacity','The maximum number of people the largest meeting room holds','40 people'],
+ ['text','pl_parking','Parking info','Where visitors can park and whether it is free','Free two hour parking on Mill Street'],
+ ['text','pl_bus','Bus routes','Which bus routes stop outside the building','Routes 12 and 47 stop outside'],
+ ['text','pl_founded','Year founded','The year the library was founded','1907'],
+ ['text','pl_isbn','Publisher prefix','The ISBN publisher prefix for library publications','978-1-23456'],
+];
+foreach ($rows as [$b,$k,$n,$g,$v]) {
+  $l = $s->create(['type'=>$b,'bundle'=>$b,'name'=>$n,'key'=>$k,'gist'=>$g,'value'=>$v,'audience'=>'anonymous','status'=>1]);
+  $viol = $l->validate();
+  if (count($viol)) { echo "FAIL $k: ", $viol[0]->getMessage(), "\n"; continue; }
+  $l->save();
+}
+echo count($rows), " pl_ literals\n";

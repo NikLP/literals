@@ -12,6 +12,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralReader;
+use Drupal\literals\ResolvedLiteral;
 use Drupal\tool\Attribute\Tool;
 use Drupal\tool\ExecutableResult;
 use Drupal\tool\Tool\ToolBase;
@@ -74,6 +75,21 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
       data_type: 'string',
       label: new TranslatableMarkup('Value'),
       description: new TranslatableMarkup('The exact value of the matched literal. Empty unless the outcome is match.'),
+    ),
+    'label' => new OutputDefinition(
+      data_type: 'string',
+      label: new TranslatableMarkup('Label'),
+      description: new TranslatableMarkup('A human label for the value, usable as link text. Empty unless the outcome is match.'),
+    ),
+    'kind' => new OutputDefinition(
+      data_type: 'string',
+      label: new TranslatableMarkup('Kind'),
+      description: new TranslatableMarkup('What the value is: url, phone, email or text. Empty unless the outcome is match.'),
+    ),
+    'items' => new OutputDefinition(
+      data_type: 'string',
+      label: new TranslatableMarkup('Items'),
+      description: new TranslatableMarkup('A JSON list of the literals involved. For a match: one {key, label, kind, value}. For ambiguous or search: {key, label, gist} per candidate, never values.'),
     ),
   ],
 )]
@@ -160,14 +176,8 @@ final class LiteralLookup extends ToolBase {
    *   The result.
    */
   protected function byKey(string $key): ExecutableResult {
-    $value = $this->reader->read($key, $this->currentUser, new CacheableMetadata());
-    if ($value === NULL || $value === '') {
-      return $this->notFound();
-    }
-    return ExecutableResult::success(
-      new TranslatableMarkup('Found literal @key.', ['@key' => $key]),
-      ['outcome' => self::MATCH, 'key' => $key, 'candidates' => '', 'value' => $value],
-    );
+    $item = $this->reader->readItem($key, $this->currentUser, new CacheableMetadata());
+    return $item && $item->value !== '' ? $this->matched($key, $item) : $this->notFound();
   }
 
   /**
@@ -188,24 +198,16 @@ final class LiteralLookup extends ToolBase {
     $keys = array_map(fn (Literal $literal): string => (string) $literal->get('key')->value, $result->literals);
 
     if ($result->outcome === self::MATCH && $keys) {
-      $value = $result->literals[0]->resolve($this->currentUser, new CacheableMetadata());
-      if ($value !== NULL && $value !== '') {
-        return ExecutableResult::success(
-          new TranslatableMarkup('Found literal @key.', ['@key' => $keys[0]]),
-          ['outcome' => self::MATCH, 'key' => $keys[0], 'candidates' => '', 'value' => $value],
-        );
-      }
-      return $this->notFound();
+      $item = $result->literals[0]->resolveItem($this->currentUser, new CacheableMetadata());
+      return $item && $item->value !== '' ? $this->matched($keys[0], $item) : $this->notFound();
     }
     if ($result->outcome === self::AMBIGUOUS && $keys) {
       return ExecutableResult::success(
         new TranslatableMarkup('More than one literal fits: @keys. Ask again with a key or a clearer question.', ['@keys' => implode(', ', $keys)]),
-        [
-          'outcome' => self::AMBIGUOUS,
-          'key' => implode(',', $keys),
+        $this->output(self::AMBIGUOUS, implode(',', $keys), [
           'candidates' => $this->describe($result->literals),
-          'value' => '',
-        ],
+          'items' => $this->candidateItems($result->literals),
+        ]),
       );
     }
     return $this->notFound();
@@ -230,12 +232,10 @@ final class LiteralLookup extends ToolBase {
     $keys = array_map(fn (Literal $literal): string => (string) $literal->get('key')->value, $literals);
     return ExecutableResult::success(
       new TranslatableMarkup('Found @count literal(s). Call again with a key to get a value.', ['@count' => count($literals)]),
-      [
-        'outcome' => self::CANDIDATES,
-        'key' => implode(',', $keys),
+      $this->output(self::CANDIDATES, implode(',', $keys), [
         'candidates' => $this->describe($literals),
-        'value' => '',
-      ],
+        'items' => $this->candidateItems($literals),
+      ]),
     );
   }
 
@@ -251,7 +251,7 @@ final class LiteralLookup extends ToolBase {
   protected function describe(array $literals): string {
     $lines = [];
     foreach ($literals as $literal) {
-      $gist = trim((string) $literal->get('gist')->value);
+      $gist = $literal->getGist();
       $lines[] = $literal->get('key')->value . ': ' . $literal->label() . ($gist !== '' ? ' - ' . $gist : '');
     }
     return implode("\n", $lines);
@@ -266,8 +266,74 @@ final class LiteralLookup extends ToolBase {
   protected function notFound(): ExecutableResult {
     return ExecutableResult::success(
       new TranslatableMarkup('No matching literal found.'),
-      ['outcome' => self::NONE, 'key' => '', 'candidates' => '', 'value' => ''],
+      $this->output(self::NONE, ''),
     );
+  }
+
+  /**
+   * Builds the match result.
+   *
+   * @param string $key
+   *   The literal key.
+   * @param \Drupal\literals\ResolvedLiteral $item
+   *   The resolved literal.
+   *
+   * @return \Drupal\tool\ExecutableResult
+   *   The result.
+   */
+  protected function matched(string $key, ResolvedLiteral $item): ExecutableResult {
+    return ExecutableResult::success(
+      new TranslatableMarkup('Found literal @key.', ['@key' => $key]),
+      $this->output(self::MATCH, $key, $item->toArray() + [
+        'items' => json_encode([['key' => $key] + $item->toArray()], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+      ]),
+    );
+  }
+
+  /**
+   * Lists literals as JSON candidates (key, label, gist), never values.
+   *
+   * @param \Drupal\literals\Entity\Literal[] $literals
+   *   The literals.
+   *
+   * @return string
+   *   A JSON list.
+   */
+  protected function candidateItems(array $literals): string {
+    $items = [];
+    foreach ($literals as $literal) {
+      $items[] = [
+        'key' => (string) $literal->get('key')->value,
+        'label' => (string) $literal->label(),
+        'gist' => $literal->getGist(),
+      ];
+    }
+    return json_encode($items, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+  }
+
+  /**
+   * Builds the output values with every output defined.
+   *
+   * @param string $outcome
+   *   The outcome.
+   * @param string $key
+   *   The key, or the comma-separated candidate keys.
+   * @param array $values
+   *   Any of candidates, value, label, kind and items.
+   *
+   * @return array
+   *   The complete output values.
+   */
+  protected function output(string $outcome, string $key, array $values = []): array {
+    return $values + [
+      'outcome' => $outcome,
+      'key' => $key,
+      'candidates' => '',
+      'value' => '',
+      'label' => '',
+      'kind' => '',
+      'items' => '[]',
+    ];
   }
 
   /**

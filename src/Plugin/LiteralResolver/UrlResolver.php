@@ -11,9 +11,10 @@ use Drupal\Core\Url;
 use Drupal\literals\Attribute\LiteralResolver;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralResolverBase;
+use Drupal\literals\ResolvedLiteral;
 
 /**
- * An internal path, resolved to an absolute URL after an access check.
+ * An existing internal path, resolved to an absolute URL after an access check.
  */
 #[LiteralResolver(
   id: 'url',
@@ -32,11 +33,14 @@ class UrlResolver extends LiteralResolverBase {
       return NULL;
     }
     try {
-      return Url::fromUserInput($value);
+      $url = Url::fromUserInput($value);
     }
     catch (\InvalidArgumentException) {
       return NULL;
     }
+    // A path that matches no route would pass the access check (there is
+    // nothing to deny) and hand out a link to a 404.
+    return $url->isRouted() ? $url : NULL;
   }
 
   /**
@@ -44,7 +48,7 @@ class UrlResolver extends LiteralResolverBase {
    */
   public function validate(Literal $literal): array {
     $value = (string) $literal->get('value')->value;
-    return $this->toUrl($value) ? [] : [(string) new TranslatableMarkup('Use an internal path starting with a slash, such as /news.')];
+    return $this->toUrl($value) ? [] : [(string) new TranslatableMarkup('Use an existing internal path starting with a slash, such as /news.')];
   }
 
   /**
@@ -61,6 +65,13 @@ class UrlResolver extends LiteralResolverBase {
       return NULL;
     }
     return $url->setAbsolute()->toString();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function kind(Literal $literal): string {
+    return ResolvedLiteral::KIND_URL;
   }
 
 }

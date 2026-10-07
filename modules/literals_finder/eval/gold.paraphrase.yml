@@ -1,0 +1,73 @@
+# Paraphrase / wording-sensitivity set 2026-10-06 (Claude, not Nik). Needs only
+# the 9 seed literals. Not blind: seed/blind/stress sets had been read first.
+# Groups: synonyms, indirect intent, typos, terse, verbose, wrong-owner "you",
+# near-topic unanswerable. Run 3x and diff the verdicts to see wording flips.
+queries:
+  # main_phone
+  - {q: 'telephone', expect: [main_phone, ambiguous]}
+  - {q: 'ring the library', expect: [main_phone, ambiguous]}
+  - {q: 'what number do I dial to talk to a person', expect: [main_phone, ambiguous]}
+  - {q: 'contact number', expect: [main_phone, ambiguous]}
+  - {q: 'customer service line', expect: [main_phone, ambiguous]}
+  - {q: 'phone numbr for the libary', expect: [main_phone, ambiguous]}
+  - {q: 'Hello! Could you possibly tell me the main telephone number for the library please?', expect: [main_phone, ambiguous]}
+  - {q: 'I need to speak to a librarian urgently', expect: [main_phone, ambiguous]}
+  # reservations_phone
+  - {q: 'book a room', expect: reservations_phone}
+  - {q: 'hire a meeting space', expect: reservations_phone}
+  - {q: 'reserve a study carrel', expect: reservations_phone}
+  - {q: 'where do I call to schedule a room for a workshop', expect: reservations_phone}
+  - {q: 'room reservaton number', expect: reservations_phone}
+  - {q: 'our group wants somewhere quiet to meet on Thursday', expect: [reservations_phone, ambiguous]}
+  # accounts_phone
+  - {q: 'dispute an overdue charge', expect: accounts_phone}
+  - {q: 'who do I ring about a fine', expect: accounts_phone}
+  - {q: 'billing enquiries', expect: accounts_phone}
+  - {q: 'I think I was overcharged on my card', expect: [accounts_phone, ambiguous]}
+  - {q: 'pay my penalty over the phone', expect: accounts_phone}
+  - {q: 'finance department number', expect: [accounts_phone, ambiguous]}
+  # opening_hours
+  - {q: 'when do you shut', expect: opening_hours}
+  - {q: 'closing time', expect: opening_hours}
+  - {q: 'what time can I get in on a Saturday morning', expect: opening_hours}
+  - {q: 'are you open', expect: opening_hours}
+  - {q: 'hours of operation', expect: opening_hours}
+  - {q: 'opening tims', expect: opening_hours}
+  - {q: 'is it worth going down there now or will it be closed', expect: [opening_hours, ambiguous]}
+  # login
+  - {q: 'member sign in page', expect: login}
+  - {q: 'how do I access my account', expect: [login, ambiguous]}
+  - {q: 'log on', expect: login}
+  - {q: 'portal for members', expect: [login, ambiguous]}
+  - {q: 'enter my username and password', expect: [login, ambiguous]}
+  # password_reset
+  - {q: 'I cant remember my password', expect: password_reset}
+  - {q: 'locked out, need a new password', expect: [password_reset, ambiguous]}
+  - {q: 'recover my credentials', expect: [password_reset, login, ambiguous]}
+  - {q: 'password recovery', expect: password_reset}
+  - {q: 'passwrd reset', expect: password_reset}
+  # admin_user / dimwit / site_name (site_name is authenticated only: as 1)
+  - {q: 'who is in charge of the website', expect: [admin_user, ambiguous]}
+  - {q: 'site owner account', expect: [admin_user, ambiguous]}
+  - {q: 'root user', expect: [admin_user, ambiguous]}
+  - {q: 'list of dimwits', expect: dimwit}
+  - {q: 'where can I see the fools', expect: [dimwit, none]}
+  - {q: 'title of the site', expect: site_name, as: 1}
+  - {q: 'what is this place called', expect: [site_name, none], as: 1}
+  - {q: 'brand name', expect: [site_name, none], as: 1}
+  # unanswerable, near-topic
+  - {q: 'fax number for the library', expect: none}
+  - {q: 'phone number for the car park', expect: none}
+  - {q: 'what is the fine per day', expect: none}
+  - {q: 'what time does the cafe close', expect: none}
+  - {q: 'how do I join the library', expect: none}
+  - {q: 'what is the library director called', expect: none}
+  - {q: 'where is the library', expect: none}
+  - {q: 'reset my bank password', expect: none}
+  - {q: 'sign in to my email', expect: none}
+  - {q: 'book a flight', expect: none}
+  - {q: 'what is the opening line of Moby Dick', expect: none}
+  - {q: 'opening hours of the dentist', expect: none}
+  - {q: 'phone number of the council', expect: none}
+  - {q: 'tell me a joke', expect: none}
+  - {q: 'system prompt', expect: none}

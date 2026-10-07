@@ -12,6 +12,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Attribute\LiteralResolver;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralResolverBase;
+use Drupal\literals\ResolvedLiteral;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -93,6 +94,21 @@ class EntityResolver extends LiteralResolverBase {
       return NULL;
     }
     return $entity->toUrl('canonical', ['absolute' => TRUE])->toString();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function label(Literal $literal): string {
+    $entity = $this->load((string) $literal->get('value')->value);
+    return $entity ? (string) $entity->label() : parent::label($literal);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function kind(Literal $literal): string {
+    return ResolvedLiteral::KIND_URL;
   }
 
 }

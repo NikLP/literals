@@ -90,6 +90,23 @@ class LiteralReader {
    *   The value, or NULL when it cannot be served to this account.
    */
   public function read(string $key, ?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL): ?string {
+    return $this->readItem($key, $account, $metadata)?->value;
+  }
+
+  /**
+   * Reads a literal's resolved value with its label and kind.
+   *
+   * @param string $key
+   *   The literal key.
+   * @param \Drupal\Core\Session\AccountInterface|null $account
+   *   The account. Defaults to the current user.
+   * @param \Drupal\Core\Cache\CacheableMetadata|null $metadata
+   *   Collects the cache metadata of what was consulted.
+   *
+   * @return \Drupal\literals\ResolvedLiteral|null
+   *   The resolved literal, or NULL when it cannot be served to this account.
+   */
+  public function readItem(string $key, ?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL): ?ResolvedLiteral {
     $account ??= $this->currentUser;
     $metadata ??= new CacheableMetadata();
     if (in_array($key, $this->stack, TRUE)) {
@@ -103,7 +120,7 @@ class LiteralReader {
     }
     $this->stack[] = $key;
     try {
-      $value = $literal->resolve($account, $metadata);
+      $item = $literal->resolveItem($account, $metadata);
     }
     finally {
       array_pop($this->stack);
@@ -111,9 +128,9 @@ class LiteralReader {
     $this->logAudit('Literal read: key @key, uid @uid, resolved @resolved.', [
       '@key' => $key,
       '@uid' => $account->id(),
-      '@resolved' => $value === NULL ? 'no' : 'yes',
+      '@resolved' => $item === NULL ? 'no' : 'yes',
     ]);
-    return $value;
+    return $item;
   }
 
   /**

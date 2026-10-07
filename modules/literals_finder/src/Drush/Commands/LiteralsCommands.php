@@ -105,7 +105,7 @@ final class LiteralsCommands extends DrushCommands {
       $took = microtime(TRUE) - $start;
       $elapsed += $took;
       $keys = array_map(fn ($l) => (string) $l->get('key')->value, $result->literals);
-      // "expect" may be a list of acceptable answers: literal keys, and
+      // "expect" may be a list of acceptable answers: literal keys, "none", and
       // "ambiguous" for a tie. Nothing is a miss, a pick outside it is wrong.
       $accepted = is_array($item['expect']) ? array_map('strval', $item['expect']) : NULL;
       $expect = $accepted ? implode(' or ', $accepted) : (string) $item['expect'];
@@ -115,6 +115,7 @@ final class LiteralsCommands extends DrushCommands {
         $verdict = match (TRUE) {
           $result->outcome === LiteralFindResult::MATCH && count($keys) === 1 && in_array($keys[0], $accepted, TRUE) => 'hit',
           $result->outcome === LiteralFindResult::AMBIGUOUS && in_array('ambiguous', $accepted, TRUE) => 'hit',
+          $result->outcome === LiteralFindResult::NONE && in_array('none', $accepted, TRUE) => 'hit',
           $result->outcome === LiteralFindResult::MATCH => 'wrong',
           $result->outcome === LiteralFindResult::AMBIGUOUS => 'ambiguous',
           default => 'miss',

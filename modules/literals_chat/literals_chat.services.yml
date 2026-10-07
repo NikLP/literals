@@ -1,0 +1,4 @@
+services:
+  literals_chat.responder:
+    class: Drupal\literals_chat\LiteralsChatResponder
+    arguments: ['@literals_finder.finder', '@current_user', '@logger.channel.literals', '@config.factory']
