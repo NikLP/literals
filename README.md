@@ -45,7 +45,7 @@ that finds the right one from a description and decides who sees it.
 Design and decisions live in the `aim` module's ADRs, starting at
 [ADR-0040](adr/0040-literals-probabilistic-lookup-of-exact-values.md)
 and [ADR-0047](adr/0047-literal-candidates-and-tracked-gists.md).
-[HANDOFF-literals.md](HANDOFF-literals.md) has the current build state.
+[CLAUDE.md](CLAUDE.md) and [DEVELOPING.md](DEVELOPING.md) have the current build state, rules and commands.
 
 ## Drush commands
 

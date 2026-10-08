@@ -14,7 +14,7 @@ Related: [ADR-0047](0047-literal-candidates-and-tracked-gists.md)
 (token access, entity targets), [ADR-0052](0052-what-literals-is-for.md)
 (what it is for), [ADR-0053](../../aim/adr/0053-gist-shared-vocabulary.md)
 (the shared "gist" term). Current state and runbooks:
-[HANDOFF-literals.md](../HANDOFF-literals.md); how it works and its
+[CLAUDE.md](../CLAUDE.md) and [DEVELOPING.md](../DEVELOPING.md); how it works and its
 measurements: [how-it-works.md](how-it-works.md); the model ladder:
 [progressive-enhancement.md](progressive-enhancement.md).
 
@@ -349,6 +349,31 @@ None of these is built; each names its trigger. Measure before building.
   translation if the literal is translated.
 - **A `literal_register` agent tool and the aim-stored gist backend** (section
   6 and 9).
+- **Keyword fallback when the finder says none.** "dimwit?" gets
+  `chose_none` although the search would match "dimwit" in the gist. Idea:
+  on none, offer search hits as "did you mean", never as an answer, with its
+  own audit outcome (`suggested`) so the log still counts finder matches
+  honestly. Parked on purpose: it mixes a decision and a keyword guess.
+- **Named per-medium contexts** (a registry). The per-call `context`
+  already works; build the registry only for a second consumer.
+- **A local decision model.** Re-measure the chooser (latency, accuracy, 50
+  to 500 options) before deciding whether any pool-chopping is needed.
+- **`search_api` behind `literals.search`.** Stemming, speed at thousands,
+  facets; not needed at a few hundred.
+- **Guardrails runner as its own module** (`literals_guardrails`): dropped
+  2026-10-08, tidiness for a hypothetical site. The runner stays in
+  `literals_finder` because it needs `drupal/ai`.
+- **Tokens in body copy** (a `token_filter` text-format filter): dropped
+  2026-10-08. A filter that does not pass our cache contexts could serve a
+  restricted value to the wrong viewer, for a rarely used feature. The
+  editor-side token browser work (scope it with
+  `'#token_types' => ['literal']`, `'#global_types' => FALSE`; narrow
+  `LiteralForm`'s current `'all'` to match) is only worth doing for callers
+  that control their render.
+- **Configurable display text for the audience levels** and **per-type
+  restricted permissions**: small polish, nothing needs them yet.
+- **An "allow external URLs" type setting**: not wanted; the `url` resolver
+  stays internal paths only.
 
 ## Rejected
 

@@ -6,7 +6,7 @@ the measurements so far say. Not a decision record: for the reasoning see
 [ADR-0040](0040-literals-probabilistic-lookup-of-exact-values.md)
 (the current-state rewrite), and for the step-by-step "what do I add when" ladder see
 [progressive-enhancement.md](progressive-enhancement.md). Current build
-state and open work are in [HANDOFF-literals.md](../HANDOFF-literals.md).
+state and open work are in [CLAUDE.md](../CLAUDE.md), [DEVELOPING.md](../DEVELOPING.md) and aim's TODO.md.
 
 ## What it is for
 
@@ -177,6 +177,44 @@ What the numbers say:
 - **Pool size did not hurt up to 234.** The full menu works at that size
   with no accuracy loss and about the same latency.
 
+### More runs (2026-10-07 and 2026-10-08, hosted Jev)
+
+Same caveat: none of these is an independent blind set.
+
+| Set | Pool | Answerable hits | Wrong-confident | Unanswerable correct |
+| --- | --- | --- | --- | --- |
+| Paraphrase (`gold.paraphrase.yml`: synonyms, indirect, typos, terse, verbose) | 9 | 44/45 | 0 | 15/15 |
+| Paraphrase | 99 | 44/45 | 0 | 14/15 |
+| Seed / blind / new-literals sets | 99 | 28/29, 19/19, 50/51 | 0 | 9/10, 9/11, 6/8 |
+| Written by a cold agent from the menu alone (`gold.agentblind.yml`, 45 questions) | 9 | 28/29 | 0 | 13/16 |
+
+- **Repeat runs on one wording were identical**, but a handful of borderline
+  queries flipped between sessions; treat a 1-2 query difference as noise.
+- **Near-topic questions about someone else** ("reset my bank password",
+  "what time does the cafe close") returned our literal. One sentence in
+  `chooser_context` (pick a literal for the library's own services, answer
+  none if another organization or venue is named) removed all three false
+  positives at the cost of 1-2 answerable misses. A softer wording did
+  worse; a longer one over-steered.
+- **`ALSO` phrases in a gist** ("customer service", "card charges") recovered
+  misses with no field or parser; they were written after seeing the
+  misses, so the gain is partly in-sample. A wider list ("payments")
+  created a false positive: aliases pull near-topic questions in.
+- **A bigger pool turns "I don't know" into "the closest thing":** the new
+  false positives at 99 literals are mostly gray zone (a catalogue link for
+  "gardening books", the accessibility statement for "wheelchair access").
+  The agent-written set's remaining false positives are of this kind
+  ("how much is the late fee per day" returned the accounts phone).
+- **Audience matters to the eval.** Three apparent misses on the agent set
+  were correct: `site_name` is authenticated-only and the eval runs as
+  anonymous. With `as: 1` on those queries the set scored 28/29.
+- **Context can steer the wrong way.** A "library staff asking the IT
+  helpdesk" context sent every "you/your" question to none, including "how
+  can I call the library", which names the library: the negation over-
+  steered. Never a wrong-confident pick in any variant; contexts push
+  toward none. Write contexts positively. Per-medium variants are viable
+  as a caller's `context`.
+
 ### Why there is no embedding gate
 
 A gate (embed the question, compare with stored gist vectors, decide alone
@@ -230,7 +268,7 @@ decision model: without one the finder returns `none` with reason
 - Pools past 234 literals, and whether the full menu stays viable there.
 - A keyword baseline beyond the crude one in the table above (no stemming, no index).
 - A second language, and a local decision model (only hosted Jev has run).
-- A larger, independently written gold set. The context line and the
+- A larger, independently written gold set (an agent-written set exists but shares the model family). The context line and the
   thresholds should be checked on one written blind before they are trusted.
 - Live traffic: the real share of questions each tier absorbs, and the real
   miss rate. There is no miss log yet to find out.
