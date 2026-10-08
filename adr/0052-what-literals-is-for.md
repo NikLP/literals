@@ -5,7 +5,7 @@ Decision 5 (resolvers return a pair) was built 2026-10-07: `ResolvedLiteral`
 (value, label, kind), `resolveItem()`, `LiteralReader::readItem()`; the rest
 is unbuilt. Narrows the claims in [ADR-0040](0040-literals-probabilistic-lookup-of-exact-values.md)
 and builds on [ADR-0047](0047-literal-candidates-and-tracked-gists.md) and
-[ADR-0050](../../aim/adr/0050-meaning-navigator.md).
+[ADR-0049](../../aim/adr/0049-finder-family-parked.md).
 **Date:** 2026-10-06
 
 ## Context
@@ -41,7 +41,8 @@ better? The test case was "I want to pay my council tax". Findings:
    of defensibility: correct-or-none answers; values kept out of prompts;
    per-viewer access at resolve time; non-chat consumers (tokens, form
    fields, MCP). The cost gate is a fifth, to be measured, not assumed.
-3. **Build the gate first, in aim, and measure it.** A one-question Jev
+3. **Build the gate first, in aim, and measure it** (see the 2026-10-08
+   addendum: the finder is the gate; a pre-gate is optional). A one-question Jev
    classifier ("one-shot lookup?") ahead of recall. If it does not save
    cost or latency against the chat model doing the same lookup, the
    finder's cost story is dropped and the other four uses stand alone.
@@ -67,6 +68,71 @@ better? The test case was "I want to pay my council tax". Findings:
    "better than search"; the right demo is a paraphrase with no word
    overlap ("how do I ring you" to "main switchboard number"), not a
    navigational query.
+
+## Addendum 2026-10-08: how aim uses literals, and the answer modes
+
+Decisions from a design discussion; none built. Where they differ from
+Decision 3 above (a separate one-question classifier built first), this
+addendum wins.
+
+1. **Convert-a-fact retires the fact.** Promoting an extracted one-shot fact
+   (an exact value) to a literal supersedes the fact through the existing
+   non-destructive `superseded_by` edge (see ADR-0040 section 10 for the
+   short form and the `retired`/`expires` dependency). The literal's gist is
+   then the only description of the thing; the value lives once, in the
+   literal. Facts that merely mention a literal in a longer sentence stay
+   facts and carry `[literal:key]` (or `[literal:key:link]`) so the value is
+   never stale; `aim` replaces the token at recall time as the viewing
+   account, in code it controls, so no text-format filter or page cache is
+   involved. **Tokens in body copy are dropped** (a text-format filter would
+   have to pass cache contexts or risk serving a restricted value to the
+   wrong viewer; not worth it for a rarely used feature).
+2. **Two ways to show a literal in recall; build the first, the second can
+   sit beside it.**
+   - *Finder as a live source (preferred):* `aim_recall` asks the finder as a
+     second source and returns the literal as a fact-shaped live result
+     (value resolved for the viewer). Nothing is stored in `aim`, so the
+     meaning is stored once. The large model is then exactly as exposed to
+     the finder as it is to vector recall: both are probabilistic
+     retrievers. The finder's failure mode is `none` (0 wrong-confident
+     measured), not a wrong value.
+   - *Pointer fact with a tracked gist:* a fact with no text of its own whose
+     index entry is computed from the literal's gist (the ADR-0047/0053
+     tracked-gist idea), reindexed when the literal changes. Only worth
+     building if the live source proves insufficient. The two are not
+     exclusive; if both run, de-duplicate by literal key.
+3. **The finder is the gate.** It already answers match, ambiguous or none
+   in about 0.3 s. A match goes down the one-shot path; anything else falls
+   through to normal recall and the large model. A separate classifier is
+   not needed to decide *whether a literal fits*.
+4. **Optional pre-gate.** Running the finder on every query sends the whole
+   menu to the decision model (about 4,000 tokens at 200 literals) even for
+   questions that are clearly not lookups. A tiny "is this a lookup?"
+   question with no menu in its prompt can run first. Its failures are safe
+   (a false "no" is the status quo; a false "yes" costs one finder call), so
+   it is a switchable setting, kept only if measured to pay (what share of
+   traffic it removes, against its own latency).
+5. **Two answer modes, a setting.**
+   - *Mode 1, literal only:* the reply is the fixed text and link; no large
+     model, lowest cost, works with no large model at all, and the value
+     never reaches a model.
+   - *Mode 2, literal plus smoothing:* the question and the resolved literal
+     go to the large model for a natural reply.
+   - *Escalation:* mode 1 can show a "think harder" control that re-runs the
+     question through mode 2 or the full recall path when the visitor says
+     the literal is wrong.
+6. **Audience decides what may reach a hosted model.** Default: mode 2 only
+   for public (anonymous) values; authenticated and restricted values stay
+   mode 1, or go to a local model. This is a trade-off accepted until local
+   reasoning models are available, not a settled principle; revisit with
+   experience. It assumes aim's standing rule that it is not for classified
+   data (aim CLAUDE.md, Scope).
+7. **Copy controls are front-end work.** The chat items already carry value,
+   label and kind, so a "copy value" / "copy link" button shown by role or
+   audience needs nothing new in `literals`.
+8. **Small prerequisite in `literals`:** a helper that turns a finder result
+   into resolved items (`resolveItem()` with the empty-value downgrade to
+   none); the chat responder and the tool both repeat that loop today.
 
 ## Consequences
 

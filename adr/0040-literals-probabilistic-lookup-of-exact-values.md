@@ -264,7 +264,10 @@ a fact about a literal is an ordinary `scope=entity` fact with
 
 `aim` integration is a finder **consumer**: `aim_recall` calls `LiteralFinder`
 when the service exists (progressive enhancement), and nothing is stored in
-aim. Not built (Phase 5), along with convert-a-fact (below). A parked option:
+aim. The 2026-10-08 addendum to
+[ADR-0052](0052-what-literals-is-for.md) sets how: the finder as a live
+source beside vector recall, convert-a-fact retiring the fact, and the answer
+modes. Not built (Phase 5), along with convert-a-fact (below). A parked option:
 an aim-stored gist backend (the gist lives only as a `scope=entity` fact
 targeting the literal). The interface already allows it; it is not built
 because it needs two storage modes, a literal form writing another entity's
