@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\literals_chat;
 
-use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\literals\LiteralReader;
 use Drupal\literals\ResolvedLiteral;
 use Drupal\literals_finder\Finder\LiteralFinderInterface;
 use Drupal\literals_finder\Finder\LiteralFindResult;
@@ -22,15 +22,12 @@ use Psr\Log\LoggerInterface;
 class LiteralsChatResponder {
 
   /**
-   * The longest question used, in characters.
-   */
-  public const MAX_QUESTION = 300;
-
-  /**
    * Constructs the responder.
    *
    * @param \Drupal\literals_finder\Finder\LiteralFinderInterface $finder
    *   The literal finder.
+   * @param \Drupal\literals\LiteralReader $reader
+   *   The literal reader.
    * @param \Drupal\Core\Session\AccountInterface $currentUser
    *   The current user, the default asker.
    * @param \Psr\Log\LoggerInterface $logger
@@ -40,6 +37,7 @@ class LiteralsChatResponder {
    */
   public function __construct(
     protected LiteralFinderInterface $finder,
+    protected LiteralReader $reader,
     protected AccountInterface $currentUser,
     protected LoggerInterface $logger,
     protected ConfigFactoryInterface $configFactory,
@@ -59,21 +57,11 @@ class LiteralsChatResponder {
    */
   public function answer(string $question, ?AccountInterface $account = NULL): array {
     $account ??= $this->currentUser;
-    $question = mb_substr(trim($question), 0, self::MAX_QUESTION);
     $result = $this->finder->find($question, $account);
 
-    $items = [];
-    foreach ($result->literals as $literal) {
-      $item = $literal->resolveItem($account, new CacheableMetadata());
-      if ($item && $item->value !== '') {
-        $items[] = $item->toArray();
-      }
-    }
-    // A match or choice that cannot be resolved for this asker is a none.
-    $outcome = $items ? $result->outcome : LiteralFindResult::NONE;
-    if ($outcome === LiteralFindResult::MATCH) {
-      $items = array_slice($items, 0, 1);
-    }
+    $resolved = $this->reader->resolveFound($result->outcome, $result->literals, $account);
+    $outcome = $resolved['outcome'];
+    $items = array_values(array_map(fn (ResolvedLiteral $item): array => $item->toArray(), $resolved['items']));
 
     $this->audit($outcome, $result, count($items), $account);
     return [

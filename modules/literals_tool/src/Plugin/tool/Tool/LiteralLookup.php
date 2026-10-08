@@ -183,8 +183,9 @@ final class LiteralLookup extends ToolBase {
     $keys = array_map(fn (Literal $literal): string => (string) $literal->get('key')->value, $result->literals);
 
     if ($result->outcome === self::MATCH && $keys) {
-      $item = $result->literals[0]->resolveItem($this->currentUser, new CacheableMetadata());
-      return $item && $item->value !== '' ? $this->matched($keys[0], $item) : $this->notFound();
+      $resolved = $this->reader->resolveFound($result->outcome, $result->literals, $this->currentUser);
+      $item = reset($resolved['items']);
+      return $item ? $this->matched($keys[0], $item) : $this->notFound();
     }
     if ($result->outcome === self::AMBIGUOUS && $keys) {
       return ExecutableResult::success(

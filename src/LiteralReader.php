@@ -22,6 +22,11 @@ use Psr\Log\LoggerInterface;
 class LiteralReader {
 
   /**
+   * What replaceTokens() puts in place of a token it cannot read.
+   */
+  public const REDACTED = '[redacted]';
+
+  /**
    * Keys being read right now, to stop token literals referencing each other.
    *
    * @var string[]
@@ -131,6 +136,104 @@ class LiteralReader {
       '@resolved' => $item === NULL ? 'no' : 'yes',
     ]);
     return $item;
+  }
+
+  /**
+   * Resolves found literals for an account, dropping what resolves to nothing.
+   *
+   * A match or choice that cannot be resolved for this account downgrades to
+   * none, and a match keeps only its first item.
+   *
+   * @param string $outcome
+   *   The finder outcome: match, ambiguous or none.
+   * @param \Drupal\literals\Entity\Literal[] $literals
+   *   The found literals.
+   * @param \Drupal\Core\Session\AccountInterface|null $account
+   *   The account. Defaults to the current user.
+   * @param \Drupal\Core\Cache\CacheableMetadata|null $metadata
+   *   Collects the cache metadata of what was consulted.
+   *
+   * @return array{outcome: string, items: array<string, \Drupal\literals\ResolvedLiteral>}
+   *   The outcome and the resolved items, keyed by literal key.
+   */
+  public function resolveFound(string $outcome, array $literals, ?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL): array {
+    $account ??= $this->currentUser;
+    $metadata ??= new CacheableMetadata();
+    $items = [];
+    foreach ($literals as $literal) {
+      $item = $literal->resolveItem($account, $metadata);
+      if ($item && $item->value !== '') {
+        $items[(string) $literal->get('key')->value] = $item;
+      }
+    }
+    if (!$items) {
+      $outcome = 'none';
+    }
+    elseif ($outcome === 'match') {
+      $items = array_slice($items, 0, 1, TRUE);
+    }
+    return ['outcome' => $outcome, 'items' => $items];
+  }
+
+  /**
+   * Returns the keys of the literal tokens in a text.
+   *
+   * @param string $text
+   *   The text, for example a fact.
+   *
+   * @return string[]
+   *   The distinct keys, in order of first appearance.
+   */
+  public function tokenKeys(string $text): array {
+    preg_match_all('/\[literal:([^\]:\s]+)(?::link)?\]/', $text, $matches);
+    return array_values(array_unique($matches[1]));
+  }
+
+  /**
+   * Replaces [literal:key] and [literal:key:link] in plain text.
+   *
+   * For text a model or chat front end reads, so output is plain text and
+   * Markdown, never HTML or the token service's escaping. A plain token
+   * becomes the value; a link token becomes a Markdown link where the value
+   * has a safe one, else the value. A literal that is missing, unpublished or
+   * not visible to the account becomes REDACTED, the same for every cause, or
+   * makes the whole call return NULL when $withholdIfRedacted is
+   * set. Resolved values are not scanned again, so a value cannot inject
+   * tokens.
+   *
+   * @param string $text
+   *   The text, for example a fact.
+   * @param \Drupal\Core\Session\AccountInterface|null $account
+   *   The viewing account. Defaults to the current user.
+   * @param \Drupal\Core\Cache\CacheableMetadata|null $metadata
+   *   Collects the cache metadata of what was consulted.
+   * @param bool $withholdIfRedacted
+   *   Return NULL instead of the text when any token cannot be read, for a
+   *   caller that should not show a sentence with a hole in it.
+   *
+   * @return string|null
+   *   The text with tokens replaced, or NULL when withheld.
+   */
+  public function replaceTokens(string $text, ?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL, bool $withholdIfRedacted = FALSE): ?string {
+    if (!str_contains($text, '[literal:')) {
+      return $text;
+    }
+    $redacted = FALSE;
+    $result = preg_replace_callback('/\[literal:([^\]:\s]+)(:link)?\]/', function (array $match) use ($account, $metadata, &$redacted): string {
+      $item = $this->readItem($match[1], $account, $metadata);
+      if ($item === NULL || $item->value === '') {
+        $redacted = TRUE;
+        return self::REDACTED;
+      }
+      $href = empty($match[2]) ? NULL : $item->href();
+      if ($href === NULL) {
+        return $item->value;
+      }
+      $label = $item->kind === ResolvedLiteral::KIND_URL ? $item->label : $item->value;
+      $href = str_replace([' ', '(', ')', '<', '>'], ['%20', '%28', '%29', '%3C', '%3E'], $href);
+      return '[' . addcslashes($label, '[]\\') . '](' . $href . ')';
+    }, $text) ?? $text;
+    return $redacted && $withholdIfRedacted ? NULL : $result;
   }
 
   /**

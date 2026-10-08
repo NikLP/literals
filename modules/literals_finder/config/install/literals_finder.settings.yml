@@ -1,5 +1,6 @@
 match_threshold: 0.5
 choice_margin: 0.2
 miss_ttl: 300
+max_question_length: 300
 log_audit: true
 chooser_context: ''

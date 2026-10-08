@@ -53,7 +53,7 @@ class LiteralFinder implements LiteralFinderInterface {
    */
   public function find(string $question, ?AccountInterface $account = NULL, ?string $context = NULL): LiteralFindResult {
     $account ??= $this->currentUser;
-    $question = trim($question);
+    $question = mb_substr(trim($question), 0, max(20, (int) $this->configFactory->get('literals_finder.settings')->get('max_question_length') ?: 300));
     $candidates = $this->candidates($account);
     if ($question === '' || $candidates === []) {
       return $this->done(new LiteralFindResult(LiteralFindResult::NONE, [], 'pool', 'no_candidates'), count($candidates));

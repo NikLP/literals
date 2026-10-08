@@ -181,4 +181,48 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
     $this->assertStringNotContainsString('TOP-SECRET-GIST', $joined);
   }
 
+  /**
+   * Tokens in text become plain values or Markdown links, per viewer.
+   */
+  public function testReplaceTokens(): void {
+    $this->createLiteral('phone', '+44 1223 000000', ['type' => 'phone']);
+    $this->createLiteral('login', '/user/login', ['type' => 'url', 'name' => 'Sign in']);
+    $this->createLiteral('internal', 'staff-only', ['audience' => 'restricted']);
+    $anon = new AnonymousUserSession();
+    $reader = $this->reader();
+
+    $this->assertSame('Call +44 1223 000000.', $reader->replaceTokens('Call [literal:phone].', $anon));
+    $this->assertSame('Call [+44 1223 000000](tel:+441223000000).', $reader->replaceTokens('Call [literal:phone:link].', $anon));
+    $this->assertMatchesRegularExpression('#^\[Sign in\]\(http[^)]*/user/login\)$#', $reader->replaceTokens('[literal:login:link]', $anon));
+    $this->assertSame('x [redacted] y [redacted]', $reader->replaceTokens('x [literal:internal] y [literal:nosuchkey]', $anon));
+    $this->assertNull($reader->replaceTokens('x [literal:internal]', $anon, NULL, TRUE));
+    $this->assertSame('x +44 1223 000000', $reader->replaceTokens('x [literal:phone]', $anon, NULL, TRUE));
+    $this->assertSame('staff-only', $reader->replaceTokens('[literal:internal]', $this->restrictedViewer));
+    $this->assertSame('no tokens [here]', $reader->replaceTokens('no tokens [here]', $anon));
+  }
+
+  /**
+   * Found literals resolve for the account; unresolvable ones downgrade.
+   */
+  public function testResolveFound(): void {
+    $a = $this->createLiteral('phone_a', '111 1111', ['type' => 'phone']);
+    $b = $this->createLiteral('phone_b', '222 2222', ['type' => 'phone']);
+    $page = $this->createPage('Draft', FALSE);
+    $internal = $this->createLiteral('gone', 'node:' . $page->id(), ['type' => 'entity']);
+    $anon = new AnonymousUserSession();
+    $reader = $this->reader();
+
+    $result = $reader->resolveFound('match', [$a, $b], $anon);
+    $this->assertSame('match', $result['outcome']);
+    $this->assertSame(['phone_a'], array_keys($result['items']));
+
+    $result = $reader->resolveFound('ambiguous', [$a, $internal, $b], $anon);
+    $this->assertSame('ambiguous', $result['outcome']);
+    $this->assertSame(['phone_a', 'phone_b'], array_keys($result['items']));
+
+    $result = $reader->resolveFound('match', [$internal], $anon);
+    $this->assertSame('none', $result['outcome']);
+    $this->assertSame([], $result['items']);
+  }
+
 }

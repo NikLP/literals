@@ -11,6 +11,9 @@ literals_finder.settings:
     miss_ttl:
       type: integer
       label: 'Seconds a "none" outcome is cached'
+    max_question_length:
+      type: integer
+      label: 'Longest question put to the finder, in characters (longer is cut)'
     log_audit:
       type: boolean
       label: 'Write an audit line per lookup'

@@ -54,6 +54,11 @@ ddev drush tool:run literals:lookup --uid=1 --input=search=phone --json
 
 ## The finder
 
+`aim` uses the finder as a live recall source and replaces tokens in fact
+text; that side is documented in aim's DEVELOPING.md ("Exact values from
+`literals` in recall"). `LiteralReader::resolveFound()` and
+`replaceTokens()` are the shared pieces.
+
 Flow: candidates (published, audience filter in the query and
 `access('view')` per entity) then the outcome cache (`cache.default`; key =
 question + audience set + admin flag + a fingerprint of settings, context
@@ -63,7 +68,8 @@ model gives `none` / `no_backend`. Chooser rule: argmax `__none__` is none;
 a lead over the best other literal under `choice_margin` is ambiguous;
 below `match_threshold` is none. Settings are `literals_finder.settings`
 (`match_threshold` 0.5, `choice_margin` 0.2, `miss_ttl`, `log_audit`,
-`chooser_context`, `chooser_instructions`). `chooser_context` states who is
+`chooser_context`, `chooser_instructions`, `max_question_length` 300:
+longer questions are cut in `find()`, for every caller). `chooser_context` states who is
 asking and whose literals these are ("you" means the library); write it
 positively, avoid "not X". A per-call `context` on `find()` replaces the
 site default for that lookup.

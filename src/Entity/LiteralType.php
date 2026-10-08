@@ -6,10 +6,11 @@ namespace Drupal\literals\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBundleBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
-use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\literals\Form\LiteralTypeDeleteForm;
 use Drupal\literals\Form\LiteralTypeForm;
+use Drupal\literals\LiteralTypeListBuilder;
 
 /**
  * Defines the literal type config entity, the bundle of literal.
@@ -32,10 +33,11 @@ use Drupal\literals\Form\LiteralTypeForm;
     'uuid' => 'uuid',
   ],
   handlers: [
-    'list_builder' => EntityListBuilder::class,
+    'list_builder' => LiteralTypeListBuilder::class,
     'form' => [
       'add' => LiteralTypeForm::class,
       'edit' => LiteralTypeForm::class,
+      'delete' => LiteralTypeDeleteForm::class,
     ],
     'route_provider' => [
       'html' => AdminHtmlRouteProvider::class,
@@ -44,6 +46,7 @@ use Drupal\literals\Form\LiteralTypeForm;
   links: [
     'add-form' => '/admin/structure/literal-types/add',
     'edit-form' => '/admin/structure/literal-types/{literal_type}/edit',
+    'delete-form' => '/admin/structure/literal-types/{literal_type}/delete',
     'collection' => '/admin/structure/literal-types',
   ],
   admin_permission: 'administer literals',

@@ -75,6 +75,13 @@ class LiteralsFinderSettingsForm extends ConfigFormBase {
       '#min' => 0,
       '#default_value' => $config->get('miss_ttl'),
     ];
+    $form['max_question_length'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Longest question'),
+      '#description' => $this->t('Characters of a question put to the chooser; a longer one is cut. Bounds the prompt size and cost of a lookup, whoever calls the finder.'),
+      '#min' => 20,
+      '#default_value' => $config->get('max_question_length'),
+    ];
     $form['log_audit'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Write an audit line per lookup'),
@@ -94,6 +101,7 @@ class LiteralsFinderSettingsForm extends ConfigFormBase {
       $config->set($key, (float) $form_state->getValue($key));
     }
     $config->set('miss_ttl', (int) $form_state->getValue('miss_ttl'));
+    $config->set('max_question_length', (int) $form_state->getValue('max_question_length'));
     $config->set('chooser_instructions', (string) $form_state->getValue('chooser_instructions'));
     $config->set('chooser_context', (string) $form_state->getValue('chooser_context'));
     $config->save();
