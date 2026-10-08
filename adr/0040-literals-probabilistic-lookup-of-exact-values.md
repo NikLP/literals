@@ -213,7 +213,7 @@ the tool a thin wrapper, so it can adopt method-attribute tooling
 `literals_search` is plain search with no AI: every word (up to 6) must
 appear in name, key or gist, case-insensitive, published only, audience
 filtered, no scoring. It lists candidates and never decides. Its
-autocomplete route returns key + escaped name + gist, never values.
+autocomplete route (removed 2026-10-07, no consumer) returned key + escaped name + gist, never values.
 A keyword baseline got 4/29 on the seed set against the finder's 29/29, so it
 is no substitute for the chooser.
 
@@ -293,7 +293,7 @@ skip.
 | Module | Needs | Provides |
 | --- | --- | --- |
 | `literals` | `user`, `views` (no AI) | entity, types, resolvers, audience access, reader, `[literal:key]`, Guardrails constraint, list UI |
-| (in `literals`, was `literals_search`) | none | plain search and autocomplete |
+| (in `literals`, was `literals_search`) | none | plain search |
 | `literals_finder` | `drupal/ai` | finder, chooser, outcome cache, Guardrails runner, `drush literals:eval` |
 | `literals_tool` | `tool` | `literals:lookup` |
 

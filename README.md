@@ -31,8 +31,8 @@ that finds the right one from a description and decides who sees it.
 
 - `literals` - the entity, types, resolvers, audience rules and admin UI. No AI
   needed.
-- Search, in `literals` itself - plain search and autocomplete over names, keys and
-  gists (every typed word must appear). No AI, no scoring: a person or agent
+- Search, in `literals` itself - plain search over names, keys and gists
+  (every typed word must appear), used by the tool. No AI, no scoring: an agent
   picks from the matches.
 - `literals_finder` - find by question: an access filter, an outcome cache,
   then a Decision API choice. Needs `drupal/ai`.

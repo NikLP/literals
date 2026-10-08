@@ -6,10 +6,9 @@ namespace Drupal\Tests\literals\Kernel;
 
 use Drupal\Core\Session\AnonymousUserSession;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Tests plain literal search and the autocomplete endpoint.
+ * Tests plain literal search.
  *
  * @group literals
  */
@@ -109,41 +108,6 @@ class LiteralSearchTest extends LiteralsKernelTestBase {
     }
     $found = $this->container->get('literals.search')->search('thing', new AnonymousUserSession(), 2);
     $this->assertSame(['lit_a', 'lit_b'], array_values(array_map(fn ($l) => $l->get('key')->value, $found)));
-  }
-
-  /**
-   * The autocomplete needs its permission and never returns a value.
-   */
-  public function testAutocomplete(): void {
-    $this->createLiteral('main_phone', 'SECRET-VALUE 555 0100', [
-      'name' => 'Main <b>phone</b>',
-      'gist' => 'The library switchboard',
-    ]);
-    $this->createLiteral('internal', 'staff', ['audience' => 'restricted', 'name' => 'Main staff line']);
-    $url = '/literals/search/autocomplete';
-    $call = function ($account, string $q) use ($url): array {
-      $this->setCurrentUser($account);
-      $request = Request::create($url, 'GET', ['q' => $q]);
-      $response = $this->container->get('http_kernel')->handle($request);
-      return [$response->getStatusCode(), (string) $response->getContent()];
-    };
-
-    [$status] = $call(new AnonymousUserSession(), 'main');
-    $this->assertSame(403, $status, 'No permission, no search');
-
-    $searcher = $this->createUser(['search literals']);
-    [$status, $body] = $call($searcher, 'main');
-    $this->assertSame(200, $status);
-    $suggestions = json_decode($body, TRUE);
-    $this->assertCount(1, $suggestions, 'The restricted literal is not offered');
-    $this->assertSame('main_phone', $suggestions[0]['value']);
-    $this->assertStringNotContainsString('SECRET-VALUE', $body);
-    $this->assertStringNotContainsString('<b>', $suggestions[0]['label'], 'Labels are escaped');
-    $this->assertStringContainsString('The library switchboard', $suggestions[0]['label']);
-
-    $both = $this->createUser(['search literals', 'view restricted literals']);
-    [, $body] = $call($both, 'main');
-    $this->assertCount(2, json_decode($body, TRUE));
   }
 
 }

@@ -35,6 +35,46 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
   }
 
   /**
+   * The :link form is an HTML link for url, phone and email, text otherwise.
+   */
+  public function testLinkForm(): void {
+    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'phone']);
+    $this->createLiteral('contact', 'help@example.com', ['type' => 'text', 'name' => 'Help']);
+    $this->createLiteral('login', '/user/login', ['type' => 'url', 'name' => 'Sign <in>']);
+    $this->createLiteral('hours', 'Mon-Fri <9>-17', ['name' => 'Hours']);
+    $this->setCurrentUser(new AnonymousUserSession());
+    $this->assertSame('<a href="tel:+441223000000">+44 1223 000000</a>', $this->replace('[literal:main_phone:link]'));
+    $this->assertSame('Mon-Fri &lt;9&gt;-17', $this->replace('[literal:hours:link]'), 'Text has no link and is escaped');
+    $this->assertSame('+44 1223 000000', $this->replace('[literal:main_phone]'), 'The bare form is unchanged');
+    $login = $this->replace('[literal:login:link]');
+    $this->assertStringStartsWith('<a href="http', $login);
+    $this->assertStringContainsString('>Sign &lt;in&gt;</a>', $login);
+    $this->assertSame('', $this->replace('[literal:main_phone:bogus]'), 'An unknown form clears');
+    $this->assertSame('', $this->replace('[literal:nosuch:link]'));
+  }
+
+  /**
+   * The :link form respects audience and bubbles cache metadata.
+   */
+  public function testLinkFormRespectsAudience(): void {
+    $this->createLiteral('members', '+44 1111 000000', ['type' => 'phone', 'audience' => 'authenticated']);
+    $this->setCurrentUser(new AnonymousUserSession());
+    $metadata = new BubbleableMetadata();
+    $this->assertSame('', $this->replace('[literal:members:link]', $metadata));
+    $this->setCurrentUser($this->member);
+    $this->assertSame('<a href="tel:+441111000000">+44 1111 000000</a>', $this->replace('[literal:members:link]'));
+  }
+
+  /**
+   * The token browser lists the :link form.
+   */
+  public function testTokenInfoListsLinkForm(): void {
+    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'phone']);
+    $info = $this->container->get('token')->getInfo()['tokens']['literal'];
+    $this->assertArrayHasKey('main_phone:link', $info);
+  }
+
+  /**
    * The token never reveals a literal the viewer cannot see.
    */
   public function testRespectsAudience(): void {

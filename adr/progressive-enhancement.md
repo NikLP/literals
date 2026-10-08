@@ -24,9 +24,9 @@ by access, check the cache, ask the chooser, return `match`, `ambiguous` or
 | 1. Decision model | A plain-language question | `drupal/ai` and one decision model | 1 (the chooser), 0 on a cache hit | Yes (`literals_finder`) |
 | 2. Large pools | A plain-language question, thousands of literals | Unknown | Unknown | No, and not needed so far |
 
-Step 0b is discovery without a model: a plain search and autocomplete (every
-typed word must appear in the name, key or gist). It lists candidates for a
-person or agent to pick from, then the pick is read by key. It finds only
+Step 0b is discovery without a model: a plain search (every
+typed word must appear in the name, key or gist). It lists candidates for an
+agent to pick from, then the pick is read by key. It finds only
 what shares words with the gist; it does not decide.
 
 Step 0 is a complete product on its own: nothing in the base module calls an

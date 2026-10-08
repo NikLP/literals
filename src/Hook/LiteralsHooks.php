@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace Drupal\literals\Hook;
 
+use Drupal\Component\Render\MarkupInterface;
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Utility\Token;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralAudience;
 use Drupal\literals\LiteralReader;
+use Drupal\literals\ResolvedLiteral;
 
 /**
  * Hook implementations for the literals module.
@@ -118,6 +122,10 @@ class LiteralsHooks {
         'name' => $literal->label(),
         'description' => $this->t('The value of the literal "@name", if the viewer may see it.', ['@name' => $literal->label()]),
       ];
+      $info['tokens']['literal'][$literal->get('key')->value . ':link'] = [
+        'name' => $this->t('@name (link)', ['@name' => $literal->label()]),
+        'description' => $this->t('The literal "@name" as a link (HTML), if the viewer may see it. Text values come out as plain escaped text.', ['@name' => $literal->label()]),
+      ];
     }
     return $info;
   }
@@ -142,12 +150,43 @@ class LiteralsHooks {
     $account = ($options['literals_account'] ?? NULL) instanceof AccountInterface ? $options['literals_account'] : $this->currentUser;
     $replacements = [];
     foreach ($tokens as $name => $original) {
-      $value = $this->reader->read((string) $name, $account, $bubbleable_metadata);
-      if ($value !== NULL) {
-        $replacements[$original] = $value;
+      [$key, $format] = array_pad(explode(':', (string) $name, 2), 2, NULL);
+      if ($format === 'link') {
+        $item = $this->reader->readItem($key, $account, $bubbleable_metadata);
+        if ($item !== NULL && $item->value !== '') {
+          $replacements[$original] = $this->link($item);
+        }
+      }
+      elseif ($format === NULL) {
+        $value = $this->reader->read($key, $account, $bubbleable_metadata);
+        if ($value !== NULL) {
+          $replacements[$original] = $value;
+        }
       }
     }
     return $replacements;
+  }
+
+  /**
+   * Renders a resolved literal as an HTML link, or plain text if it has none.
+   *
+   * The link text is the value for a phone number or email address and the
+   * literal's label for a URL. A link is returned as markup so the token
+   * service does not escape it; text stays a plain string, which it escapes.
+   *
+   * @param \Drupal\literals\ResolvedLiteral $item
+   *   The resolved literal.
+   *
+   * @return \Drupal\Component\Render\MarkupInterface|string
+   *   The link markup, or the plain value.
+   */
+  protected function link(ResolvedLiteral $item): MarkupInterface|string {
+    $href = $item->href();
+    if ($href === NULL) {
+      return $item->value;
+    }
+    $text = $item->kind === ResolvedLiteral::KIND_URL ? $item->label : $item->value;
+    return Markup::create('<a href="' . Html::escape($href) . '">' . Html::escape($text) . '</a>');
   }
 
   /**

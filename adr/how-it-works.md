@@ -24,7 +24,7 @@ matters, so "no match" is always preferred to a guess.
 | Module | Needs | Does |
 | --- | --- | --- |
 | `literals` | `user`, `views` | The entity, types and resolvers, access, the admin UI, `literals.reader`, the `[literal:key]` token. Exact lookup by key. **No model of any kind.** |
-| (in `literals`) | none | Plain search and autocomplete (service `literals.search`): every typed word must appear in the name, key or gist; results in name order, for a person or agent to pick from. Access-filtered, published only, never values. No model, no scoring, no `search_api` (a plain entity query; swap in an index if a pool ever needs it). |
+| (in `literals`) | none | Plain search (service `literals.search`, used by the tool; the autocomplete route was removed 2026-10-07, nothing used it): every typed word must appear in the name, key or gist; results in name order, for a person or agent to pick from. Access-filtered, published only, never values. No model, no scoring, no `search_api` (a plain entity query; swap in an index if a pool ever needs it). |
 | `literals_tool` | `literals`, `tool` | The `literals:lookup` Tool API / MCP tool: by key, by search words (returns candidates), or by question (when `literals_finder` is on). Key beats question beats search. |
 | `literals_finder` | `literals`, `drupal/ai` | Lookup by question: the finder, the chooser, the outcome cache, the eval command, and the Guardrails set applied at save. The only part that calls a model. |
 

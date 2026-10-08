@@ -100,12 +100,7 @@ class LiteralsChatResponder {
     foreach ($answer['items'] as $item) {
       $label = $this->escape($item['label']);
       $value = $this->escape($item['value']);
-      $href = match ($item['kind']) {
-        ResolvedLiteral::KIND_URL => preg_match('#^https?://#i', $item['value']) ? $item['value'] : NULL,
-        ResolvedLiteral::KIND_PHONE => 'tel:' . preg_replace('/[^+0-9]/', '', $item['value']),
-        ResolvedLiteral::KIND_EMAIL => 'mailto:' . $item['value'],
-        default => NULL,
-      };
+      $href = (new ResolvedLiteral($item['value'], $item['label'], $item['kind']))->href();
       $href = $href !== NULL ? str_replace([' ', '(', ')', '<', '>'], ['%20', '%28', '%29', '%3C', '%3E'], $href) : NULL;
       $lines[] = match (TRUE) {
         $href === NULL => "- $label: $value",

@@ -49,6 +49,25 @@ final class ResolvedLiteral {
   ) {}
 
   /**
+   * Returns a link target for the value, or NULL when it has no safe one.
+   *
+   * Only the known-safe schemes: http(s) for a link, tel: for a phone number
+   * and mailto: for an email address. Not URL-encoded; the caller encodes for
+   * its output format.
+   *
+   * @return string|null
+   *   The target, or NULL for text and for a URL that is not http(s).
+   */
+  public function href(): ?string {
+    return match ($this->kind) {
+      self::KIND_URL => preg_match('#^https?://#i', $this->value) ? $this->value : NULL,
+      self::KIND_PHONE => 'tel:' . preg_replace('/[^+0-9]/', '', $this->value),
+      self::KIND_EMAIL => 'mailto:' . $this->value,
+      default => NULL,
+    };
+  }
+
+  /**
    * Returns the resolved literal as a plain array.
    *
    * @return array{value: string, label: string, kind: string}
