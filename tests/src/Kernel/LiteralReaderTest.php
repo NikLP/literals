@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\literals\Kernel;
 
-use Psr\Log\AbstractLogger;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Session\AnonymousUserSession;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Psr\Log\AbstractLogger;
 
 /**
  * Tests key lookups: published only, access checked, indistinguishable misses.

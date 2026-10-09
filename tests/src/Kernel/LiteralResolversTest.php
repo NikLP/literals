@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\literals\Kernel;
 
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\literals\Entity\Literal;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests each resolver's validation and its read-time resolution.

@@ -8,8 +8,8 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\literals\LiteralReader;
 use Drupal\literals\ResolvedLiteral;
-use Drupal\literals_finder\Finder\LiteralFinderInterface;
 use Drupal\literals_finder\Finder\LiteralFindResult;
+use Drupal\literals_finder\Finder\LiteralFinderInterface;
 use Psr\Log\LoggerInterface;
 
 /**

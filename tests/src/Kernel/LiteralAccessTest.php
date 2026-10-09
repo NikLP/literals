@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\literals\Kernel;
 
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\literals\LiteralAudience;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests audience-based view access, update/delete, and list filtering.

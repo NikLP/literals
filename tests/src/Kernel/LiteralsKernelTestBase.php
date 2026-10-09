@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Drupal\Tests\literals\Kernel;
 
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\Entity\LiteralType;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 

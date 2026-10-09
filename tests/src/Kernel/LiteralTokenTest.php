@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\literals\Kernel;
 
-use Drupal\literals\Entity\Literal;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\literals\Entity\Literal;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the [literal:key] token.

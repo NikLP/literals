@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\literals_tool\Kernel;
 
-use Symfony\Component\DependencyInjection\Reference;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\literals\Kernel\LiteralsKernelTestBase;
 use Drupal\literals\Entity\Literal;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Tests the literals:lookup tool: access, key mode, question mode.

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\literals_finder\Finder;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai\OperationType\Decision\DecisionInput;
 use Drupal\ai\OperationType\Decision\DecisionInterface;
 use Drupal\ai\OperationType\Decision\Value\ChoiceQuestion;
-use Drupal\Core\Config\ConfigFactoryInterface;
 
 /**
  * The Decision API ChoiceQuestion over key and gist, never values.

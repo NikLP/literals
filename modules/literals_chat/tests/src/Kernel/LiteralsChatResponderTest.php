@@ -8,8 +8,8 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Tests\literals\Kernel\LiteralsKernelTestBase;
-use Drupal\literals_finder\Finder\LiteralFinderInterface;
 use Drupal\literals_finder\Finder\LiteralFindResult;
+use Drupal\literals_finder\Finder\LiteralFinderInterface;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DependencyInjection\Reference;
 

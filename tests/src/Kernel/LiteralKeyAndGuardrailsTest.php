@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\literals\Kernel;
 
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralGuardrailsInterface;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests key rules and the guardrail wiring on gist and value.
