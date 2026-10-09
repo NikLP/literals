@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+id: text
+label: Text
+description: ''
+resolver: text
+validate_as: string

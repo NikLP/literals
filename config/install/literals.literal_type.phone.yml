@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+id: phone
+label: 'Phone number'
+description: ''
+resolver: text
+validate_as: phone

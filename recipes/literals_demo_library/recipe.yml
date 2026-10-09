@@ -1,0 +1,5 @@
+name: 'Literals: demo library'
+description: 'Eight exact values for the fictional Harbourside Community Library demo (phones, login and account pages, the site name), each with a gist the finder reads.'
+type: 'Demo'
+recipes:
+  - literals_base

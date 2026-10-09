@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+id: url
+label: 'URL or path'
+description: ''
+resolver: url
+validate_as: string

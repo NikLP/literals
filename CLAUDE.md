@@ -64,13 +64,14 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   `pre-gate-removal`, `pre-search-fold`.
 - **Never hand-type `dependencies` or `cache_metadata`** in config: save
   through the API, export, copy to `config/install` minus `uuid`/`_core`.
-- **No migration story for entity definition changes.** Field changes go
-  through `hook_update_N` (`literals.install`); a bundle-key change needed
-  `drush pmu literals` and re-enable (remove the view from `config/install`
-  first, rebuild it from the exported YAML). Uninstalling a field that
-  targets a removed entity type fails: keep the old class until the update
-  runs. Uninstalling a module needs its files present; fold or move code
-  only after `drush pmu`.
+- **No update hooks (PoC).** `literals.install` was removed 2026-10-09:
+  nothing real depends on this site's data, so a schema or bundle change
+  means `drush pmu literals` and re-enable (remove the view from
+  `config/install` first, rebuild it from the exported YAML). Uninstalling a
+  module needs its files present; fold or move code only after `drush pmu`.
+  Nothing grants the audience permissions on install: a fresh site shows
+  literals to admins only until roles are granted `view {audience}
+  literals`.
 - **`key` is an SQL reserved word** as a column name. It works; watch raw
   queries.
 - **Stray `token` view modes.** 14 `core.entity_view_mode.*.token` configs

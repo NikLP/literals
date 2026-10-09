@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+id: entity
+label: Entity
+description: ''
+resolver: entity
+validate_as: string
