@@ -28,6 +28,10 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
 
 ## Decisions in force (do not reopen without a reason)
 
+- The gist is only worth writing carefully when `literals_finder` is enabled
+  (it is the finder's whole input). Without the finder a literal needs a
+  clear name and key; plain search also reads the gist. `literals_finder`
+  is optional and stands alone as a fuzzy value lookup.
 - A literal is not a fact: no `aim_scope_literal`, no mirror of gists into
   `aim_fact`. The gist lives on the literal row; `aim` consumes the finder.
 - The model never sees a value. The chooser sees key + gist only; the value

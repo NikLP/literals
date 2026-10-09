@@ -202,7 +202,7 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
 
     $fields['gist'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Gist'))
-      ->setDescription(t('A short description of what the value is, in plain words. This is the only part that is matched.'))
+      ->setDescription(t('A short description of what the value is, in plain words. This is the only part that is matched. It matters mainly when the Literals finder is enabled; without the finder only plain word search reads it, so a clear name is enough.'))
       ->setRevisionable(TRUE)
       ->setSetting('max_length', 255)
       ->addConstraint('LiteralGuardrails')

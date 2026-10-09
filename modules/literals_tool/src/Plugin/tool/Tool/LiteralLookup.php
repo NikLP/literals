@@ -138,18 +138,35 @@ final class LiteralLookup extends ToolBase {
     $words = trim((string) ($values['search'] ?? ''));
 
     if ($key !== '') {
-      return $this->byKey($key);
+      $mode = 'key';
+      $result = $this->byKey($key);
     }
-    if ($question !== '') {
-      if (!$this->finder) {
-        return ExecutableResult::failure(new TranslatableMarkup('Looking up by question needs the literals_finder module. Give a key or search words.'), NULL);
-      }
-      return $this->byQuestion($question);
+    elseif ($question !== '') {
+      $mode = 'question';
+      $result = $this->finder
+        ? $this->byQuestion($question)
+        : ExecutableResult::failure(new TranslatableMarkup('Looking up by question needs the literals_finder module. Give a key or search words.'), NULL);
     }
-    if ($words !== '') {
-      return $this->bySearch($words);
+    elseif ($words !== '') {
+      $mode = 'search';
+      $result = $this->bySearch($words);
     }
-    return ExecutableResult::failure(new TranslatableMarkup('Give a key, a question or search words.'), NULL);
+    else {
+      $mode = 'none';
+      $result = ExecutableResult::failure(new TranslatableMarkup('Give a key, a question or search words.'), NULL);
+    }
+
+    // Audit every call, so an agent that skips the tool or retries it shows
+    // up. The mode, outcome and keys only: never the key typed, the question
+    // or the search words (personal data), and never a value.
+    $output = $result->getContextValues();
+    $this->reader->logAudit('Literal lookup tool: mode @mode, outcome @outcome, keys @keys, uid @uid.', [
+      '@mode' => $mode,
+      '@outcome' => $result->isSuccess() ? ($output['outcome'] ?? 'unknown') : 'error',
+      '@keys' => ($output['key'] ?? '') !== '' ? $output['key'] : '-',
+      '@uid' => $this->currentUser->id(),
+    ]);
+    return $result;
   }
 
   /**

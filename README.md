@@ -35,7 +35,11 @@ that finds the right one from a description and decides who sees it.
   (every typed word must appear), used by the tool. No AI, no scoring: an agent
   picks from the matches.
 - `literals_finder` - find by question: an access filter, an outcome cache,
-  then a Decision API choice. Needs `drupal/ai`.
+  then a Decision API choice. Needs `drupal/ai` and a default decision
+  provider. Optional: without it the gist is only read by plain word search,
+  so a clear name is enough. With it, literals is a small fuzzy-matching
+  memory that runs on its own, with no `aim` and no chat model: describe the
+  value in words and it finds the exact one.
 - `literals_tool` - the `literals:lookup` Tool API / MCP tool: by key, by
   search words or by question (with the finder).
   Needs `tool`.

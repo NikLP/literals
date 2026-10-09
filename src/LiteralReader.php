@@ -176,20 +176,6 @@ class LiteralReader {
   }
 
   /**
-   * Returns the keys of the literal tokens in a text.
-   *
-   * @param string $text
-   *   The text, for example a fact.
-   *
-   * @return string[]
-   *   The distinct keys, in order of first appearance.
-   */
-  public function tokenKeys(string $text): array {
-    preg_match_all('/\[literal:([^\]:\s]+)(?::link)?\]/', $text, $matches);
-    return array_values(array_unique($matches[1]));
-  }
-
-  /**
    * Replaces [literal:key] and [literal:key:link] in plain text.
    *
    * For text a model or chat front end reads, so output is plain text and
