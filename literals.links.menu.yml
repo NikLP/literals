@@ -16,3 +16,10 @@ literals.admin_config:
   parent: system.admin_config
   route_name: literals.admin_config
   weight: 0
+
+entity.literal_audience.collection:
+  title: 'Audiences'
+  description: 'Who may see a literal; each audience is granted to roles by permission.'
+  parent: literals.admin_config
+  route_name: entity.literal_audience.collection
+  weight: 10

@@ -38,11 +38,18 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   is resolved after the choice, access-checked for the asking account.
   A literal's value is only ever checked by deterministic Guardrails.
 - Base `literals` needs no AI. The finder is the optional `drupal/ai` part.
-- Access is the `audience` column (`anonymous`, `authenticated`,
-  `restricted`), default `authenticated` (fail closed), enforced by the
-  access handler and a `hook_query_alter`; a hidden literal is
-  indistinguishable from a missing one ("none").
+- Access is the `audience` column: the ID of a `literal_audience` config
+  entity (shipped: `anonymous`, `authenticated`, `restricted`; default
+  `authenticated`, fail closed). Each audience has a generated
+  `view {id} literals` permission and an account sees the audiences whose
+  permission it holds (`LiteralAudience::visibleTo()`), so roles are granted
+  audiences on the normal permissions page. Enforced by the access handler
+  and a `hook_query_alter`; a hidden literal is indistinguishable from a
+  missing one ("none"), and an audience that no longer exists hides its
+  literals. The resolver's own check (e.g. a `url` route) is a second,
+  separate layer.
 - The bundle is the **type** (config entity + resolver plugin), not a pool.
+  Access groups are the separate `literal_audience` axis.
 - Embedding gate, alias field, vector tier: built or considered and
   removed; do not rebuild without a measured need (ADR-0040 "Rejected").
 - Tokens in body copy via a text-format filter are dropped (cache-context

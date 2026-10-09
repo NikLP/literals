@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+id: restricted
+label: 'Restricted'
+description: 'Only roles granted this audience explicitly.'
+weight: 2

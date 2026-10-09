@@ -12,13 +12,13 @@ use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Form\LiteralForm;
 use Drupal\literals\LiteralAccessControlHandler;
 use Drupal\literals\LiteralAudience;
+use Drupal\literals\Routing\LiteralHtmlRouteProvider;
 use Drupal\literals\LiteralResolverInterface;
 use Drupal\literals\LiteralViewsData;
 use Drupal\literals\ResolvedLiteral;
@@ -50,7 +50,7 @@ use Drupal\user\EntityOwnerTrait;
       'delete' => ContentEntityDeleteForm::class,
     ],
     'route_provider' => [
-      'html' => AdminHtmlRouteProvider::class,
+      'html' => LiteralHtmlRouteProvider::class,
     ],
   ],
   entity_keys: [

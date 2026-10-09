@@ -62,3 +62,62 @@ function literals_update_10003(): void {
     $config->set('log_audit', FALSE)->save();
   }
 }
+
+/**
+ * Adds the literal audience config entities and grants them to roles.
+ *
+ * Audiences were a fixed list; they are now config with a generated
+ * permission each. The shipped three keep the old behavior: "anonymous" to
+ * every role, "authenticated" to signed-in users, and "restricted" stays on
+ * the permission roles already hold under the same name.
+ */
+function literals_update_10004(): void {
+  // Only the audiences: installDefaultConfig() would reset the settings.
+  $storage = \Drupal::entityTypeManager()->getStorage('literal_audience');
+  $weight = 0;
+  foreach ([
+    'anonymous' => ['Anonymous', 'Everyone, anonymous visitors included.'],
+    'authenticated' => ['Signed-in users', 'Any signed-in account.'],
+    'restricted' => ['Restricted', 'Only roles granted this audience explicitly.'],
+  ] as $id => [$label, $description]) {
+    if (!$storage->load($id)) {
+      $storage->create(['id' => $id, 'label' => $label, 'description' => $description, 'weight' => $weight])->save();
+    }
+    $weight++;
+  }
+  literals_grant_default_audiences();
+}
+
+/**
+ * Implements hook_install().
+ */
+function literals_install(): void {
+  literals_grant_default_audiences();
+}
+
+/**
+ * Grants the shipped audiences to the built-in roles.
+ */
+function literals_grant_default_audiences(): void {
+  \Drupal::service('cache.discovery')->deleteAll();
+  user_role_grant_permissions('anonymous', ['view anonymous literals']);
+  user_role_grant_permissions('authenticated', ['view anonymous literals', 'view authenticated literals']);
+}
+
+/**
+ * Keeps the per-audience permissions named "view {audience} literals".
+ *
+ * A reverted rename to "consume" left some sites with the longer name in
+ * role config; this puts the grants back under "view". Config-level, because
+ * saving a Role entity strips permissions that no longer exist.
+ */
+function literals_update_10005(): void {
+  foreach (\Drupal::configFactory()->listAll('user.role.') as $name) {
+    $config = \Drupal::configFactory()->getEditable($name);
+    $before = $config->get('permissions') ?? [];
+    $after = preg_replace('/^consume (.+) literals$/', 'view $1 literals', $before);
+    if ($after !== $before) {
+      $config->set('permissions', $after)->save();
+    }
+  }
+}

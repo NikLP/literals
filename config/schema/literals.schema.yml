@@ -33,3 +33,20 @@ literals.settings:
     log_audit:
       type: boolean
       label: 'Log audit lines (writes and reads: IDs, keys, outcomes; never gists or values)'
+
+literals.literal_audience.*:
+  type: config_entity
+  label: 'Literal audience'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    description:
+      type: text
+      label: 'Description'
+    weight:
+      type: integer
+      label: 'Weight'
