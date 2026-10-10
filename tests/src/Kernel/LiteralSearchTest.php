@@ -35,7 +35,7 @@ class LiteralSearchTest extends LiteralsKernelTestBase {
    */
   protected function keys(string $text, $account = NULL, int $limit = 10): array {
     $found = $this->container->get('literals.search')->search($text, $account ?? new AnonymousUserSession(), $limit);
-    $keys = array_map(fn ($l) => $l->get('key')->value, array_values($found));
+    $keys = array_map(fn ($l) => $l->id(), array_values($found));
     sort($keys);
     return $keys;
   }
@@ -106,7 +106,7 @@ class LiteralSearchTest extends LiteralsKernelTestBase {
       $this->createLiteral("lit_$letter", '1', ['name' => "Thing $letter"]);
     }
     $found = $this->container->get('literals.search')->search('thing', new AnonymousUserSession(), 2);
-    $this->assertSame(['lit_a', 'lit_b'], array_values(array_map(fn ($l) => $l->get('key')->value, $found)));
+    $this->assertSame(['lit_a', 'lit_b'], array_values(array_map(fn ($l) => $l->id(), $found)));
   }
 
 }

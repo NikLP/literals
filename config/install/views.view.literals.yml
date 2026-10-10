@@ -34,14 +34,14 @@ display:
           type: string
           settings:
             link_to_entity: true
-        key:
-          id: key
+        id:
+          id: id
           table: literal
-          field: key
+          field: id
           relationship: none
           group_type: group
           entity_type: literal
-          entity_field: key
+          entity_field: id
           plugin_id: field
           label: Key
           click_sort_column: value

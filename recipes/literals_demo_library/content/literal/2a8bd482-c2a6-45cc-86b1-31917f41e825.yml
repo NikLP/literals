@@ -11,7 +11,7 @@ default:
   name:
     -
       value: 'Login page'
-  key:
+  id:
     -
       value: login
   restricted:

@@ -11,7 +11,7 @@ default:
   name:
     -
       value: 'Staff line'
-  key:
+  id:
     -
       value: staff_line
   restricted:

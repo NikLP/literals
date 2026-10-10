@@ -92,8 +92,8 @@ a set written by someone else is the fair test.
 
 ## Logging
 
-`literals.settings:log_audit` (off by default) logs writes and reads: id,
-key, type, restricted flag, uid and outcome, never the gist or value.
+`literals.settings:log_audit` (off by default) logs writes and reads: key,
+type, restricted flag, uid and outcome, never the gist or value.
 `literals_finder.settings:log_audit` (on) logs finder outcomes. Channel
 `logger.channel.literals`.
 

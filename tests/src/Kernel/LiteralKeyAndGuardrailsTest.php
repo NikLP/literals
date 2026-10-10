@@ -35,7 +35,7 @@ class LiteralKeyAndGuardrailsTest extends LiteralsKernelTestBase {
     return Literal::create($values + [
       'type' => 'text',
       'name' => 'n',
-      'key' => 'k',
+      'id' => 'k',
       'value' => 'v',
       'gist' => 'g',
     ]);
@@ -46,7 +46,8 @@ class LiteralKeyAndGuardrailsTest extends LiteralsKernelTestBase {
    */
   public function testKeyUnique(): void {
     $first = $this->createLiteral('dup', '1');
-    $this->assertCount(1, $this->build(['key' => 'dup'])->validate());
+    $this->assertCount(1, $this->build(['id' => 'dup'])->validate());
+    $this->assertCount(1, $this->build(['id' => 'Not a machine name'])->validate());
     $first->set('value', '2');
     $this->assertCount(0, $first->validate());
   }
@@ -57,7 +58,7 @@ class LiteralKeyAndGuardrailsTest extends LiteralsKernelTestBase {
   public function testKeyUniqueInDatabase(): void {
     $this->createLiteral('dup', '1');
     $this->expectException(EntityStorageException::class);
-    $this->build(['key' => 'dup'])->save();
+    $this->build(['id' => 'dup'])->save();
   }
 
   /**
@@ -65,9 +66,9 @@ class LiteralKeyAndGuardrailsTest extends LiteralsKernelTestBase {
    */
   public function testKeyImmutable(): void {
     $literal = $this->createLiteral('fixed', '1');
-    $literal->set('key', 'moved');
+    $literal->set('id', 'moved');
     $this->assertCount(1, $literal->validate());
-    $literal->set('key', 'fixed')->set('value', '2');
+    $literal->set('id', 'fixed')->set('value', '2');
     $this->assertCount(0, $literal->validate());
   }
 
@@ -76,9 +77,9 @@ class LiteralKeyAndGuardrailsTest extends LiteralsKernelTestBase {
    */
   public function testReservedKeys(): void {
     foreach (['url', 'name', 'value', 'gist', 'restricted', 'original', 'id', 'uuid', 'status'] as $key) {
-      $this->assertCount(1, $this->build(['key' => $key])->validate(), $key);
+      $this->assertCount(1, $this->build(['id' => $key])->validate(), $key);
     }
-    $this->assertCount(0, $this->build(['key' => 'main_phone'])->validate());
+    $this->assertCount(0, $this->build(['id' => 'main_phone'])->validate());
   }
 
   /**

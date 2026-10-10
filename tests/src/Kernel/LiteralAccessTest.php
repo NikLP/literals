@@ -100,7 +100,7 @@ class LiteralAccessTest extends LiteralsKernelTestBase {
     $keys = function ($account) use ($storage): array {
       $this->setCurrentUser($account);
       $ids = $storage->getQuery()->accessCheck(TRUE)->execute();
-      $found = array_map(fn ($l) => $l->get('key')->value, $storage->loadMultiple($ids));
+      $found = array_map(fn ($l) => $l->id(), $storage->loadMultiple($ids));
       sort($found);
       return $found;
     };

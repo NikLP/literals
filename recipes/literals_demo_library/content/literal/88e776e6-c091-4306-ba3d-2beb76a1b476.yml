@@ -11,7 +11,7 @@ default:
   name:
     -
       value: 'My account'
-  key:
+  id:
     -
       value: my_account
   restricted:

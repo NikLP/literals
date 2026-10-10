@@ -18,7 +18,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Form\LiteralForm;
 use Drupal\literals\LiteralAccessControlHandler;
 use Drupal\literals\LiteralResolverInterface;
-use Drupal\literals\LiteralStorageSchema;
 use Drupal\literals\ResolvedLiteral;
 use Drupal\literals\Routing\LiteralHtmlRouteProvider;
 use Drupal\user\EntityOwnerInterface;
@@ -43,7 +42,6 @@ use Drupal\views\EntityViewsData;
   label_plural: new TranslatableMarkup('literals'),
   handlers: [
     'list_builder' => EntityListBuilder::class,
-    'storage_schema' => LiteralStorageSchema::class,
     'access' => LiteralAccessControlHandler::class,
     'views_data' => EntityViewsData::class,
     'form' => [
@@ -170,15 +168,17 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => 0]);
 
-    $fields['key'] = BaseFieldDefinition::create('string')
+    // The ID is the key, a machine name, as core's Workspace entity does:
+    // [literal:main_phone] reads the literal whose ID is main_phone. Set on
+    // the form by a machine name element (LiteralForm), fixed once created.
+    $fields['id'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Key'))
-      ->setDescription(t('Machine name, unique across literals. The exact-lookup handle and the option ID handed to the chooser.'))
+      ->setDescription(t('Machine name and ID, unique across literals. The exact-lookup handle and the option ID handed to the chooser.'))
       ->setRequired(TRUE)
-      ->setRevisionable(TRUE)
-      ->addConstraint('LiteralKeyUnique')
       ->setSetting('max_length', 64)
-      ->setDisplayConfigurable('form', TRUE)
-      ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => 5]);
+      ->addConstraint('UniqueField')
+      ->addConstraint('LiteralKey')
+      ->addPropertyConstraints('value', ['Regex' => ['pattern' => '/^[a-z0-9_]+$/']]);
 
     $fields['restricted'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Restricted'))

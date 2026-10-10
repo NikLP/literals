@@ -11,7 +11,7 @@ default:
   name:
     -
       value: 'Accounts phone'
-  key:
+  id:
     -
       value: accounts_phone
   restricted:

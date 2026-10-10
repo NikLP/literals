@@ -17,7 +17,7 @@ roles, makes users (`member`, `restrictedViewer`, `admin`), and has
 | Reader | `LiteralReaderTest` | published only, indistinguishable misses, cache metadata, token cycles, audit logs, `replaceTokens()`, `resolveFound()` |
 | Resolvers | `LiteralResolversTest` | text/phone validation, url access, entity incl. deleted target, token validation and per-account resolve |
 | Tokens | `LiteralTokenTest` | `[literal:key]` and `:link`, restricted flag, drafts, bubbling, token info follows saves |
-| Key, Guardrails | `LiteralKeyAndGuardrailsTest` | uniqueness (validation and database index), immutable key, reserved keys, gist/value rejection, value never reaches model guardrails |
+| Key, Guardrails | `LiteralKeyAndGuardrailsTest` | key as ID: uniqueness (validation and primary key), machine-name pattern, immutable, reserved keys, gist/value rejection, value never reaches model guardrails |
 | Search | `LiteralSearchTest` | name/key/gist match, all words, edge input, access, limit |
 | Submodules | `literals_finder`, `literals_tool`, `literals_chat` | finder cache and outcomes, tool modes, chat responder |
 
@@ -55,7 +55,7 @@ Add `tests/src/Functional/`. Needs `BrowserTestBase`, theme `stark`.
 - **Literal form:** create via `/admin/content/literals/add/text`; the key is
   generated from the name (machine name widget); a duplicate key and a
   reserved key (`url`, `name`) show a form error; the key field is disabled
-  on edit; a bad phone value shows the
+  on edit; a form-level key error lands on the key element; a bad phone value shows the
   resolver message; the Guardrails error appears on the gist field.
 - **Type form and type delete guard:** a type with literals shows the "used
   by N literals" message and no delete button.
@@ -105,8 +105,6 @@ Nothing keeps that true.
 - Access handler memoization: CLAUDE.md warns about it. A short test that
   `resetCache()` is enough after a `restricted` change would document the
   workaround.
-- `LiteralReader`'s per-request key cache: a literal deleted and re-created
-  with the same key in one request reads as the new one.
 
 ### 5. aim integration (belongs in aim's test suite)
 

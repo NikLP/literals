@@ -5,7 +5,7 @@
 use Drupal\user\Entity\User;
 \Drupal::currentUser()->setAccount(User::load(1));
 $s = \Drupal::entityTypeManager()->getStorage('literal');
-foreach ($s->loadMultiple() as $l) { if (str_starts_with((string) $l->get('key')->value, 'pl_')) { $l->delete(); } }
+foreach ($s->loadMultiple() as $l) { if (str_starts_with((string) $l->id(), 'pl_')) { $l->delete(); } }
 if (getenv('POOL_CLEAN')) { echo "cleaned\n"; return; }
 $rows = [
  // Phones.
@@ -104,7 +104,7 @@ $rows = [
  ['text','pl_isbn','Publisher prefix','The ISBN publisher prefix for library publications','978-1-23456'],
 ];
 foreach ($rows as [$b,$k,$n,$g,$v]) {
-  $l = $s->create(['type'=>$b,'bundle'=>$b,'name'=>$n,'key'=>$k,'gist'=>$g,'value'=>$v,'status'=>1]);
+  $l = $s->create(['type'=>$b,'bundle'=>$b,'name'=>$n,'id'=>$k,'gist'=>$g,'value'=>$v,'status'=>1]);
   $viol = $l->validate();
   if (count($viol)) { echo "FAIL $k: ", $viol[0]->getMessage(), "\n"; continue; }
   $l->save();

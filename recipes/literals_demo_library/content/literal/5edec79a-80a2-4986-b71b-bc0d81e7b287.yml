@@ -11,7 +11,7 @@ default:
   name:
     -
       value: 'Password reset'
-  key:
+  id:
     -
       value: password_reset
   restricted:

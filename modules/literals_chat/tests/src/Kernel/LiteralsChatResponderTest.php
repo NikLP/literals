@@ -146,9 +146,8 @@ class FakeChatFinder implements LiteralFinderInterface {
     $storage = $this->entityTypeManager->getStorage('literal');
     $found = [];
     foreach ($keys as $key) {
-      $ids = $storage->getQuery()->accessCheck(FALSE)->condition('key', $key)->execute();
-      if ($ids) {
-        $found[] = $storage->load(reset($ids));
+      if ($literal = $storage->load($key)) {
+        $found[] = $literal;
       }
     }
     if (!$found) {

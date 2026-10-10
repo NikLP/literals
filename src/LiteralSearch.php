@@ -65,7 +65,7 @@ class LiteralSearch {
     foreach ($words as $word) {
       $any = $query->orConditionGroup()
         ->condition('name', $word, 'CONTAINS')
-        ->condition('key', $word, 'CONTAINS')
+        ->condition('id', $word, 'CONTAINS')
         ->condition('gist', $word, 'CONTAINS');
       $query->condition($any);
     }

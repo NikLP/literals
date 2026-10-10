@@ -11,7 +11,7 @@ default:
   name:
     -
       value: 'Site name'
-  key:
+  id:
     -
       value: site_name
   restricted:

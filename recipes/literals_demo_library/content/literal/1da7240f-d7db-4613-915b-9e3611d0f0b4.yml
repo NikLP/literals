@@ -11,7 +11,7 @@ default:
   name:
     -
       value: 'Reservations phone'
-  key:
+  id:
     -
       value: reservations_phone
   restricted:

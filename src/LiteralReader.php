@@ -34,15 +34,6 @@ class LiteralReader {
   protected array $stack = [];
 
   /**
-   * Literal IDs by key for this request, FALSE for a key with no literal.
-   *
-   * Cleared by resetCache() on every literal insert, update and delete.
-   *
-   * @var array<string, int|false>
-   */
-  protected array $ids = [];
-
-  /**
    * Constructs the reader.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
@@ -79,11 +70,8 @@ class LiteralReader {
     $storage = $this->entityTypeManager->getStorage('literal');
     // Any literal change can add, remove or re-key a literal.
     $metadata?->addCacheTags(['literal_list']);
-    if (!array_key_exists($key, $this->ids)) {
-      $ids = $storage->getQuery()->accessCheck(FALSE)->condition('key', $key)->range(0, 1)->execute();
-      $this->ids[$key] = $ids ? (int) reset($ids) : FALSE;
-    }
-    $literal = $this->ids[$key] ? $storage->load($this->ids[$key]) : NULL;
+    // The key is the ID.
+    $literal = $storage->load($key);
     if (!$literal instanceof Literal || !$literal->isPublished()) {
       return NULL;
     }
@@ -175,7 +163,7 @@ class LiteralReader {
     foreach ($literals as $literal) {
       $item = $literal->resolveItem($account, $metadata);
       if ($item && $item->value !== '') {
-        $items[(string) $literal->get('key')->value] = $item;
+        $items[$literal->id()] = $item;
       }
     }
     if (!$items) {
@@ -232,13 +220,6 @@ class LiteralReader {
       return '[' . addcslashes($label, '[]\\') . '](' . $href . ')';
     }, $text) ?? $text;
     return $redacted && $withholdIfRedacted ? NULL : $result;
-  }
-
-  /**
-   * Forgets the key lookups cached for this request.
-   */
-  public function resetCache(): void {
-    $this->ids = [];
   }
 
   /**

@@ -19,7 +19,7 @@ $rows = [
  ['text','st_open_weekday','Weekday hours','Opening hours Monday to Friday','09:00-19:00','anonymous'],
 ];
 foreach ($rows as [$b,$k,$n,$g,$v,$a]) {
-  $l = $s->create(['type'=>$b,'bundle'=>$b,'name'=>$n,'key'=>$k,'gist'=>$g,'value'=>$v,'restricted'=>$a !== 'anonymous','status'=>1]);
+  $l = $s->create(['type'=>$b,'bundle'=>$b,'name'=>$n,'id'=>$k,'gist'=>$g,'value'=>$v,'restricted'=>$a !== 'anonymous','status'=>1]);
   $viol = $l->validate();
   if (count($viol)) { echo "FAIL $k: ", $viol[0]->getMessage(), "\n"; continue; }
   $l->save(); echo "ok $k\n";

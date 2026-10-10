@@ -247,8 +247,7 @@ class FakeFinder {
     $by_key = function (array $keys) use ($account): array {
       $found = [];
       foreach ($keys as $key) {
-        $ids = $this->entityTypeManager->getStorage('literal')->getQuery()->accessCheck(FALSE)->condition('key', $key)->execute();
-        $literal = $ids ? $this->entityTypeManager->getStorage('literal')->load(reset($ids)) : NULL;
+        $literal = $this->entityTypeManager->getStorage('literal')->load($key);
         if ($literal instanceof Literal && $literal->access('view', $account)) {
           $found[] = $literal;
         }

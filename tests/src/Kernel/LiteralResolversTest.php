@@ -24,7 +24,7 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
     $literal = Literal::create([
       'type' => $type,
       'name' => 'n',
-      'key' => 'k_' . $type,
+      'id' => 'k_' . $type,
       'value' => $value,
     ]);
     return count($literal->validate()) === 0;

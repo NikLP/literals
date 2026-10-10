@@ -74,7 +74,7 @@ final class LiteralsCommands extends DrushCommands {
     $this->accountSwitcher->switchBack();
     $this->io()->writeln(sprintf('%s via %s%s', $result->outcome, $result->tier, $result->reason ? " ($result->reason)" : ''));
     foreach ($result->literals as $literal) {
-      $this->io()->writeln(sprintf('  %s: %s', $literal->get('key')->value, $literal->get('gist')->value));
+      $this->io()->writeln(sprintf('  %s: %s', $literal->id(), $literal->get('gist')->value));
     }
   }
 
@@ -104,7 +104,7 @@ final class LiteralsCommands extends DrushCommands {
       $result = $this->finder->find($item['q'], $account);
       $took = microtime(TRUE) - $start;
       $elapsed += $took;
-      $keys = array_map(fn ($l) => (string) $l->get('key')->value, $result->literals);
+      $keys = array_map(fn ($l) => $l->id(), $result->literals);
       // "expect" may be a list of acceptable answers: literal keys, "none", and
       // "ambiguous" for a tie. Nothing is a miss, a pick outside it is wrong.
       $accepted = is_array($item['expect']) ? array_map('strval', $item['expect']) : NULL;

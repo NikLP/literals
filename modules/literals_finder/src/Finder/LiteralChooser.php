@@ -62,7 +62,7 @@ class LiteralChooser implements LiteralChooserInterface {
     $by_key = [];
     $criteria = [];
     foreach ($candidates as $literal) {
-      $key = (string) $literal->get('key')->value;
+      $key = $literal->id();
       $by_key[$key] = $literal;
       $criteria[$key] = $literal->getGist() ?: (string) $literal->label();
     }

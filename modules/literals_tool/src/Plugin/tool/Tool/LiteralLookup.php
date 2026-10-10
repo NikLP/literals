@@ -197,7 +197,7 @@ final class LiteralLookup extends ToolBase {
     $finder = $this->finder;
     // No per-call context: the finder uses its site context.
     $result = $finder->find($question, $this->currentUser);
-    $keys = array_map(fn (Literal $literal): string => (string) $literal->get('key')->value, $result->literals);
+    $keys = array_map(fn (Literal $literal): string => $literal->id(), $result->literals);
 
     if ($result->outcome === self::MATCH && $keys) {
       $resolved = $this->reader->resolveFound($result->outcome, $result->literals, $this->currentUser);
@@ -229,7 +229,7 @@ final class LiteralLookup extends ToolBase {
     if (!$literals) {
       return $this->notFound();
     }
-    $keys = array_map(fn (Literal $literal): string => (string) $literal->get('key')->value, $literals);
+    $keys = array_map(fn (Literal $literal): string => $literal->id(), $literals);
     return ExecutableResult::success(
       new TranslatableMarkup('Found @count literal(s). Call again with a key to get a value.', ['@count' => count($literals)]),
       $this->output(self::CANDIDATES, implode(',', $keys), [
@@ -251,7 +251,7 @@ final class LiteralLookup extends ToolBase {
     $lines = [];
     foreach ($literals as $literal) {
       $gist = $literal->getGist();
-      $lines[] = $literal->get('key')->value . ': ' . $literal->label() . ($gist !== '' ? ' - ' . $gist : '');
+      $lines[] = $literal->id() . ': ' . $literal->label() . ($gist !== '' ? ' - ' . $gist : '');
     }
     return implode("\n", $lines);
   }

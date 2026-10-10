@@ -55,10 +55,15 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   leak risk); tokens are for callers that control their render.
 - External URLs are not wanted: the `url` resolver stays internal paths
   only, and the text resolver has no `url` validation option.
-- **Keys are immutable** after create (form field disabled, and the
-  `LiteralKeyUnique` constraint refuses a change): facts embed
-  `[literal:key]`, so a rename would silently redact them. Unique in the
-  database too (`LiteralStorageSchema`, base table only).
+- **The key is the entity ID**, a string machine name (`[a-z0-9_]`, max
+  64), as core's Workspace entity does: `[literal:main_phone]` is
+  `Literal::load('main_phone')`, and admin URLs use it. No serial ID. Set
+  by a form-level `machine_name` element in `LiteralForm` (not a widget,
+  so `flagViolations()` reports its errors). Uniqueness is core's
+  `UniqueField` plus the primary key.
+- **Keys are immutable** after create (form element disabled, and the
+  `LiteralKey` constraint refuses a change): facts embed `[literal:key]`, so
+  a rename would silently redact them.
 
 ## Gotchas
 
@@ -78,9 +83,6 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   Nothing grants the view permissions on install: a fresh site shows
   literals to admins only until roles are granted `view literals` (the
   `literals_base` recipe does).
-- **`key` is an SQL reserved word** as a column name. It works; watch raw
-  queries. `LiteralReader` caches key-to-ID lookups per request; the
-  insert/update/delete hooks clear it (`resetCache()`).
 - **Stray `token` view modes.** 14 `core.entity_view_mode.*.token` configs
   once appeared from an unknown source; if they reappear in
   `config:status`, find the cause before exporting them.

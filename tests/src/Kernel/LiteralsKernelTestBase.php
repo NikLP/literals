@@ -97,7 +97,7 @@ abstract class LiteralsKernelTestBase extends KernelTestBase {
     $literal = Literal::create($values + [
       'type' => 'text',
       'name' => ucfirst($key),
-      'key' => $key,
+      'id' => $key,
       'value' => $value,
       'gist' => "The $key",
       'restricted' => FALSE,

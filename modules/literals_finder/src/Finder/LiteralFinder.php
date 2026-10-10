@@ -91,7 +91,7 @@ class LiteralFinder implements LiteralFinderInterface {
         : CacheBackendInterface::CACHE_PERMANENT;
       $this->cache->set($cid, [
         'outcome' => $result->outcome,
-        'ids' => array_map(fn (Literal $l) => (int) $l->id(), $result->literals),
+        'ids' => array_map(fn (Literal $l) => $l->id(), $result->literals),
         'reason' => $result->reason,
       ], $expire, ['literal_list']);
     }
@@ -162,7 +162,7 @@ class LiteralFinder implements LiteralFinderInterface {
     $literals = [];
     foreach ($storage->loadMultiple($query->execute()) as $literal) {
       if ($literal->access('view', $account)) {
-        $literals[(int) $literal->id()] = $literal;
+        $literals[$literal->id()] = $literal;
       }
     }
     return $literals;
@@ -184,7 +184,7 @@ class LiteralFinder implements LiteralFinderInterface {
         '@outcome' => $result->outcome,
         '@tier' => $result->tier,
         '@reason' => $result->reason ?: '-',
-        '@ids' => implode(',', array_map(fn (Literal $l) => (int) $l->id(), $result->literals)),
+        '@ids' => implode(',', array_map(fn (Literal $l) => $l->id(), $result->literals)),
         '@pool' => $pool,
       ]);
     }

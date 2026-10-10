@@ -41,5 +41,6 @@ not proposed again.
   manager; setting `keyValueFactory` in `create()` is the standard pattern
   for entity forms. `Literal::getResolverPlugin()` stays a static call
   (entities cannot take constructor injection).
-- **A stable ID in tokens instead of the key.** Immutable keys give most of
-  the benefit and keep fact text readable.
+- **An opaque ID in tokens instead of the key.** The key is now the
+  entity ID itself (a machine name, as core's Workspace does) and cannot
+  change, so tokens stay readable and stable.

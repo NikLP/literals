@@ -6,6 +6,7 @@ namespace Drupal\literals\Form;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Entity\ContentEntityForm;
+use Drupal\Core\Entity\EntityConstraintViolationListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Site\Settings;
@@ -42,19 +43,23 @@ class LiteralForm extends ContentEntityForm {
     /** @var \Drupal\literals\Entity\Literal $literal */
     $literal = $this->entity;
 
-    // The key is generated from the name, as a config entity's machine name is.
-    if (isset($form['key']['widget'][0]['value'])) {
-      $element = &$form['key']['widget'][0]['value'];
-      $element['#type'] = 'machine_name';
-      $element['#machine_name'] = [
+    // The key is the ID, generated from the name as a config entity's
+    // machine name is (same pattern as core's WorkspaceForm).
+    $form['id'] = [
+      '#type' => 'machine_name',
+      '#title' => $this->t('Key'),
+      '#description' => $this->t('Used in [literal:key] tokens. Cannot change once saved.'),
+      '#maxlength' => 64,
+      '#default_value' => $literal->id(),
+      '#disabled' => !$literal->isNew(),
+      '#weight' => 1,
+      '#machine_name' => [
         'source' => ['name', 'widget', 0, 'value'],
         'exists' => [$this, 'keyExists'],
         'replace_pattern' => '[^a-z0-9_]+',
         'replace' => '_',
-      ];
-      $element['#disabled'] = !$literal->isNew();
-      unset($element);
-    }
+      ],
+    ];
 
     $resolver = $literal->getType()->getResolver();
     if ($resolver === 'token' && isset($form['value'])) {
@@ -116,14 +121,27 @@ class LiteralForm extends ContentEntityForm {
    *   TRUE if another literal already uses the key.
    */
   public function keyExists(string $key, array $element): bool {
-    $literal = $this->entity;
-    $query = $this->entityTypeManager->getStorage('literal')->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('key', $key);
-    if (!$literal->isNew()) {
-      $query->condition('id', $literal->id(), '<>');
+    return $this->entity->isNew() && $this->entityTypeManager->getStorage('literal')->load($key) !== NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEditedFieldNames(FormStateInterface $form_state) {
+    return array_merge(['id'], parent::getEditedFieldNames($form_state));
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * The key element is not in the form display, so its violations are
+   * flagged here.
+   */
+  protected function flagViolations(EntityConstraintViolationListInterface $violations, array $form, FormStateInterface $form_state) {
+    foreach ($violations->getByField('id') as $violation) {
+      $form_state->setErrorByName('id', $violation->getMessage());
     }
-    return (bool) $query->range(0, 1)->execute();
+    parent::flagViolations($violations, $form, $form_state);
   }
 
   /**

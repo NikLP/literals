@@ -11,9 +11,9 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 
 /**
- * Checks the key: unique, not reserved, unchanged on an existing literal.
+ * Checks the key: not reserved, unchanged on an existing literal.
  */
-final class LiteralKeyUniqueConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
+final class LiteralKeyConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   /**
    * Constructs the validator.
@@ -48,22 +48,9 @@ final class LiteralKeyUniqueConstraintValidator extends ConstraintValidator impl
       $this->context->addViolation($constraint->reservedMessage, ['%key' => $key]);
       return;
     }
-    $storage = $this->entityTypeManager->getStorage('literal');
-    if (!$entity->isNew()) {
-      $original = (string) $storage->loadUnchanged($entity->id())?->get('key')->value;
-      if ($original !== '' && $original !== $key) {
-        $this->context->addViolation($constraint->immutableMessage, ['%original' => $original]);
-        return;
-      }
-    }
-    $query = $storage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('key', $key);
-    if (!$entity->isNew()) {
-      $query->condition('id', $entity->id(), '<>');
-    }
-    if ($query->range(0, 1)->execute()) {
-      $this->context->addViolation($constraint->message, ['%key' => $key]);
+    // A stored literal whose ID was changed in memory no longer matches a row.
+    if (!$entity->isNew() && !$this->entityTypeManager->getStorage('literal')->loadUnchanged($key)) {
+      $this->context->addViolation($constraint->immutableMessage);
     }
   }
 

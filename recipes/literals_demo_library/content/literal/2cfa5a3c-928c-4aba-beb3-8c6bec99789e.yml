@@ -14,7 +14,7 @@ default:
   name:
     -
       value: 'Main phone'
-  key:
+  id:
     -
       value: main_phone
   restricted:

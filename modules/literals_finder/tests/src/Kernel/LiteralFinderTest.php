@@ -116,7 +116,7 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
     $second = $this->finder()->find('phone number', $this->member);
     $this->assertSame('cache', $second->tier);
     $this->assertSame('match', $second->outcome);
-    $this->assertSame('main_phone', $second->literals[0]->get('key')->value);
+    $this->assertSame('main_phone', $second->literals[0]->id());
     $this->assertSame(1, FakeChooser::$calls);
   }
 
@@ -179,7 +179,7 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
 
     $result = $this->finder()->find('phone', $this->member);
     $this->assertSame(['main_phone'], FakeChooser::$lastKeys);
-    $this->assertSame(['main_phone'], array_map(fn ($l) => $l->get('key')->value, $result->literals));
+    $this->assertSame(['main_phone'], array_map(fn ($l) => $l->id(), $result->literals));
 
     $result = $this->finder()->find('phone', $this->restrictedViewer);
     $this->assertSame(['main_phone', 'staff_line'], FakeChooser::$lastKeys);
@@ -270,13 +270,13 @@ class FakeChooser implements LiteralChooserInterface {
   public function choose(string $question, array $candidates, ?string $context = NULL): LiteralFindResult {
     self::$calls++;
     self::$lastContext = $context;
-    self::$lastKeys = array_values(array_map(fn ($l) => (string) $l->get('key')->value, $candidates));
+    self::$lastKeys = array_values(array_map(fn ($l) => $l->id(), $candidates));
     if (self::$throw) {
       throw new \RuntimeException('model down');
     }
     [$outcome, $keys] = self::$answer;
     // Like the real chooser, name only literals it was shown.
-    $named = array_values(array_filter($candidates, fn ($l) => in_array((string) $l->get('key')->value, $keys, TRUE)));
+    $named = array_values(array_filter($candidates, fn ($l) => in_array($l->id(), $keys, TRUE)));
     return new LiteralFindResult($outcome, $named, 'chooser');
   }
 

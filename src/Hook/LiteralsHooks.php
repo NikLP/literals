@@ -124,11 +124,11 @@ class LiteralsHooks {
     ];
     $literals = $this->entityTypeManager->getStorage('literal')->loadByProperties(['status' => 1]);
     foreach ($literals as $literal) {
-      $info['tokens']['literal'][(string) $literal->get('key')->value] = [
+      $info['tokens']['literal'][$literal->id()] = [
         'name' => $literal->label(),
         'description' => $this->t('The value of the literal "@name", if the viewer may see it.', ['@name' => $literal->label()]),
       ];
-      $info['tokens']['literal'][$literal->get('key')->value . ':link'] = [
+      $info['tokens']['literal'][$literal->id() . ':link'] = [
         'name' => $this->t('@name (link)', ['@name' => $literal->label()]),
         'description' => $this->t('The literal "@name" as a link (HTML), if the viewer may see it. Text values come out as plain escaped text.', ['@name' => $literal->label()]),
       ];
@@ -201,8 +201,7 @@ class LiteralsHooks {
   #[Hook('literal_insert')]
   public function literalInsert(Literal $literal): void {
     $this->token->resetInfo();
-    $this->reader->resetCache();
-    $this->reader->logAudit('Literal created: id @id, key @key, type @type, restricted @restricted, uid @uid.', $this->auditContext($literal));
+    $this->reader->logAudit('Literal created: key @key, type @type, restricted @restricted, uid @uid.', $this->auditContext($literal));
   }
 
   /**
@@ -211,8 +210,7 @@ class LiteralsHooks {
   #[Hook('literal_update')]
   public function literalUpdate(Literal $literal): void {
     $this->token->resetInfo();
-    $this->reader->resetCache();
-    $this->reader->logAudit('Literal updated: id @id, key @key, type @type, restricted @restricted, uid @uid.', $this->auditContext($literal));
+    $this->reader->logAudit('Literal updated: key @key, type @type, restricted @restricted, uid @uid.', $this->auditContext($literal));
   }
 
   /**
@@ -221,8 +219,7 @@ class LiteralsHooks {
   #[Hook('literal_delete')]
   public function literalDelete(Literal $literal): void {
     $this->token->resetInfo();
-    $this->reader->resetCache();
-    $this->reader->logAudit('Literal deleted: id @id, key @key, type @type, restricted @restricted, uid @uid.', $this->auditContext($literal));
+    $this->reader->logAudit('Literal deleted: key @key, type @type, restricted @restricted, uid @uid.', $this->auditContext($literal));
   }
 
   /**
@@ -236,8 +233,7 @@ class LiteralsHooks {
    */
   protected function auditContext(Literal $literal): array {
     return [
-      '@id' => $literal->id(),
-      '@key' => (string) $literal->get('key')->value,
+      '@key' => $literal->id(),
       '@type' => $literal->bundle(),
       '@restricted' => (int) $literal->isRestricted(),
       '@uid' => $this->currentUser->id(),
