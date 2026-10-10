@@ -5,7 +5,7 @@ review's gaps were filled.
 
 ## What exists
 
-84 base tests (unit, kernel, functional) plus 21 in the submodules.
+84 base tests (unit, kernel, functional) plus 23 in the submodules.
 `LiteralsKernelTestBase` installs the six types, grants `view literals` to
 the anonymous and authenticated roles, makes users (`member`,
 `restrictedViewer`, `admin`), and has `createLiteral()` and `createPage()`.
@@ -23,19 +23,16 @@ the anonymous and authenticated roles, makes users (`member`,
 | Install | `LiteralInstallTest` | six types, settings and view, schema-valid config, nothing granted; `literals_base` grants; demo recipe adds eight, re-applying adds none; clean uninstall |
 | Admin UI | `Functional/LiteralAdminTest` | admin pages 403/200, literal form (key from name, duplicate and reserved keys, resolver error, key locked on edit), type delete guard, list is editors-only and shows restricted literals, revisions (history page, revert, 403 for viewers) |
 | Submodules | `literals_finder`, `literals_tool`, `literals_chat` | finder cache and outcomes, tool modes (through `literals.lookup`), chat responder |
+| Gist Guardrails form | `literals_finder` `Functional/LiteralGistGuardrailsFormTest` | the shipped set's no-markup rule rejects a gist on add and edit, as an error on the gist field; nothing saved until the gist is plain |
+| aim integration | aim's `Kernel/AimRecallLiteralTokensTest` | `recall()` reads tokens per viewer, withholds or redacts per `show_redacted_facts`, follows value changes, unpublishing and deletion |
 
 The real chooser (Decision API) is covered only by `drush literals:eval`.
 That is deliberate; do not try to mock it into a PHPUnit "pass".
 
 ## Gaps
 
-- **aim integration** (belongs in aim's test suite): a fact with a token the
-  viewer cannot see is redacted or withheld per `show_redacted_facts`; the
-  same fact reads differently for two viewers; a deleted literal does not
-  break `recall()`; `aim_literal` behaves as `literals:lookup` does. Today
-  only `demo/preflight.js` exercises this.
-- **Guardrails error on the gist field** in the form (needs a guardrail set
-  that rejects; `literals_finder` ships one).
+- **aim integration**: `aim_literal` behaves as `literals:lookup` does
+  (belongs in aim's test suite).
 
 ## Not worth testing
 
