@@ -46,7 +46,12 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   removed 2026-10-10 as more machinery than one realistic split needed.
   Enforced by the access handler and a `hook_query_alter`; a hidden literal
   is indistinguishable from a missing one ("none"). The resolver's own
-  check (e.g. a `url` route) is a second, separate layer.
+  check (e.g. a `url` route) is a second, separate layer. The two can
+  disagree, and that is accepted, not fixed: core's account routes
+  change access by login state (`/user/login` is anonymous-only, `/user`
+  signed-in only), so an unrestricted `login` literal resolves to "none"
+  for a signed-in user. Mark such a literal restricted when its route
+  needs a signed-in user; otherwise live with the "none".
 - The bundle is the **type** (config entity + resolver plugin), not a pool.
   Access is the separate `restricted` flag.
 - Embedding gate, alias field, vector tier: built or considered and

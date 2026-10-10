@@ -147,6 +147,10 @@ addendum wins.
 
 ## Open questions
 
-- Does the gate (decision 3) save anything measurable?
+- Does the gate (decision 3) save anything measurable? Setup-dependent
+  since 2026-10-09: with the assistant calling the lookup tool itself, the
+  finder runs only on lookups, so the pre-gate (addendum point 4) and this
+  measurement apply to a setup that asks the finder on every question.
+  Both stay in aim's TODO.md for later.
 - Does a menu and page provider keep gist coverage high enough to matter?
 - Annotation or literal: one type with a resolver, or two?

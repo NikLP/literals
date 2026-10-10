@@ -31,8 +31,10 @@ That is deliberate; do not try to mock it into a PHPUnit "pass".
 
 ## Gaps
 
-- **aim integration**: `aim_literal` behaves as `literals:lookup` does
-  (belongs in aim's test suite).
+- **aim integration**: `aim_literal` against `literals:lookup` has no
+  PHPUnit test. Both are thin wrappers over the `literals.lookup` service
+  (tested through `literals_tool`), and the demo's `preflight.js` smoke
+  check asks `aim_literal` a question and compares the value.
 
 ## Not worth testing
 
