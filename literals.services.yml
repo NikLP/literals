@@ -19,3 +19,7 @@ services:
   Drupal\literals\Hook\LiteralsHooks:
     class: Drupal\literals\Hook\LiteralsHooks
     arguments: ['@literals.reader', '@token', '@current_user', '@entity_type.manager']
+
+  literals.lookup:
+    class: Drupal\literals\LiteralLookup
+    arguments: ['@literals.reader', '@literals.search', '@current_user', '@?literals_finder.finder']

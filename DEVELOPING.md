@@ -11,16 +11,15 @@ how it works and its measurements are in [adr/how-it-works.md](adr/how-it-works.
 | `literals.reader` `readItem($key, $account)` | a `ResolvedLiteral` (`value`, `label`, `kind` of url/phone/email/text) or NULL; `->href()` gives the safe link target (http(s), `tel:`, `mailto:`) or NULL |
 | `$literal->resolveItem($account, $metadata)` | the same, from a loaded `Literal` |
 | `literals.search` `search($text, $account, $limit)` | published, visible literals whose name, key or gist contain every typed word (up to 6); candidates, never a decision |
+| `literals.lookup` `lookup($input, $account, $caller)` | the one tool-shaped lookup: `$input` has `key`, `question` (needs the finder) or `search`; returns `success`, `message` and `values` (`outcome` match/ambiguous/candidates/none, `key`, `candidates`, `value`, `label`, `kind`). Both lookup tools (`literals:lookup`, aim's `aim_literal`) only wrap it |
 | `literals_finder.finder` `find($question, $account, $context = NULL)` | a `LiteralFindResult`: `match` / `ambiguous` / `none` with `Literal` entities (no values), a tier and a reason |
 
 A finder result holds entities, not values: the consumer calls
 `resolveItem()` itself, skips a null or empty value, and downgrades a match
-that resolves to nothing to `none`. `LiteralsChatResponder::answer()` and
-the tool's `byQuestion()` both do this today; a shared helper is a TODO
-(aim's [TODO.md](../aim/TODO.md), "Literals"). Pass `CacheableMetadata` to
+that resolves to nothing to `none`; `LiteralReader::resolveFound()` does
+that, used by `LiteralLookup` and `LiteralsChatResponder`. Pass `CacheableMetadata` to
 collect cache metadata; the reader bubbles `literal_list`, the entity's
-tags and the access contexts (`user.permissions`,
-`user.roles:authenticated`).
+tags and the access context (`user.permissions`).
 
 ## Tokens
 

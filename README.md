@@ -126,20 +126,35 @@ Walked through on a fresh site:
 
 ## Modules
 
-- `literals` - the entity, types, resolvers, access rules and admin UI. No AI
-  needed.
-- Search, in `literals` itself - plain search over names, keys and gists
-  (every typed word must appear), used by the tool. No AI, no scoring: an agent
-  picks from the matches.
+`literals` itself needs no AI and no contrib module. It provides:
+
+- the `literal` entity (key, value, gist, a **Restricted** checkbox) and its
+  types, each read by a resolver (`text`, `url`, `token`, `entity`);
+- view access: `view literals` and `view restricted literals`;
+- the reader and the `[literal:key]` / `[literal:key:link]` tokens;
+- plain search over names, keys and gists (every typed word must appear;
+  no scoring, an agent picks from the matches);
+- the `literals.lookup` service: one lookup by key, search words or
+  question, which every lookup tool wraps;
+- the admin UI.
+
+### Extras
+
+They serve two real cases: a one-shot question gate in front of `aim`, and
+literals as a standalone fuzzy value store.
+
 - `literals_finder` - find by question: an access filter, an outcome cache,
   then a Decision API choice. Needs `drupal/ai` and a default decision
-  provider. Optional: without it the gist is only read by plain word search,
-  so a clear name is enough. With it, literals is a small fuzzy-matching
-  memory that runs on its own, with no `aim` and no chat model: describe the
-  value in words and it finds the exact one.
-- `literals_tool` - the `literals:lookup` Tool API / MCP tool: by key, by
-  search words or by question (with the finder). Needs `tool`. Not required
-  for `aim`, which surfaces the lookup through its own `aim_literal` tool.
+  provider. Without it the gist is only read by plain search, so a clear
+  name is enough. With it, literals is a small fuzzy-matching memory that
+  runs on its own, with no `aim` and no chat model: describe the value in
+  words and it finds the exact one.
+- `literals_tool` - the `literals:lookup` Tool API / MCP tool, for sites
+  running `literals` **without** `aim`. An aim site uses `aim_tool`'s
+  `aim_literal` instead: the same `literals.lookup` service under aim's
+  name, so the two never both need enabling.
+- `literals_chat` - a chat responder over the finder; a demo surface, likely
+  to be scrapped.
 
 ## More
 

@@ -7,6 +7,7 @@ namespace Drupal\literals;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -29,12 +30,12 @@ class LiteralTypeListBuilder extends ConfigEntityListBuilder {
    *   The entity type.
    * @param \Drupal\Core\Entity\EntityStorageInterface $storage
    *   The literal type storage.
-   * @param \Drupal\Core\Entity\EntityStorageInterface $literalStorage
-   *   The literal storage.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
    * @param \Drupal\literals\LiteralResolverManager $resolverManager
    *   The literal resolver plugin manager.
    */
-  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, protected EntityStorageInterface $literalStorage, protected LiteralResolverManager $resolverManager) {
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, protected EntityTypeManagerInterface $entityTypeManager, protected LiteralResolverManager $resolverManager) {
     parent::__construct($entity_type, $storage);
   }
 
@@ -46,7 +47,7 @@ class LiteralTypeListBuilder extends ConfigEntityListBuilder {
     return new static(
       $entity_type,
       $manager->getStorage($entity_type->id()),
-      $manager->getStorage('literal'),
+      $manager,
       $container->get('plugin.manager.literal_resolver'),
     );
   }
@@ -89,7 +90,7 @@ class LiteralTypeListBuilder extends ConfigEntityListBuilder {
   protected function getCounts(): array {
     if ($this->counts === NULL) {
       $this->counts = [];
-      $rows = $this->literalStorage->getAggregateQuery()
+      $rows = $this->entityTypeManager->getStorage('literal')->getAggregateQuery()
         ->accessCheck(FALSE)
         ->groupBy('type')
         ->aggregate('id', 'COUNT')

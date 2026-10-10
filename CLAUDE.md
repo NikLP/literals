@@ -21,9 +21,9 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
 
 | Module | Needs | Provides |
 | --- | --- | --- |
-| `literals` | `user`, `views`; no AI | entity, types, resolvers, view access, reader, `[literal:key]` and `[literal:key:link]` tokens, Guardrails constraint, plain search service, list UI |
+| `literals` | `user`, `views`; no AI | entity, types, resolvers, view access, reader, `[literal:key]` and `[literal:key:link]` tokens, Guardrails constraint, plain search service, `literals.lookup` service, list UI |
 | `literals_finder` | `drupal/ai` | finder, chooser (Decision API), outcome cache, Guardrails runner, `drush literals:find`/`literals:eval` |
-| `literals_tool` | `tool` | `literals:lookup` Tool API / MCP tool (key, question, search) |
+| `literals_tool` | `tool` | `literals:lookup` Tool API / MCP tool, a thin wrapper over `literals.lookup`; for sites without aim (aim sites use `aim_tool`'s `aim_literal`, the same service) |
 | `literals_chat` | finder | chat responder and chat processor; a demo surface, likely to be scrapped |
 
 ## Decisions in force (do not reopen without a reason)
