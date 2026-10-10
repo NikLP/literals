@@ -6,6 +6,7 @@ namespace Drupal\literals\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBundleBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
+use Drupal\Core\Entity\RevisionableEntityBundleInterface;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Form\LiteralTypeDeleteForm;
@@ -59,7 +60,7 @@ use Drupal\literals\LiteralTypeListBuilder;
     'validate_as',
   ],
 )]
-class LiteralType extends ConfigEntityBundleBase {
+class LiteralType extends ConfigEntityBundleBase implements RevisionableEntityBundleInterface {
 
   /**
    * The machine name, e.g. "phone".
@@ -100,6 +101,16 @@ class LiteralType extends ConfigEntityBundleBase {
    */
   public function getValidateAs(): string {
     return $this->validate_as;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Always: a literal's history (and a draft waiting for review) only exists
+   * if every edit makes a revision.
+   */
+  public function shouldCreateNewRevision() {
+    return TRUE;
   }
 
 }

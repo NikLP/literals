@@ -42,8 +42,13 @@ class LiteralAccessControlHandler extends EntityAccessControlHandler {
           ->addCacheableDependency($entity)
           ->addCacheContexts(['user.permissions']);
 
+      // Revision history, revert and delete go with editing.
       case 'update':
       case 'delete':
+      case 'view revision':
+      case 'view all revisions':
+      case 'revert':
+      case 'delete revision':
         return AccessResult::allowedIfHasPermission($account, 'edit literals')->orIf($admin);
     }
 

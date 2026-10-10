@@ -16,3 +16,10 @@ literals.admin_config:
   parent: system.admin_config
   route_name: literals.admin_config
   weight: 0
+
+literals.settings:
+  title: 'Settings'
+  description: 'Audit logging for literal writes and reads.'
+  parent: literals.admin_config
+  route_name: literals.settings
+  weight: 0

@@ -18,9 +18,11 @@ literal, and the value comes back if the viewer is allowed to see it.
 
 The value does not have to live in `literals`:
 
-- If a module already holds it (Site Settings, Custom Tokens, core tokens),
-  the literal points at it with the **token** or **entity** resolver and adds the
-  gist and the access rules. Nothing is copied.
+- If a module already holds it (Site Settings, Config Pages, Custom Tokens,
+  core tokens, a node field), the literal points at it with the **token**,
+  **field** or **entity** resolver and adds the gist and the access rules.
+  Nothing is copied. A **field** literal (`node:12:field_phone`) needs view
+  access to the entity and to the field, as well as the literal's own rule.
 - If nothing holds it, the literal stores it itself with the **text** or
   **url** resolver, so no second module is needed to start.
 
@@ -42,8 +44,9 @@ module; the finder and the tool are extras (see below).
    ddev drush en literals -y
    ```
 
-   This installs the five literal types (`text`, `phone`, `url`, `token`,
-   `entity`), `literals.settings` and the admin list view. It grants
+   This installs the six literal types (`text`, `phone`, `url`, `token`,
+   `entity`, `field`), `literals.settings` (audit logging, at
+   `/admin/config/literals/settings`) and the admin list view. It grants
    nothing and creates no literals.
 
 2. **Grant the view permissions.** `view literals` sees every literal not
@@ -129,7 +132,9 @@ Walked through on a fresh site:
 `literals` itself needs no AI and no contrib module. It provides:
 
 - the `literal` entity (key, value, gist, a **Restricted** checkbox) and its
-  types, each read by a resolver (`text`, `url`, `token`, `entity`);
+  types, each read by a resolver (`text`, `url`, `token`, `entity`,
+  `field`); every edit makes a revision, and Content Moderation can drive
+  drafts;
 - view access: `view literals` and `view restricted literals`;
 - the reader and the `[literal:key]` / `[literal:key:link]` tokens;
 - plain search over names, keys and gists (every typed word must appear;

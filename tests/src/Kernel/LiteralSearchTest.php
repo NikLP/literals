@@ -109,4 +109,13 @@ class LiteralSearchTest extends LiteralsKernelTestBase {
     $this->assertSame(['lit_a', 'lit_b'], array_values(array_map(fn ($l) => $l->id(), $found)));
   }
 
+  /**
+   * A backslash is matched literally, and the key alone can match.
+   */
+  public function testBackslashAndKeyOnly(): void {
+    $this->createLiteral('zebra_crossing', '1', ['name' => 'Thing', 'gist' => 'Something']);
+    $this->assertSame([], $this->keys('\\'), 'A backslash is not an escape');
+    $this->assertSame(['zebra_crossing'], $this->keys('zebra'), 'Matched on the key only');
+  }
+
 }

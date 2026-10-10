@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+id: field
+label: Field
+description: ''
+resolver: field
+validate_as: string

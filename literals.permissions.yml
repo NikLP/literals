@@ -1,11 +1,11 @@
 administer literals:
   title: 'Administer literals'
-  description: 'Manage literal types and settings, and every literal.'
+  description: 'Manage literal types and settings, and everything Edit literals allows.'
   restrict access: true
 
 edit literals:
   title: 'Edit literals'
-  description: 'Create, edit and delete any literal, and see unpublished and restricted ones.'
+  description: 'Create, edit and delete any literal, see unpublished and restricted ones, and open the literals list.'
   restrict access: true
 
 view literals:

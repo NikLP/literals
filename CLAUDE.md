@@ -53,6 +53,14 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   removed; do not rebuild without a measured need (ADR-0040 "Rejected").
 - Tokens in body copy via a text-format filter are dropped (cache-context
   leak risk); tokens are for callers that control their render.
+- The `field` resolver (`entity_type:id:field_name`) needs the literal's
+  view rule **and** view access to the entity **and** to the field: the
+  intersection, the stricter of the two access models. The source module
+  keeps owning the value.
+- Every edit makes a revision (`LiteralType::shouldCreateNewRevision()`
+  returns TRUE), so history and Content Moderation drafts work; tested in
+  `LiteralModerationTest`. Core's revision UI (Revisions tab, revert,
+  delete revision, as block_content does) is gated on `edit literals`.
 - External URLs are not wanted: the `url` resolver stays internal paths
   only, and the text resolver has no `url` validation option.
 - **The key is the entity ID**, a string machine name (`[a-z0-9_]`, max
@@ -83,6 +91,14 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   Nothing grants the view permissions on install: a fresh site shows
   literals to admins only until roles are granted `view literals` (the
   `literals_base` recipe does).
+- **The admin list is for editors**: its View uses the `literal_editor`
+  access plugin (`edit literals` or `administer literals`), so
+  `administer literals` covers the list as it covers every literal
+  operation in the access handler. No separate overview permission.
+  Editors see every literal; the query alter still filters other literal
+  queries and any other View of literals.
+- **`/admin/config/literals` 403s if it has no visible child** (core's
+  admin-block access check); the base Settings form keeps one there.
 - **Stray `token` view modes.** 14 `core.entity_view_mode.*.token` configs
   once appeared from an unknown source; if they reappear in
   `config:status`, find the cause before exporting them.
@@ -112,7 +128,10 @@ ddev exec "cd /var/www/html && vendor/bin/phpcs --standard=Drupal,DrupalPractice
 ddev exec "cd /var/www/html && SIMPLETEST_DB='sqlite://localhost/sites/default/files/literals-test.sqlite' SIMPLETEST_BASE_URL=http://localhost vendor/bin/phpunit -c web/core web/modules/custom/literals/tests"
 ```
 
-About 3 minutes for the base suite (separate processes); run a submodule
-by pointing at its `tests` directory. phpstan shows only `\Drupal::`
-service-location warnings. The real chooser is covered only by
+About 3 minutes for the base suite (unit, kernel and functional, separate
+processes); run a submodule by pointing at its `tests` directory, and run
+base and submodules as two commands (one combined run was OOM-killed on
+this laptop). Functional tests work with `SIMPLETEST_BASE_URL=http://localhost`
+inside the web container. phpstan (pass `-c
+web/modules/custom/literals/phpstan.neon`) is clean. The real chooser is covered only by
 `drush literals:eval`, not PHPUnit.

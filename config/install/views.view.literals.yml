@@ -3,7 +3,6 @@ status: true
 dependencies:
   module:
     - literals
-    - user
 id: literals
 label: Literals
 module: views
@@ -122,9 +121,8 @@ display:
           submit_button: Filter
           reset_button: true
       access:
-        type: perm
-        options:
-          perm: 'access content overview'
+        type: literal_editor
+        options: {  }
       empty: {  }
       sorts:
         name:

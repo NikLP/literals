@@ -51,6 +51,8 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
     $this->assertStringContainsString('>Sign &lt;in&gt;</a>', $login);
     $this->assertSame('', $this->replace('[literal:main_phone:bogus]'), 'An unknown form clears');
     $this->assertSame('', $this->replace('[literal:nosuch:link]'));
+    $this->createLiteral('quoted', '/user/login', ['type' => 'url', 'name' => 'A "&" B']);
+    $this->assertStringContainsString('>A &quot;&amp;&quot; B</a>', $this->replace('[literal:quoted:link]'), 'Quotes and ampersands in link text are escaped');
   }
 
   /**

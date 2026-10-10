@@ -6,6 +6,7 @@ namespace Drupal\Tests\literals\Kernel;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\literals\Entity\Literal;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Log\AbstractLogger;
 
@@ -175,7 +176,13 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
     $this->createLiteral('audited', 'TOP-SECRET-VALUE', ['gist' => 'TOP-SECRET-GIST']);
     $this->reader()->read('audited', $this->member);
     $this->reader()->read('missing', $this->member);
+    $literal = Literal::load('audited');
+    $literal->set('value', 'TOP-SECRET-VALUE-2')->save();
+    $literal->delete();
     $joined = implode("\n", $logger->lines);
+    $this->assertStringContainsString('Literal updated: key audited', $joined);
+    $this->assertStringContainsString('Literal deleted: key audited', $joined);
+    $this->assertStringNotContainsString('TOP-SECRET-VALUE-2', $joined);
     $this->assertStringContainsString('audited', $joined);
     $this->assertStringNotContainsString('TOP-SECRET-VALUE', $joined);
     $this->assertStringNotContainsString('TOP-SECRET-GIST', $joined);
@@ -197,8 +204,40 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
     $this->assertSame('x [redacted] y [redacted]', $reader->replaceTokens('x [literal:internal] y [literal:nosuchkey]', $anon));
     $this->assertNull($reader->replaceTokens('x [literal:internal]', $anon, NULL, TRUE));
     $this->assertSame('x +44 1223 000000', $reader->replaceTokens('x [literal:phone]', $anon, NULL, TRUE));
+    $this->assertNull($reader->replaceTokens('[literal:phone] and [literal:internal]', $anon, NULL, TRUE), 'One unreadable token withholds the whole text');
     $this->assertSame('staff-only', $reader->replaceTokens('[literal:internal]', $this->restrictedViewer));
     $this->assertSame('no tokens [here]', $reader->replaceTokens('no tokens [here]', $anon));
+  }
+
+  /**
+   * A Markdown link label cannot break out of its brackets.
+   */
+  public function testMarkdownLabelEscaped(): void {
+    $this->createLiteral('tricky', '/user/login', ['type' => 'url', 'name' => 'Sign [in] \\ now](javascript:x)']);
+    $out = $this->reader()->replaceTokens('[literal:tricky:link]', new AnonymousUserSession());
+    // Every [, ] and \ in the label is escaped, so it stays one link.
+    $this->assertStringStartsWith('[Sign \[in\] \\\\ now\](javascript:x)](http', $out);
+    $this->assertStringEndsWith('/user/login)', $out);
+  }
+
+  /**
+   * Spaces and parentheses in a link target are percent-encoded.
+   */
+  public function testMarkdownHrefEncoded(): void {
+    $this->createLiteral('search', '/user/login?q=a (b)', ['type' => 'url', 'name' => 'Find']);
+    $out = $this->reader()->replaceTokens('[literal:search:link]', new AnonymousUserSession());
+    $this->assertStringStartsWith('[Find](http', $out);
+    $this->assertStringNotContainsString(' ', substr($out, strlen('[Find]')));
+    $this->assertSame(1, substr_count($out, ')'), 'Only the closing parenthesis of the link');
+  }
+
+  /**
+   * A resolved value is not scanned again, so it cannot pull in other literals.
+   */
+  public function testResolvedValueNotRescanned(): void {
+    $this->createLiteral('secret', 'hidden', ['restricted' => TRUE]);
+    $this->createLiteral('sneaky', 'see [literal:secret]');
+    $this->assertSame('see [literal:secret]', $this->reader()->replaceTokens('[literal:sneaky]', $this->restrictedViewer));
   }
 
   /**

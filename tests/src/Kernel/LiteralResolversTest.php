@@ -7,6 +7,7 @@ namespace Drupal\Tests\literals\Kernel;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\literals\Entity\Literal;
+use Drupal\literals\Entity\LiteralType;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -162,6 +163,88 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
   public function testTokenValueStoredRaw(): void {
     $literal = $this->createLiteral('site', '[site:name]', ['type' => 'token']);
     $this->assertSame('[site:name]', $literal->get('value')->value);
+  }
+
+  /**
+   * The field resolver validates entity_type:id:field_name.
+   */
+  public function testFieldValidation(): void {
+    $uid = $this->member->id();
+    $this->assertTrue($this->valid('field', "user:$uid:name"));
+    $this->assertFalse($this->valid('field', "user:$uid"), 'No field name');
+    $this->assertFalse($this->valid('field', "user:$uid:field_nope"), 'No such field');
+    $this->assertFalse($this->valid('field', 'user:99999:name'), 'No such entity');
+    $this->assertFalse($this->valid('field', "nosuchtype:$uid:name"), 'No such entity type');
+  }
+
+  /**
+   * The value needs both entity and field view access, and has a kind.
+   */
+  public function testFieldResolvesWithBothAccessChecks(): void {
+    $this->member->set('mail', 'member@example.com')->save();
+    $uid = $this->member->id();
+    $name = $this->createLiteral('member_name', "user:$uid:name", ['type' => 'field']);
+    $mail = $this->createLiteral('member_mail', "user:$uid:mail", ['type' => 'field']);
+    $viewer = $this->createUser(['access user profiles']);
+
+    // No "access user profiles": the entity itself is not viewable.
+    $this->assertNull($name->resolve($this->restrictedViewer));
+    // Entity viewable, name field viewable.
+    $this->assertSame('member', $name->resolve($viewer));
+    // Entity viewable, but core denies another account's mail field.
+    $this->assertNull($mail->resolve($viewer));
+    // The account itself may see its own mail; it is an email address.
+    $item = $mail->resolveItem($this->member);
+    $this->assertSame('member@example.com', $item?->value);
+    $this->assertSame('mailto:member@example.com', $item?->href());
+  }
+
+  /**
+   * Field access and the entity become cache dependencies.
+   */
+  public function testFieldBubblesCacheMetadata(): void {
+    $uid = $this->member->id();
+    $literal = $this->createLiteral('member_name', "user:$uid:name", ['type' => 'field']);
+    $metadata = new CacheableMetadata();
+    $literal->resolve($this->createUser(['access user profiles']), $metadata);
+    $this->assertContains('user:' . $uid, $metadata->getCacheTags());
+  }
+
+  /**
+   * Text values validated as whole numbers and email addresses.
+   */
+  public function testIntAndEmailValidation(): void {
+    LiteralType::create(['id' => 'int', 'label' => 'Number', 'resolver' => 'text', 'validate_as' => 'int'])->save();
+    LiteralType::create(['id' => 'email', 'label' => 'Email', 'resolver' => 'text', 'validate_as' => 'email'])->save();
+    $this->assertTrue($this->valid('int', '42'));
+    $this->assertTrue($this->valid('int', '-3'));
+    $this->assertFalse($this->valid('int', '4.2'));
+    $this->assertFalse($this->valid('int', 'forty'));
+    $this->assertTrue($this->valid('email', 'help@example.com'));
+    $this->assertFalse($this->valid('email', 'help at example'));
+  }
+
+  /**
+   * The entity label is the link text; no canonical page means no value.
+   */
+  public function testEntityLabelAndNoCanonical(): void {
+    $page = $this->createPage('Open page');
+    $literal = $this->createLiteral('open_page', 'node:' . $page->id(), ['type' => 'entity', 'name' => 'Our page']);
+    $this->assertSame('Open page', $literal->resolveItem($this->createUser(['access content']))?->label);
+    // A literal type has an edit form but no canonical page.
+    $typed = $this->createLiteral('a_type', 'literal_type:text', ['type' => 'entity']);
+    $this->assertNull($typed->resolve($this->admin));
+  }
+
+  /**
+   * A [user:...] token for an anonymous viewer resolves without leftovers.
+   */
+  public function testTokenForAnonymousViewer(): void {
+    $literal = $this->createLiteral('greeting', 'Hello [user:name]', ['type' => 'token']);
+    $value = $literal->resolve(new AnonymousUserSession());
+    $this->assertIsString($value);
+    $this->assertStringStartsWith('Hello', $value);
+    $this->assertStringNotContainsString('[user:', $value);
   }
 
 }

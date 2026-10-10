@@ -4,7 +4,8 @@
 search (see "What is built"). Refactored 2026-10-07 from a draft with nine
 addenda into the current state; the superseded designs (a field type, an
 Annotations host, a `config_pages` host, pool bundles, an `aim_fact` mirror,
-an embedding gate, an alias field) are summarized under "Rejected" and the
+an embedding gate) are summarized under "Rejected" (the alias field is
+pinned, see "Deferred and pinned") and the
 full text is in the `aim` repo history (`adr/0040-...` at commit 502f799).
 Supersedes [ADR-0039](0039-token-scope-live-config-values.md).
 **Date:** 2026-10-03
@@ -58,6 +59,23 @@ unverified (`drupal_rag_toolkit`, `ai_rag_api`, `search_api_ai`, `daedalus`
 turned up adjacent and were not opened). The nearest research is
 attribute-level uncertainty in probabilistic databases (Orion), inverted
 here: the value is exact and the uncertainty is in how it is addressed.
+
+Outside Drupal (reviewed 2026-10-10, from knowledge plus a short look at
+semantic-router and NeMo Guardrails), each part has an established
+equivalent: FAQ-bot intent matching (Dialogflow, Rasa, Azure custom
+question answering) for gist-to-answer with a "none"; semantic-router and
+NeMo dialog rails for the gate; Intercom-style custom answers for answer
+mode 1; PII tokenization proxies and text-to-SQL semantic layers for "the
+model picks, the value is filled in after"; DITA keyref and gettext
+translator comments for keyed values with a description; feature flags for
+per-audience resolution; Wikidata label/description/aliases with NIL for
+entity linking. What is new is only the combination inside Drupal. Two
+consequences: example phrasings (aliases) are the field's main lever, so
+they are pinned, not rejected (see "Deferred and pinned"); and the chooser's
+measured gain over the removed embedding gate comes from a model reading the
+whole menu with "none" allowed, not from Jev being typed. Values never reach
+the chooser, and constrained decoding (a local model limited to a JSON enum
+of the menu's keys) gives the same "can only pick from the list" guarantee.
 
 ## Decision
 
@@ -356,8 +374,6 @@ None of these is built; each names its trigger. Measure before building.
   honestly. Parked on purpose: it mixes a decision and a keyword guess.
 - **Named per-medium contexts** (a registry). The per-call `context`
   already works; build the registry only for a second consumer.
-- **A local decision model.** Re-measure the chooser (latency, accuracy, 50
-  to 500 options) before deciding whether any pool-chopping is needed.
 - **`search_api` behind `literals.search`.** Stemming, speed at thousands,
   facets; not needed at a few hundred.
 - **Guardrails runner as its own module** (`literals_guardrails`): dropped
@@ -374,18 +390,36 @@ None of these is built; each names its trigger. Measure before building.
   restricted permissions**: small polish, nothing needs them yet.
 - **An "allow external URLs" type setting**: not wanted; the `url` resolver
   stays internal paths only.
+- **Example phrasings per literal (aliases).** An alias field was built and
+  removed 2026-10-05 (not asked for). Today the plain-text `ALSO` convention
+  in the gist covers it: 9/9 on invented names with no field, parser or
+  structured option rendering (Jev's Choice accepts structured option
+  descriptions, but a send-time parse of the gist adds failure modes for no
+  measured gain). A wider alias list pulled near-topic questions in, on one
+  in-sample trial. Pinned, not rejected (2026-10-10): intent-matching
+  systems (Dialogflow, Rasa, Azure custom question answering) treat several
+  example phrasings per answer as their main lever. Re-test after a blind
+  question set; tracked in aim's TODO.md. Until then: add specific `ALSO`
+  phrasings freely (ideally from real misses), never one-word or
+  category-level ones ("payments"), and keep the `chooser_context` line.
+- **A local decision model.** One CPU cross-encoder was tried 2026-10-10
+  (`ms-marco-MiniLM-L-12-v2`, 99 literals, 206 gold queries): at best 84/142
+  answerable hits with 7 wrong-confident, about 0.7 s per query. Not a
+  replacement. Untried: a larger reranker (`bge-reranker-v2-m3`), NLI
+  zero-shot (`deberta-v3` zeroshot), a small local model with constrained
+  JSON-enum output via Ollama. Re-measure any candidate (latency, accuracy,
+  50 to 500 options) before deciding whether pool-chopping is needed.
 
 ## Rejected
 
 - **Vector score as the selector:** cannot express ties; top-k crowding and
   the cutoff make a miss possible for a well-written gist.
 - **Keyword-stuffed gists:** pull a gist toward other intents.
-- **An alias field:** built and fully removed 2026-10-05 (not asked for).
-  Reconsidered 2026-10-06: the plain-text `ALSO` convention tested 9/9 on
-  invented names with no field, parser or structured option rendering
-  (Jev's Choice does accept structured option descriptions, but a send-time
-  parse of the gist adds failure modes for no measured gain). A wider alias
-  list pulled near-topic questions in.
+- **A match threshold per literal** (semantic-router's fitted per-route
+  thresholds): needs 10 to 20 labelled questions per literal; the gold sets
+  have one to three. Raising the global threshold already did not help
+  (section on measurements in how-it-works.md). At most a per-type
+  threshold, if one type misbehaves.
 - **Rewriting the query with Jev:** it cannot generate text.
 - **A literal field type, a registry entity, an Annotations host, a
   `config_pages` host:** section 1.
