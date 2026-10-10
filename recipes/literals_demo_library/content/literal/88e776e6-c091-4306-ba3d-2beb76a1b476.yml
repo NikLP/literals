@@ -14,9 +14,9 @@ default:
   key:
     -
       value: my_account
-  audience:
+  restricted:
     -
-      value: authenticated
+      value: true
   value:
     -
       value: /user

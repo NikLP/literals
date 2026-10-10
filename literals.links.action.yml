@@ -9,9 +9,3 @@ entity.literal_type.add_form:
   title: 'Add literal type'
   appears_on:
     - entity.literal_type.collection
-
-entity.literal_audience.add_form:
-  route_name: entity.literal_audience.add_form
-  title: 'Add audience'
-  appears_on:
-    - entity.literal_audience.collection

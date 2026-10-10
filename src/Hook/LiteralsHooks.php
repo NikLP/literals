@@ -16,7 +16,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Utility\Token;
 use Drupal\literals\Entity\Literal;
-use Drupal\literals\LiteralAudience;
+use Drupal\literals\LiteralVisibility;
 use Drupal\literals\LiteralReader;
 use Drupal\literals\ResolvedLiteral;
 
@@ -49,7 +49,8 @@ class LiteralsHooks {
   /**
    * Implements hook_gin_content_form_routes().
    *
-   * Gives the literal edit forms Gin's node-style sidebar layout.
+   * Gives the literal edit forms Gin's node-style sidebar layout. Gin is an
+   * undeclared optional dependency: without it this hook is never called.
    *
    * @return array
    *   Route names.
@@ -65,10 +66,10 @@ class LiteralsHooks {
   /**
    * Implements hook_query_alter().
    *
-   * Restricts literal queries to the audiences the account can see, so a
-   * list never includes a literal (or its description) the viewer could not
-   * open. Applies to entity queries that check access and to Views listing
-   * literals.
+   * Restricts literal queries to what the account can see
+   * (LiteralVisibility), so a list never includes a literal (or its
+   * description) the viewer could not open. Applies to entity queries that
+   * check access and to Views listing literals.
    */
   #[Hook('query_alter')]
   public function queryAlter(AlterableInterface $query): void {
@@ -89,10 +90,15 @@ class LiteralsHooks {
       return;
     }
     $account = $query->getMetaData('account') ?: $this->currentUser;
-    if ($account->hasPermission('administer literals')) {
+    $flags = LiteralVisibility::visibleFlags($account);
+    if ($flags === NULL) {
       return;
     }
-    $query->condition("$alias.audience", LiteralAudience::visibleTo($account), 'IN');
+    if ($flags === []) {
+      $query->alwaysFalse();
+      return;
+    }
+    $query->condition("$alias.restricted", $flags, 'IN');
   }
 
   /**
@@ -195,7 +201,8 @@ class LiteralsHooks {
   #[Hook('literal_insert')]
   public function literalInsert(Literal $literal): void {
     $this->token->resetInfo();
-    $this->reader->logAudit('Literal created: id @id, key @key, type @type, audience @audience, uid @uid.', $this->auditContext($literal));
+    $this->reader->resetCache();
+    $this->reader->logAudit('Literal created: id @id, key @key, type @type, restricted @restricted, uid @uid.', $this->auditContext($literal));
   }
 
   /**
@@ -204,7 +211,8 @@ class LiteralsHooks {
   #[Hook('literal_update')]
   public function literalUpdate(Literal $literal): void {
     $this->token->resetInfo();
-    $this->reader->logAudit('Literal updated: id @id, key @key, type @type, audience @audience, uid @uid.', $this->auditContext($literal));
+    $this->reader->resetCache();
+    $this->reader->logAudit('Literal updated: id @id, key @key, type @type, restricted @restricted, uid @uid.', $this->auditContext($literal));
   }
 
   /**
@@ -213,7 +221,8 @@ class LiteralsHooks {
   #[Hook('literal_delete')]
   public function literalDelete(Literal $literal): void {
     $this->token->resetInfo();
-    $this->reader->logAudit('Literal deleted: id @id, key @key, type @type, audience @audience, uid @uid.', $this->auditContext($literal));
+    $this->reader->resetCache();
+    $this->reader->logAudit('Literal deleted: id @id, key @key, type @type, restricted @restricted, uid @uid.', $this->auditContext($literal));
   }
 
   /**
@@ -230,7 +239,7 @@ class LiteralsHooks {
       '@id' => $literal->id(),
       '@key' => (string) $literal->get('key')->value,
       '@type' => $literal->bundle(),
-      '@audience' => $literal->getAudience(),
+      '@restricted' => (int) $literal->isRestricted(),
       '@uid' => $this->currentUser->id(),
     ];
   }

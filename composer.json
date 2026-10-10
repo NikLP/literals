@@ -1,7 +1,7 @@
 {
     "name": "drupal/literals",
     "type": "drupal-module",
-    "description": "Exact values (phone numbers, URLs, names) kept as governed literals: audience-based access, a [literal:key] token, search, and an optional model-assisted lookup by question.",
+    "description": "Exact values (phone numbers, URLs, names) kept as governed literals: permission-based access with a per-literal restricted flag, a [literal:key] token, search, and an optional model-assisted lookup by question.",
     "keywords": ["Drupal", "literals", "tokens", "AI"],
     "license": "GPL-2.0-or-later",
     "require": {

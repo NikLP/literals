@@ -14,9 +14,9 @@ default:
   key:
     -
       value: site_name
-  audience:
+  restricted:
     -
-      value: authenticated
+      value: true
   value:
     -
       value: '[site:name]'

@@ -17,9 +17,9 @@ default:
   key:
     -
       value: main_phone
-  audience:
+  restricted:
     -
-      value: anonymous
+      value: false
   value:
     -
       value: '+44 1223 000000'

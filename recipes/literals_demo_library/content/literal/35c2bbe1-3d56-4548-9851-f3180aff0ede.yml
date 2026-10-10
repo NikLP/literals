@@ -14,9 +14,9 @@ default:
   key:
     -
       value: accounts_phone
-  audience:
+  restricted:
     -
-      value: anonymous
+      value: false
   value:
     -
       value: '+1 555 0103'

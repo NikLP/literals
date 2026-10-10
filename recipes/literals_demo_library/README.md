@@ -10,7 +10,7 @@ Re-applying skips literals that already exist (matched by UUID), so a
 value edited on the site is not overwritten.
 
 ```bash
-ddev exec vendor/bin/dr recipe:apply web/modules/custom/literals/recipes/literals_demo_library
+ddev drush recipe modules/custom/literals/recipes/literals_demo_library
 ```
 
 Phone numbers are fictional. The `url` literals point at core paths

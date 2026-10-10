@@ -9,7 +9,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\literals\Entity\Literal;
-use Drupal\literals\LiteralAudience;
+use Drupal\literals\LiteralVisibility;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -59,11 +59,10 @@ class LiteralFinder implements LiteralFinderInterface {
       return $this->done(new LiteralFindResult(LiteralFindResult::NONE, [], 'pool', 'no_candidates'), count($candidates));
     }
 
-    // Never serve across permission sets: the key carries the audiences.
+    // Never serve across permission sets: the key carries what is visible.
     $normalized = mb_strtolower(preg_replace('/\s+/', ' ', $question));
-    $audiences = implode(',', LiteralAudience::visibleTo($account));
-    $admin = (int) $account->hasPermission('administer literals');
-    $cid = 'literals:find:' . hash('sha256', "$normalized|$audiences|$admin|" . $this->settingsFingerprint($context));
+    $visible = json_encode(LiteralVisibility::visibleFlags($account));
+    $cid = 'literals:find:' . hash('sha256', "$normalized|$visible|" . $this->settingsFingerprint($context));
     if ($hit = $this->cache->get($cid)) {
       $by_id = $this->entityTypeManager->getStorage('literal')->loadMultiple($hit->data['ids']);
       // A cached id the asker can no longer see just drops out.
@@ -141,7 +140,7 @@ class LiteralFinder implements LiteralFinderInterface {
   /**
    * Loads the published literals the account may view.
    *
-   * The audience rule is applied to the query and again per entity, before
+   * The visibility rule is applied to the query and again per entity, before
    * the chooser sees any gist.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
@@ -151,10 +150,14 @@ class LiteralFinder implements LiteralFinderInterface {
    *   Literals, keyed by ID.
    */
   protected function candidates(AccountInterface $account): array {
+    $flags = LiteralVisibility::visibleFlags($account);
+    if ($flags === []) {
+      return [];
+    }
     $storage = $this->entityTypeManager->getStorage('literal');
     $query = $storage->getQuery()->accessCheck(FALSE)->condition('status', 1)->condition('gist', '', '<>');
-    if (!$account->hasPermission('administer literals')) {
-      $query->condition('audience', LiteralAudience::visibleTo($account), 'IN');
+    if ($flags !== NULL) {
+      $query->condition('restricted', $flags, 'IN');
     }
     $literals = [];
     foreach ($storage->loadMultiple($query->execute()) as $literal) {

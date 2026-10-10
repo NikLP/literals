@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\literals\Kernel;
 
 use Drupal\Core\Session\AnonymousUserSession;
-use Drupal\literals\LiteralAudience;
+use Drupal\literals\LiteralVisibility;
+use Drupal\user\Entity\Role;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests audience-based view access, update/delete, and list filtering.
+ * Tests view access by the restricted flag, edit access, and list filtering.
  *
  * @group literals
  */
@@ -17,33 +18,44 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 class LiteralAccessTest extends LiteralsKernelTestBase {
 
   /**
-   * Audience values visible to each kind of account.
+   * The restricted flag values visible to each kind of account.
    */
-  public function testVisibleTo(): void {
-    $this->assertSame(['anonymous'], LiteralAudience::visibleTo(new AnonymousUserSession()));
-    $this->assertSame(['anonymous', 'authenticated'], LiteralAudience::visibleTo($this->member));
-    $this->assertSame(['anonymous', 'authenticated', 'restricted'], LiteralAudience::visibleTo($this->restrictedViewer));
+  public function testVisibleFlags(): void {
+    $this->assertSame([0], LiteralVisibility::visibleFlags(new AnonymousUserSession()));
+    $this->assertSame([0], LiteralVisibility::visibleFlags($this->member));
+    $this->assertNull(LiteralVisibility::visibleFlags($this->restrictedViewer));
+    $this->assertNull(LiteralVisibility::visibleFlags($this->createUser(['edit literals'])));
+    $this->assertNull(LiteralVisibility::visibleFlags($this->admin));
+    Role::load('anonymous')->revokePermission('view literals')->save();
+    $this->assertSame([], LiteralVisibility::visibleFlags(new AnonymousUserSession()));
   }
 
   /**
-   * View access follows the audience, for every account kind.
+   * View access follows the restricted flag, for every account kind.
    */
   public function testViewAccessMatrix(): void {
-    $literals = [];
-    foreach (['anonymous', 'authenticated', 'restricted'] as $audience) {
-      $literals[$audience] = $this->createLiteral("lit_$audience", '1', ['audience' => $audience]);
-    }
+    $open = $this->createLiteral('lit_open', '1');
+    $restricted = $this->createLiteral('lit_restricted', '1', ['restricted' => TRUE]);
     $accounts = [
-      'anon' => [new AnonymousUserSession(), ['anonymous']],
-      'member' => [$this->member, ['anonymous', 'authenticated']],
-      'restricted viewer' => [$this->restrictedViewer, ['anonymous', 'authenticated', 'restricted']],
-      'admin' => [$this->admin, ['anonymous', 'authenticated', 'restricted']],
+      'anon' => [new AnonymousUserSession(), FALSE],
+      'member' => [$this->member, FALSE],
+      'restricted viewer' => [$this->restrictedViewer, TRUE],
+      'editor' => [$this->createUser(['edit literals']), TRUE],
+      'admin' => [$this->admin, TRUE],
     ];
-    foreach ($accounts as $label => [$account, $expected]) {
-      foreach ($literals as $audience => $literal) {
-        $this->assertSame(in_array($audience, $expected, TRUE), $literal->access('view', $account), "$label viewing $audience");
-      }
+    foreach ($accounts as $label => [$account, $seesRestricted]) {
+      $this->assertTrue($open->access('view', $account), "$label viewing open");
+      $this->assertSame($seesRestricted, $restricted->access('view', $account), "$label viewing restricted");
     }
+  }
+
+  /**
+   * Without "view literals" nothing is visible.
+   */
+  public function testNoViewPermissionSeesNothing(): void {
+    $open = $this->createLiteral('lit_open', '1');
+    Role::load('anonymous')->revokePermission('view literals')->save();
+    $this->assertFalse($open->access('view', new AnonymousUserSession()));
   }
 
   /**
@@ -60,37 +72,30 @@ class LiteralAccessTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * Update and delete need their own flat permissions; view does not give them.
+   * Create, update and delete need "edit literals"; view does not give them.
    */
-  public function testUpdateDeleteNeedPermissions(): void {
+  public function testEditPermission(): void {
     $literal = $this->createLiteral('thing', '1');
-    $this->assertFalse($literal->access('update', $this->member));
-    $this->assertFalse($literal->access('delete', $this->member));
-    $this->assertFalse($literal->access('update', new AnonymousUserSession()));
-    $this->assertTrue($literal->access('update', $this->createUser(['edit literals'])));
-    $this->assertFalse($literal->access('delete', $this->createUser(['edit literals'])));
-    $this->assertTrue($literal->access('delete', $this->createUser(['delete literals'])));
-    $this->assertTrue($literal->access('update', $this->admin));
-    $this->assertTrue($literal->access('delete', $this->admin));
-  }
-
-  /**
-   * Create access needs the create permission.
-   */
-  public function testCreateAccess(): void {
     $handler = $this->container->get('entity_type.manager')->getAccessControlHandler('literal');
-    $this->assertFalse($handler->createAccess('text', $this->member));
-    $this->assertTrue($handler->createAccess('text', $this->createUser(['create literals'])));
-    $this->assertTrue($handler->createAccess('text', $this->admin));
+    $editor = $this->createUser(['edit literals']);
+    foreach (['member' => $this->member, 'anon' => new AnonymousUserSession()] as $label => $account) {
+      $this->assertFalse($literal->access('update', $account), "$label update");
+      $this->assertFalse($literal->access('delete', $account), "$label delete");
+      $this->assertFalse($handler->createAccess('text', $account), "$label create");
+    }
+    foreach (['editor' => $editor, 'admin' => $this->admin] as $label => $account) {
+      $this->assertTrue($literal->access('update', $account), "$label update");
+      $this->assertTrue($literal->access('delete', $account), "$label delete");
+      $this->assertTrue($handler->createAccess('text', $account), "$label create");
+    }
   }
 
   /**
    * Access-checked entity queries only list what the viewer may open.
    */
   public function testQueryAlterFiltersLists(): void {
-    $this->createLiteral('pub', '1', ['audience' => 'anonymous']);
-    $this->createLiteral('auth', '1', ['audience' => 'authenticated']);
-    $this->createLiteral('res', '1', ['audience' => 'restricted']);
+    $this->createLiteral('pub', '1');
+    $this->createLiteral('res', '1', ['restricted' => TRUE]);
     $storage = $this->container->get('entity_type.manager')->getStorage('literal');
     $keys = function ($account) use ($storage): array {
       $this->setCurrentUser($account);
@@ -100,9 +105,11 @@ class LiteralAccessTest extends LiteralsKernelTestBase {
       return $found;
     };
     $this->assertSame(['pub'], $keys(new AnonymousUserSession()));
-    $this->assertSame(['auth', 'pub'], $keys($this->member));
-    $this->assertSame(['auth', 'pub', 'res'], $keys($this->restrictedViewer));
-    $this->assertSame(['auth', 'pub', 'res'], $keys($this->admin));
+    $this->assertSame(['pub'], $keys($this->member));
+    $this->assertSame(['pub', 'res'], $keys($this->restrictedViewer));
+    $this->assertSame(['pub', 'res'], $keys($this->admin));
+    Role::load('anonymous')->revokePermission('view literals')->save();
+    $this->assertSame([], $keys(new AnonymousUserSession()));
   }
 
 }

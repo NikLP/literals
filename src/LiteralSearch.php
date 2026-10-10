@@ -53,10 +53,14 @@ class LiteralSearch {
     if (!$words || $limit < 1) {
       return [];
     }
+    $flags = LiteralVisibility::visibleFlags($account);
+    if ($flags === []) {
+      return [];
+    }
     $storage = $this->entityTypeManager->getStorage('literal');
     $query = $storage->getQuery()->accessCheck(FALSE)->condition('status', 1);
-    if (!$account->hasPermission('administer literals')) {
-      $query->condition('audience', LiteralAudience::visibleTo($account), 'IN');
+    if ($flags !== NULL) {
+      $query->condition('restricted', $flags, 'IN');
     }
     foreach ($words as $word) {
       $any = $query->orConditionGroup()

@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 
 /**
- * Checks that no other literal has this key.
+ * Checks the key: unique, not reserved, unchanged on an existing literal.
  */
 final class LiteralKeyUniqueConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
@@ -48,7 +48,15 @@ final class LiteralKeyUniqueConstraintValidator extends ConstraintValidator impl
       $this->context->addViolation($constraint->reservedMessage, ['%key' => $key]);
       return;
     }
-    $query = $this->entityTypeManager->getStorage('literal')->getQuery()
+    $storage = $this->entityTypeManager->getStorage('literal');
+    if (!$entity->isNew()) {
+      $original = (string) $storage->loadUnchanged($entity->id())?->get('key')->value;
+      if ($original !== '' && $original !== $key) {
+        $this->context->addViolation($constraint->immutableMessage, ['%original' => $original]);
+        return;
+      }
+    }
+    $query = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('key', $key);
     if (!$entity->isNew()) {

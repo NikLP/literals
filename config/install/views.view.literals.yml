@@ -3,7 +3,6 @@ status: true
 dependencies:
   module:
     - literals
-    - options
     - user
 id: literals
 label: Literals
@@ -98,19 +97,21 @@ display:
           type: entity_reference_label
           settings:
             link: false
-        audience:
-          id: audience
+        restricted:
+          id: restricted
           table: literal
-          field: audience
+          field: restricted
           relationship: none
           group_type: group
           entity_type: literal
-          entity_field: audience
+          entity_field: restricted
           plugin_id: field
-          label: 'Visible to'
-          click_sort_column: value
-          type: list_default
-          settings: {  }
+          label: Restricted
+          type: boolean
+          settings:
+            format: yes-no
+            format_custom_false: ''
+            format_custom_true: ''
       pager:
         type: mini
         options:
@@ -156,22 +157,22 @@ display:
             remember: false
             multiple: false
             reduce: false
-        audience:
-          id: audience
+        restricted:
+          id: restricted
           table: literal
-          field: audience
+          field: restricted
           relationship: none
           group_type: group
           entity_type: literal
-          entity_field: audience
-          plugin_id: literal_audience
-          operator: in
-          value: {  }
+          entity_field: restricted
+          plugin_id: boolean
+          operator: '='
+          value: All
           exposed: true
           expose:
-            operator_id: audience_op
-            label: 'Visible to'
-            identifier: audience
+            operator_id: ''
+            label: Restricted
+            identifier: restricted
             required: false
             remember: false
             multiple: false

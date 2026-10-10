@@ -22,7 +22,7 @@ foreach ($depts as $d) {
   foreach ($kinds as $kind => $k) {
     if ($count >= $n) { break 2; }
     $slug = 'zz_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($d)) . '_' . $kind;
-    $l = Literal::create(['type' => $k['type'], 'name' => ucfirst(sprintf($k['gist'], $d)), 'key' => $slug, 'value' => $k['val']($i), 'gist' => sprintf($k['gist'], $d), 'audience' => 'anonymous', 'status' => 1]);
+    $l = Literal::create(['type' => $k['type'], 'name' => ucfirst(sprintf($k['gist'], $d)), 'key' => $slug, 'value' => $k['val']($i), 'gist' => sprintf($k['gist'], $d), 'status' => 1]);
     $v = $l->validate(); if (count($v)) { echo "INVALID $slug: $v\n"; continue; }
     $l->save();
     foreach ($k['qs'] as $q) { $gold[] = ['q' => sprintf($q, strtolower($d)), 'expect' => $slug]; }

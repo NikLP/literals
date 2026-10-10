@@ -54,14 +54,14 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * The :link form respects audience and bubbles cache metadata.
+   * The :link form respects the restricted flag.
    */
-  public function testLinkFormRespectsAudience(): void {
-    $this->createLiteral('members', '+44 1111 000000', ['type' => 'phone', 'audience' => 'authenticated']);
-    $this->setCurrentUser(new AnonymousUserSession());
+  public function testLinkFormRespectsRestriction(): void {
+    $this->createLiteral('members', '+44 1111 000000', ['type' => 'phone', 'restricted' => TRUE]);
+    $this->setCurrentUser($this->member);
     $metadata = new BubbleableMetadata();
     $this->assertSame('', $this->replace('[literal:members:link]', $metadata));
-    $this->setCurrentUser($this->member);
+    $this->setCurrentUser($this->restrictedViewer);
     $this->assertSame('<a href="tel:+441111000000">+44 1111 000000</a>', $this->replace('[literal:members:link]'));
   }
 
@@ -77,16 +77,16 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
   /**
    * The token never reveals a literal the viewer cannot see.
    */
-  public function testRespectsAudience(): void {
-    $this->createLiteral('internal', 'internal-only', ['audience' => 'restricted']);
-    $this->createLiteral('members', 'members-only', ['audience' => 'authenticated']);
-    $text = '[literal:internal]|[literal:members]';
+  public function testRespectsRestriction(): void {
+    $this->createLiteral('internal', 'internal-only', ['restricted' => TRUE]);
+    $this->createLiteral('open', 'open-value');
+    $text = '[literal:internal]|[literal:open]';
     $this->setCurrentUser(new AnonymousUserSession());
-    $this->assertSame('|', $this->replace($text));
+    $this->assertSame('|open-value', $this->replace($text));
     $this->setCurrentUser($this->member);
-    $this->assertSame('|members-only', $this->replace($text));
+    $this->assertSame('|open-value', $this->replace($text));
     $this->setCurrentUser($this->restrictedViewer);
-    $this->assertSame('internal-only|members-only', $this->replace($text));
+    $this->assertSame('internal-only|open-value', $this->replace($text));
   }
 
   /**
@@ -102,14 +102,13 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
    * Bubbleable metadata names what the replacement depended on.
    */
   public function testBubblesCacheMetadata(): void {
-    $literal = $this->createLiteral('main_phone', '1', ['audience' => 'authenticated']);
+    $literal = $this->createLiteral('main_phone', '1');
     $this->setCurrentUser($this->member);
     $metadata = new BubbleableMetadata();
     $this->replace('[literal:main_phone]', $metadata);
     $this->assertContains('literal:' . $literal->id(), $metadata->getCacheTags());
     $this->assertContains('literal_list', $metadata->getCacheTags());
     $this->assertContains('user.permissions', $metadata->getCacheContexts());
-    $this->assertContains('user.roles:authenticated', $metadata->getCacheContexts());
     $this->assertNotContains('user', $metadata->getCacheContexts());
   }
 
@@ -117,14 +116,15 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
    * A token literal embedding another literal resolves it for the asker.
    */
   public function testNestedTokenUsesTheAskedAccount(): void {
-    $this->createLiteral('members_phone', '555-MEMBERS', ['audience' => 'authenticated']);
-    $this->createLiteral('banner', 'Ring [literal:members_phone]', ['type' => 'token', 'audience' => 'anonymous']);
-    // The session user is a member, but the banner is read for anonymous: the
-    // inner literal must not leak through the session user's access.
-    $this->setCurrentUser($this->member);
+    $this->createLiteral('members_phone', '555-MEMBERS', ['restricted' => TRUE]);
+    $this->createLiteral('banner', 'Ring [literal:members_phone]', ['type' => 'token']);
+    // The session user may see restricted literals, but the banner is read
+    // for anonymous: the inner literal must not leak through the session
+    // user's access.
+    $this->setCurrentUser($this->restrictedViewer);
     $reader = $this->container->get('literals.reader');
     $this->assertSame('Ring ', $reader->read('banner', new AnonymousUserSession()));
-    $this->assertSame('Ring 555-MEMBERS', $reader->read('banner', $this->member));
+    $this->assertSame('Ring 555-MEMBERS', $reader->read('banner', $this->restrictedViewer));
   }
 
   /**
@@ -147,7 +147,7 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
    */
   public function testTokenLiteralValidatesReferencedKeys(): void {
     $this->createLiteral('real', 'x');
-    $base = ['type' => 'token', 'audience' => 'anonymous'];
+    $base = ['type' => 'token'];
     $ok = Literal::create($base + ['name' => 'a', 'key' => 'ref_ok', 'value' => '[literal:real]']);
     $this->assertCount(0, $ok->validate());
     $bad = Literal::create($base + ['name' => 'b', 'key' => 'ref_bad', 'value' => '[literal:imaginary]']);

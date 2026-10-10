@@ -14,9 +14,9 @@ default:
   key:
     -
       value: login
-  audience:
+  restricted:
     -
-      value: anonymous
+      value: false
   value:
     -
       value: /user/login

@@ -59,9 +59,9 @@ text; that side is documented in aim's DEVELOPING.md ("Exact values from
 `literals` in recall"). `LiteralReader::resolveFound()` and
 `replaceTokens()` are the shared pieces.
 
-Flow: candidates (published, audience filter in the query and
+Flow: candidates (published, the `restricted` filter in the query and
 `access('view')` per entity) then the outcome cache (`cache.default`; key =
-question + audience set + admin flag + a fingerprint of settings, context
+question + the visible `restricted` flags + a fingerprint of settings, context
 and decision model; tag `literal_list`; `none` cached `miss_ttl` seconds;
 errors never cached) then the chooser over the whole menu. No decision
 model gives `none` / `no_backend`. Chooser rule: argmax `__none__` is none;
@@ -93,7 +93,7 @@ a set written by someone else is the fair test.
 ## Logging
 
 `literals.settings:log_audit` (off by default) logs writes and reads: id,
-key, type, audience, uid and outcome, never the gist or value.
+key, type, restricted flag, uid and outcome, never the gist or value.
 `literals_finder.settings:log_audit` (on) logs finder outcomes. Channel
 `logger.channel.literals`.
 

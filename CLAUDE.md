@@ -21,7 +21,7 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
 
 | Module | Needs | Provides |
 | --- | --- | --- |
-| `literals` | `user`, `views`; no AI | entity, types, resolvers, audience access, reader, `[literal:key]` and `[literal:key:link]` tokens, Guardrails constraint, plain search service, list UI |
+| `literals` | `user`, `views`; no AI | entity, types, resolvers, view access, reader, `[literal:key]` and `[literal:key:link]` tokens, Guardrails constraint, plain search service, list UI |
 | `literals_finder` | `drupal/ai` | finder, chooser (Decision API), outcome cache, Guardrails runner, `drush literals:find`/`literals:eval` |
 | `literals_tool` | `tool` | `literals:lookup` Tool API / MCP tool (key, question, search) |
 | `literals_chat` | finder | chat responder and chat processor; a demo surface, likely to be scrapped |
@@ -38,30 +38,34 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   is resolved after the choice, access-checked for the asking account.
   A literal's value is only ever checked by deterministic Guardrails.
 - Base `literals` needs no AI. The finder is the optional `drupal/ai` part.
-- Access is the `audience` column: the ID of a `literal_audience` config
-  entity (shipped: `anonymous`, `authenticated`, `restricted`; default
-  `authenticated`, fail closed). Each audience has a generated
-  `view {id} literals` permission and an account sees the audiences whose
-  permission it holds (`LiteralAudience::visibleTo()`), so roles are granted
-  audiences on the normal permissions page. Enforced by the access handler
-  and a `hook_query_alter`; a hidden literal is indistinguishable from a
-  missing one ("none"), and an audience that no longer exists hides its
-  literals. The resolver's own check (e.g. a `url` route) is a second,
-  separate layer.
+- Access is four flat permissions and one boolean column, `restricted`
+  (`LiteralVisibility`): `view literals` sees unrestricted literals, `view
+  restricted literals` sees all, `edit literals` creates, edits and deletes
+  any literal and sees drafts and restricted ones, `administer literals`
+  adds types and settings. The `literal_audience` config entities were
+  removed 2026-10-10 as more machinery than one realistic split needed.
+  Enforced by the access handler and a `hook_query_alter`; a hidden literal
+  is indistinguishable from a missing one ("none"). The resolver's own
+  check (e.g. a `url` route) is a second, separate layer.
 - The bundle is the **type** (config entity + resolver plugin), not a pool.
-  Access groups are the separate `literal_audience` axis.
+  Access is the separate `restricted` flag.
 - Embedding gate, alias field, vector tier: built or considered and
   removed; do not rebuild without a measured need (ADR-0040 "Rejected").
 - Tokens in body copy via a text-format filter are dropped (cache-context
   leak risk); tokens are for callers that control their render.
-- External URLs are not wanted: the `url` resolver stays internal paths only.
+- External URLs are not wanted: the `url` resolver stays internal paths
+  only, and the text resolver has no `url` validation option.
+- **Keys are immutable** after create (form field disabled, and the
+  `LiteralKeyUnique` constraint refuses a change): facts embed
+  `[literal:key]`, so a rename would silently redact them. Unique in the
+  database too (`LiteralStorageSchema`, base table only).
 
 ## Gotchas
 
 - **Config sync parity.** Keep `config/sync` matching the DB
   (`ddev drush config:status`, then `config:export -y`), or a stale
-  `drush cim` uninstalls the module. Snapshots: `pre-literals-spike`,
-  `pre-gate-removal`, `pre-search-fold`.
+  `drush cim` uninstalls the module. Snapshot:
+  `pre-audience-removal` (the older ones went with the 2026-10-09 wipe).
 - **Never hand-type `dependencies` or `cache_metadata`** in config: save
   through the API, export, copy to `config/install` minus `uuid`/`_core`.
 - **No update hooks (PoC).** `literals.install` was removed 2026-10-09:
@@ -69,11 +73,14 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   means `drush pmu literals` and re-enable (remove the view from
   `config/install` first, rebuild it from the exported YAML). Uninstalling a
   module needs its files present; fold or move code only after `drush pmu`.
-  Nothing grants the audience permissions on install: a fresh site shows
-  literals to admins only until roles are granted `view {audience}
-  literals`.
+  Uninstalling needs the literals deleted first (`drush entity:delete
+  literal -y`); the `literals_demo_library` recipe re-seeds them.
+  Nothing grants the view permissions on install: a fresh site shows
+  literals to admins only until roles are granted `view literals` (the
+  `literals_base` recipe does).
 - **`key` is an SQL reserved word** as a column name. It works; watch raw
-  queries.
+  queries. `LiteralReader` caches key-to-ID lookups per request; the
+  insert/update/delete hooks clear it (`resetCache()`).
 - **Stray `token` view modes.** 14 `core.entity_view_mode.*.token` configs
   once appeared from an unknown source; if they reappear in
   `config:status`, find the cause before exporting them.
@@ -86,8 +93,8 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   same `literal` namespace.
 - **The finder's cache fingerprint does not include the decision model ID.**
   Clear the cache when swapping models.
-- **Eval runs as anonymous by default** (`as: 0`); a literal with
-  `authenticated` audience (for example `site_name`) needs `as: 1` on its
+- **Eval runs as anonymous by default** (`as: 0`); a restricted
+  literal (for example `site_name`) needs `as: 1` on its
   gold queries or it correctly answers none.
 - `config_devel` is installed (dev): `drush config:devel-export literals`.
   Validate config schema with

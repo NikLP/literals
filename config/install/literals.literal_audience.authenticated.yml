@@ -1,7 +1,0 @@
-langcode: en
-status: true
-dependencies: {  }
-id: authenticated
-label: 'Signed-in users'
-description: 'Any signed-in account.'
-weight: 1

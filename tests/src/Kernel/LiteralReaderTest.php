@@ -37,7 +37,7 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
    */
   public function testMissesAreIndistinguishable(): void {
     $this->createLiteral('draft', '1', ['status' => 0]);
-    $this->createLiteral('internal', '1', ['audience' => 'restricted']);
+    $this->createLiteral('internal', '1', ['restricted' => TRUE]);
     $anon = new AnonymousUserSession();
     $this->assertNull($this->reader()->read('nosuchkey', $anon));
     $this->assertNull($this->reader()->read('draft', $anon));
@@ -92,18 +92,19 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * Changing the audience takes effect on the next read.
+   * Restricting a literal takes effect on the next read.
    */
-  public function testAudienceChangeTakesEffect(): void {
+  public function testRestrictionChangeTakesEffect(): void {
     $literal = $this->createLiteral('moves', 'v');
     $anon = new AnonymousUserSession();
     $this->assertSame('v', $this->reader()->read('moves', $anon));
-    $literal->set('audience', 'authenticated')->save();
+    $literal->set('restricted', TRUE)->save();
     // Core's access handler memoizes results per entity for the request; a
     // real edit and read happen in different requests.
     $this->container->get('entity_type.manager')->getAccessControlHandler('literal')->resetCache();
     $this->assertNull($this->reader()->read('moves', $anon));
-    $this->assertSame('v', $this->reader()->read('moves', $this->member));
+    $this->assertNull($this->reader()->read('moves', $this->member));
+    $this->assertSame('v', $this->reader()->read('moves', $this->restrictedViewer));
   }
 
   /**
@@ -116,8 +117,7 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
     $this->assertContains('literal_list', $metadata->getCacheTags());
     $this->assertContains('literal:' . $literal->id(), $metadata->getCacheTags());
     $this->assertContains('user.permissions', $metadata->getCacheContexts());
-    $this->assertContains('user.roles:authenticated', $metadata->getCacheContexts());
-    $this->assertNotContains('user', $metadata->getCacheContexts(), 'Varies on permissions and sign-in, not per individual');
+    $this->assertNotContains('user', $metadata->getCacheContexts(), 'Varies on permissions, not per individual');
 
     // A miss still bubbles the list tag, so creating the literal later
     // invalidates the cached "nothing here".
@@ -187,7 +187,7 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
   public function testReplaceTokens(): void {
     $this->createLiteral('phone', '+44 1223 000000', ['type' => 'phone']);
     $this->createLiteral('login', '/user/login', ['type' => 'url', 'name' => 'Sign in']);
-    $this->createLiteral('internal', 'staff-only', ['audience' => 'restricted']);
+    $this->createLiteral('internal', 'staff-only', ['restricted' => TRUE]);
     $anon = new AnonymousUserSession();
     $reader = $this->reader();
 

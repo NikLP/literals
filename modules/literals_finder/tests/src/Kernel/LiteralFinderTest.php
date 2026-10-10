@@ -171,9 +171,9 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
   /**
    * The chooser sees only what the asker may view, and caches do not cross.
    */
-  public function testAudienceFilterAndCacheSeparation(): void {
+  public function testRestrictedFilterAndCacheSeparation(): void {
     $this->createLiteral('main_phone', '111 1111', ['type' => 'phone']);
-    $this->createLiteral('staff_line', '222 2222', ['type' => 'phone', 'audience' => 'restricted']);
+    $this->createLiteral('staff_line', '222 2222', ['type' => 'phone', 'restricted' => TRUE]);
     $this->createLiteral('draft', 'x', ['status' => 0]);
     FakeChooser::$answer = ['ambiguous', ['main_phone', 'staff_line']];
 

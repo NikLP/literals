@@ -15,6 +15,13 @@ use Drupal\literals\Attribute\LiteralResolver;
 class LiteralResolverManager extends DefaultPluginManager {
 
   /**
+   * Resolver instances by plugin ID; resolvers are stateless.
+   *
+   * @var array<string, \Drupal\literals\LiteralResolverInterface>
+   */
+  protected array $resolvers = [];
+
+  /**
    * Constructs the manager.
    *
    * @param \Traversable $namespaces
@@ -28,6 +35,19 @@ class LiteralResolverManager extends DefaultPluginManager {
     parent::__construct('Plugin/LiteralResolver', $namespaces, $module_handler, LiteralResolverInterface::class, LiteralResolver::class);
     $this->alterInfo('literal_resolver_info');
     $this->setCacheBackend($cache_backend, 'literal_resolver_plugins');
+  }
+
+  /**
+   * Returns the shared instance of a resolver.
+   *
+   * @param string $id
+   *   The resolver plugin ID.
+   *
+   * @return \Drupal\literals\LiteralResolverInterface
+   *   The resolver.
+   */
+  public function getResolver(string $id): LiteralResolverInterface {
+    return $this->resolvers[$id] ??= $this->createInstance($id);
   }
 
   /**

@@ -17,13 +17,13 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Form\LiteralForm;
 use Drupal\literals\LiteralAccessControlHandler;
-use Drupal\literals\LiteralAudience;
 use Drupal\literals\LiteralResolverInterface;
-use Drupal\literals\LiteralViewsData;
+use Drupal\literals\LiteralStorageSchema;
 use Drupal\literals\ResolvedLiteral;
 use Drupal\literals\Routing\LiteralHtmlRouteProvider;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
+use Drupal\views\EntityViewsData;
 
 /**
  * Defines the literal content entity.
@@ -43,8 +43,9 @@ use Drupal\user\EntityOwnerTrait;
   label_plural: new TranslatableMarkup('literals'),
   handlers: [
     'list_builder' => EntityListBuilder::class,
+    'storage_schema' => LiteralStorageSchema::class,
     'access' => LiteralAccessControlHandler::class,
-    'views_data' => LiteralViewsData::class,
+    'views_data' => EntityViewsData::class,
     'form' => [
       'default' => LiteralForm::class,
       'delete' => ContentEntityDeleteForm::class,
@@ -137,7 +138,7 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
    *   The resolver plugin of the literal's type.
    */
   public function getResolverPlugin(): LiteralResolverInterface {
-    return \Drupal::service('plugin.manager.literal_resolver')->createInstance($this->getType()->getResolver());
+    return \Drupal::service('plugin.manager.literal_resolver')->getResolver($this->getType()->getResolver());
   }
 
   /**
@@ -148,10 +149,10 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
   }
 
   /**
-   * Returns who can see the literal: "public", "authenticated" or a role ID.
+   * Whether only "view restricted literals" holders may see the literal.
    */
-  public function getAudience(): string {
-    return (string) $this->get('audience')->value;
+  public function isRestricted(): bool {
+    return (bool) $this->get('restricted')->value;
   }
 
   /**
@@ -179,15 +180,13 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => 5]);
 
-    $fields['audience'] = BaseFieldDefinition::create('list_string')
-      ->setLabel(t('Visible to'))
-      ->setDescription(t('Who can see this literal, its description and its value.'))
-      ->setRequired(TRUE)
+    $fields['restricted'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Restricted'))
+      ->setDescription(t('Only accounts with "View restricted literals" can see this literal, its description and its value.'))
       ->setRevisionable(TRUE)
-      ->setDefaultValue(LiteralAudience::AUTHENTICATED)
-      ->setSetting('allowed_values_function', 'literals_audience_options')
+      ->setDefaultValue(FALSE)
       ->setDisplayConfigurable('form', TRUE)
-      ->setDisplayOptions('form', ['type' => 'options_select', 'weight' => 2]);
+      ->setDisplayOptions('form', ['type' => 'boolean_checkbox', 'weight' => 2, 'settings' => ['display_label' => TRUE]]);
 
     $fields['value'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Value'))

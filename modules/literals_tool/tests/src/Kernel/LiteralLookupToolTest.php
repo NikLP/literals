@@ -82,7 +82,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    */
   public function testKeyMode(): void {
     $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'phone']);
-    $this->createLiteral('internal', 'staff-only', ['audience' => 'restricted']);
+    $this->createLiteral('internal', 'staff-only', ['restricted' => TRUE]);
     $this->createLiteral('draft', 'draft', ['status' => 0]);
     $caller = $this->createUser(['use literal lookup tool']);
 
@@ -107,7 +107,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    * A caller with the restricted permission does get the restricted value.
    */
   public function testKeyModeRestrictedCaller(): void {
-    $this->createLiteral('internal', 'staff-only', ['audience' => 'restricted']);
+    $this->createLiteral('internal', 'staff-only', ['restricted' => TRUE]);
     $caller = $this->createUser(['use literal lookup tool', 'view restricted literals']);
     [, , $values] = $this->runTool(['key' => 'internal'], $caller);
     $this->assertSame('staff-only', $values['value']);
@@ -173,7 +173,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     $this->createLiteral('internal_line', '222 2222', [
       'type' => 'phone',
       'name' => 'Staff phone',
-      'audience' => 'restricted',
+      'restricted' => TRUE,
     ]);
     $caller = $this->createUser(['use literal lookup tool']);
 

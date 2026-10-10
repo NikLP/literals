@@ -10,6 +10,7 @@ use Drupal\literals\Entity\Literal;
 use Drupal\literals\Entity\LiteralType;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 
@@ -28,7 +29,6 @@ abstract class LiteralsKernelTestBase extends KernelTestBase {
     'user',
     'field',
     'text',
-    'options',
     'filter',
     'node',
     'views',
@@ -36,7 +36,7 @@ abstract class LiteralsKernelTestBase extends KernelTestBase {
   ];
 
   /**
-   * An account with no permissions, signed in.
+   * A signed-in account with only the authenticated role's "view literals".
    */
   protected UserInterface $member;
 
@@ -70,6 +70,11 @@ abstract class LiteralsKernelTestBase extends KernelTestBase {
     LiteralType::create(['id' => 'entity', 'label' => 'Entity', 'resolver' => 'entity'])->save();
     LiteralType::create(['id' => 'url', 'label' => 'URL', 'resolver' => 'url'])->save();
 
+    // Everyone sees unrestricted literals, as the literals_base recipe sets.
+    foreach (['anonymous' => 'Anonymous', 'authenticated' => 'Authenticated'] as $rid => $label) {
+      Role::create(['id' => $rid, 'label' => $label])->grantPermission('view literals')->save();
+    }
+
     $this->member = $this->createUser([], 'member');
     $this->restrictedViewer = $this->createUser(['view restricted literals'], 'restricted_viewer');
     $this->admin = $this->createUser(['administer literals'], 'literal_admin');
@@ -83,7 +88,7 @@ abstract class LiteralsKernelTestBase extends KernelTestBase {
    * @param string $value
    *   The value.
    * @param array $values
-   *   Overrides: type, audience, status, gist, name.
+   *   Overrides: type, restricted, status, gist, name.
    *
    * @return \Drupal\literals\Entity\Literal
    *   The saved literal.
@@ -95,7 +100,7 @@ abstract class LiteralsKernelTestBase extends KernelTestBase {
       'key' => $key,
       'value' => $value,
       'gist' => "The $key",
-      'audience' => 'anonymous',
+      'restricted' => FALSE,
       'status' => 1,
     ]);
     $violations = $literal->validate();

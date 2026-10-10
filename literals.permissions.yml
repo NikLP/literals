@@ -1,19 +1,17 @@
 administer literals:
   title: 'Administer literals'
-  description: 'Create, edit and delete literal types and every literal.'
+  description: 'Manage literal types and settings, and every literal.'
   restrict access: true
-
-create literals:
-  title: 'Create literals'
 
 edit literals:
   title: 'Edit literals'
-  description: 'Edit any literal, and see unpublished ones.'
+  description: 'Create, edit and delete any literal, and see unpublished and restricted ones.'
   restrict access: true
 
-delete literals:
-  title: 'Delete literals'
-  restrict access: true
+view literals:
+  title: 'View literals'
+  description: 'Read literals not marked restricted, through tokens, search and the lookup tools.'
 
-permission_callbacks:
-  - \Drupal\literals\LiteralAudiencePermissions::permissions
+view restricted literals:
+  title: 'View restricted literals'
+  description: 'Read every literal, including those marked restricted.'

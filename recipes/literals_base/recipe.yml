@@ -1,5 +1,5 @@
 name: 'Literals: base'
-description: 'Installs literals and lets anonymous visitors see anonymous-audience literals and signed-in users see anonymous and authenticated ones. Nothing is granted on install, so this is where a site makes that choice.'
+description: 'Installs literals and lets everyone see unrestricted literals and signed-in users see restricted ones too. Nothing is granted on install, so this is where a site makes that choice.'
 type: 'Configuration'
 install:
   - literals
@@ -7,8 +7,8 @@ config:
   actions:
     user.role.anonymous:
       grantPermissions:
-        - 'view anonymous literals'
+        - 'view literals'
     user.role.authenticated:
       grantPermissions:
-        - 'view anonymous literals'
-        - 'view authenticated literals'
+        - 'view literals'
+        - 'view restricted literals'

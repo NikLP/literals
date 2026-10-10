@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\literals\Kernel;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralGuardrailsInterface;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -37,7 +38,6 @@ class LiteralKeyAndGuardrailsTest extends LiteralsKernelTestBase {
       'key' => 'k',
       'value' => 'v',
       'gist' => 'g',
-      'audience' => 'anonymous',
     ]);
   }
 
@@ -52,10 +52,30 @@ class LiteralKeyAndGuardrailsTest extends LiteralsKernelTestBase {
   }
 
   /**
+   * The database refuses a duplicate key that skipped validation.
+   */
+  public function testKeyUniqueInDatabase(): void {
+    $this->createLiteral('dup', '1');
+    $this->expectException(EntityStorageException::class);
+    $this->build(['key' => 'dup'])->save();
+  }
+
+  /**
+   * An existing literal's key cannot change; other edits still validate.
+   */
+  public function testKeyImmutable(): void {
+    $literal = $this->createLiteral('fixed', '1');
+    $literal->set('key', 'moved');
+    $this->assertCount(1, $literal->validate());
+    $literal->set('key', 'fixed')->set('value', '2');
+    $this->assertCount(0, $literal->validate());
+  }
+
+  /**
    * Keys that collide with entity token names are refused.
    */
   public function testReservedKeys(): void {
-    foreach (['url', 'name', 'value', 'gist', 'audience', 'original', 'id', 'uuid', 'status'] as $key) {
+    foreach (['url', 'name', 'value', 'gist', 'restricted', 'original', 'id', 'uuid', 'status'] as $key) {
       $this->assertCount(1, $this->build(['key' => $key])->validate(), $key);
     }
     $this->assertCount(0, $this->build(['key' => 'main_phone'])->validate());

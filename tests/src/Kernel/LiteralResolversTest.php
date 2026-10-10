@@ -26,7 +26,6 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
       'name' => 'n',
       'key' => 'k_' . $type,
       'value' => $value,
-      'audience' => 'anonymous',
     ]);
     return count($literal->validate()) === 0;
   }
@@ -149,7 +148,7 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
    * The [user:...] token means the account asked for, not the session user.
    */
   public function testTokenResolvesForTheGivenAccount(): void {
-    $literal = $this->createLiteral('whoami', 'Hello [user:name]', ['type' => 'token', 'audience' => 'authenticated']);
+    $literal = $this->createLiteral('whoami', 'Hello [user:name]', ['type' => 'token']);
     // The session user is the admin; the value is for the member.
     $this->setCurrentUser($this->admin);
     $metadata = new CacheableMetadata();

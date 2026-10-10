@@ -13,7 +13,10 @@ use Drupal\literals\LiteralResolverBase;
 use Drupal\literals\ResolvedLiteral;
 
 /**
- * A plain text value, optionally validated as a number, phone, email or URL.
+ * A plain text value, optionally validated as a number, phone or email.
+ *
+ * No external URLs: a link literal uses the url resolver, which accepts
+ * internal paths only and checks route access.
  */
 #[LiteralResolver(
   id: 'text',
@@ -28,7 +31,6 @@ class TextResolver extends LiteralResolverBase {
   public const PATTERNS = [
     'int' => '/^-?\d+$/',
     'phone' => '/^\+?[0-9 ()\-.]{6,25}$/',
-    'url' => '/^https?:\/\/[^\s\/$.?#][^\s]*$/i',
   ];
 
   /**
@@ -38,7 +40,7 @@ class TextResolver extends LiteralResolverBase {
     $value = (string) $literal->get('value')->value;
     $format = $literal->getType()->getValidateAs();
     $valid = match ($format) {
-      'int', 'phone', 'url' => (bool) preg_match(self::PATTERNS[$format], $value),
+      'int', 'phone' => (bool) preg_match(self::PATTERNS[$format], $value),
       'email' => (bool) filter_var($value, FILTER_VALIDATE_EMAIL),
       default => TRUE,
     };
@@ -59,7 +61,6 @@ class TextResolver extends LiteralResolverBase {
     return match ($literal->getType()->getValidateAs()) {
       'phone' => ResolvedLiteral::KIND_PHONE,
       'email' => ResolvedLiteral::KIND_EMAIL,
-      'url' => ResolvedLiteral::KIND_URL,
       default => ResolvedLiteral::KIND_TEXT,
     };
   }

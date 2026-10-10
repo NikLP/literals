@@ -89,14 +89,13 @@ class LiteralSearchTest extends LiteralsKernelTestBase {
    * Only what the searcher may view comes back, drafts never.
    */
   public function testAccessAndDrafts(): void {
-    $this->createLiteral('pub_x', '1', ['audience' => 'anonymous', 'name' => 'Item pub']);
-    $this->createLiteral('auth_x', '1', ['audience' => 'authenticated', 'name' => 'Item auth']);
-    $this->createLiteral('res_x', '1', ['audience' => 'restricted', 'name' => 'Item res']);
+    $this->createLiteral('pub_x', '1', ['name' => 'Item pub']);
+    $this->createLiteral('res_x', '1', ['restricted' => TRUE, 'name' => 'Item res']);
     $this->createLiteral('draft_x', '1', ['status' => 0, 'name' => 'Item draft']);
     $this->assertSame(['pub_x'], $this->keys('item'));
-    $this->assertSame(['auth_x', 'pub_x'], $this->keys('item', $this->member));
-    $this->assertSame(['auth_x', 'pub_x', 'res_x'], $this->keys('item', $this->restrictedViewer));
-    $this->assertSame(['auth_x', 'pub_x', 'res_x'], $this->keys('item', $this->admin), 'Drafts are not searched, even by an admin');
+    $this->assertSame(['pub_x'], $this->keys('item', $this->member));
+    $this->assertSame(['pub_x', 'res_x'], $this->keys('item', $this->restrictedViewer));
+    $this->assertSame(['pub_x', 'res_x'], $this->keys('item', $this->admin), 'Drafts are not searched, even by an admin');
   }
 
   /**

@@ -1,5 +1,5 @@
 # Stress set 2026-10-06 (Claude). Needs the st_* literals from stress_seed.php:
-# near-neighbour phones/hours, restricted and authenticated audiences.
+# near-neighbour phones/hours, restricted literals.
 queries:
   - {q: 'phone number for the cafe', expect: st_cafe_phone}
   - {q: 'can I ring the coffee shop', expect: st_cafe_phone}

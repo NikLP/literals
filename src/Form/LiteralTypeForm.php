@@ -76,7 +76,6 @@ class LiteralTypeForm extends BundleEntityFormBase {
         'int' => $this->t('Whole number'),
         'phone' => $this->t('Phone number'),
         'email' => $this->t('Email address'),
-        'url' => $this->t('URL'),
       ],
       '#default_value' => $type->getValidateAs(),
       '#states' => ['visible' => [':input[name="resolver"]' => ['value' => 'text']]],
