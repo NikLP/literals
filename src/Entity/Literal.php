@@ -129,7 +129,7 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
    * Returns the gist, the plain-language description that is matched.
    *
    * Every reader goes through here, so the gist can later come from
-   * somewhere other than the stored field (ADR-0047's tracked gists).
+   * somewhere other than the stored field (tracked gists, ADR-0040 "Deferred and pinned").
    *
    * @return string
    *   The trimmed gist, empty when there is none.

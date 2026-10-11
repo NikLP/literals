@@ -10,7 +10,7 @@ for commands, API and runbooks, and [adr/](adr/) for decisions: start with
 [ADR-0040](adr/0040-literals-probabilistic-lookup-of-exact-values.md) (current
 state), then [ADR-0052](adr/0052-what-literals-is-for.md) (what it is for,
 how `aim` uses it, the answer modes) and [adr/how-it-works.md](adr/how-it-works.md)
-(measurements). The demo plan is [ADR-0054](adr/0054-demo-the-scottish-play.md).
+(measurements).
 Backlog items live in aim's [TODO.md](../aim/TODO.md) ("Literals").
 
 The project-wide rules in the site CLAUDE.md and aim's CLAUDE.md apply

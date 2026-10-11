@@ -7,11 +7,10 @@ Annotations host, a `config_pages` host, pool bundles, an `aim_fact` mirror,
 an embedding gate) are summarized under "Rejected" (the alias field is
 pinned, see "Deferred and pinned") and the
 full text is in the `aim` repo history (`adr/0040-...` at commit 502f799).
-Supersedes [ADR-0039](0039-token-scope-live-config-values.md).
+Supersedes the retired ADR-0039 (`scope: token`, label-only facts resolving live from a `config_pages` token; removed, history in git).
 **Date:** 2026-10-03
 
-Related: [ADR-0047](0047-literal-candidates-and-tracked-gists.md)
-(candidates, tracked gists), [ADR-0048](0048-token-literal-access-and-entity-targets.md)
+Related: [ADR-0048](0048-token-literal-access-and-entity-targets.md)
 (token access, entity targets), [ADR-0052](0052-what-literals-is-for.md)
 (what it is for), [ADR-0053](../../aim/adr/0053-gist-shared-vocabulary.md)
 (the shared "gist" term). Current state and runbooks:
@@ -119,14 +118,14 @@ fields must live together in one place with revisions, access and a list UI:
   tokens. An author may put arbitrary house names after a plain-text `ALSO`
   ("Main telephone number, ALSO the Beacon Line"); measured 9/9 against 4/9
   without, with no field and no parser (see "Rejected").
-- **Audience:** who may see it (section 4).
+- **Restricted:** a flag narrowing who may see it (section 4).
 - No numeric confidence field. The judgement lives in the gist's wording.
 
 ### 3. Types and resolvers
 
 The bundle is a `literal_type` config entity (fieldable, Field UI on its
 edit form). A type names a **resolver** (`LiteralResolver` plugin: `text`,
-`token`, `entity`, `url`) and carries its settings (text: `validate_as` of
+`token`, `entity`, `url`, `field`) and carries its settings (text: `validate_as` of
 any text, whole number, phone, email or URL). A site defines its own types
 ("Phone number": text, validated as phone; "Page link": url).
 
@@ -144,23 +143,29 @@ model), because the finder would have to understand arbitrary field types.
   type setting waits for a reason.
 - `token` must contain at least one known token; a cycle guard stops token
   literals looping.
+- `field` (built 2026-10-10) returns one field of an entity; access is the
+  intersection of the literal's own view rule and the field's.
 
-### 4. Access: one `audience` column
+### 4. Access: one `restricted` flag
 
-Each literal has an `audience`: `anonymous` (everyone), `authenticated` (any
-signed-in account) or `restricted` (needs the `view restricted literals`
-permission). Default `authenticated`, so a forgotten audience hides rather
-than publishes. `LiteralAudience::visibleTo($account)` returns the audiences
-an account can see and answers both a single access check and a list query
-(`audience IN (...)`), applied by the access handler and a `hook_query_alter`
-for entity queries and Views. **Every consumer filters this way before any
-gist reaches a model.** Other permissions are flat (`administer`, `create`,
-`edit`, `delete literals`, plus `use literal lookup tool` and `search
-literals` in the submodules). Drafts are visible only to editors.
+Each literal has a boolean `restricted` (default off, so a new literal is
+visible to anyone with `view literals`). Two flat
+permissions split the rest: `view literals` sees every literal not marked
+restricted, `view restricted literals` sees all of them. `edit literals`
+creates, edits and deletes any literal and sees drafts and restricted ones;
+`administer literals` adds types and settings; `use literal lookup tool`
+(`literals_tool`) gates the tool. `LiteralVisibility::visibleFlags($account)`
+returns the flag values an account may see and answers both a single access
+check and a list query, applied by the access handler and a
+`hook_query_alter` for entity queries and Views. **Every consumer filters
+this way before any gist reaches a model.** A hidden literal is
+indistinguishable from a missing one. The `literal_audience` config entities
+and the three-level `audience` column were removed 2026-10-10 as more
+machinery than one realistic split needed.
 
 Core's access handler memoizes per entity per request. View access varies on
-`user.permissions` and `user.roles:authenticated`, which is all the rule
-depends on, so a page using `[literal:key]` does not fragment per user.
+`user.permissions`, which is all the rule depends on, so a page using
+`[literal:key]` does not fragment per user.
 
 Not built, the likely first extension when a second real audience exists:
 per-type "restricted" permissions, or a group that carries the audience (see
@@ -175,10 +180,9 @@ chooser, result); the **chooser** is only the model call inside it.
 `LiteralFindResult`: `match`, `ambiguous` or `none` (literals, never values),
 the tier that answered (`cache`, `chooser`) and a reason.
 
-1. **Candidates:** published literals, filtered by audience in the query and
+1. **Candidates:** published literals, filtered by the `restricted` flag in the query and
    by `access('view')` per entity.
-2. **Outcome cache** (`cache.default`): key = question + audience set + admin
-   flag + a fingerprint of the settings, context and decision model's
+2. **Outcome cache** (`cache.default`): key = question + the visible `restricted` flags + a fingerprint of the settings, context and decision model's
    thresholds; tagged `literal_list`; a `none` is cached `miss_ttl` seconds;
    errors are never cached. Never served across permission sets.
 3. **Chooser over the whole menu:** one Decision API `ChoiceQuestion`
@@ -229,7 +233,7 @@ the tool a thin wrapper, so it can adopt method-attribute tooling
 ([ADR-0044](../../aim/adr/0044-tool-api-method-attributes.md)).
 
 `literals_search` is plain search with no AI: every word (up to 6) must
-appear in name, key or gist, case-insensitive, published only, audience
+appear in name, key or gist, case-insensitive, published only, visibility
 filtered, no scoring. It lists candidates and never decides. Its
 autocomplete route (removed 2026-10-07, no consumer) returned key + escaped name + gist, never values.
 A keyword baseline got 4/29 on the seed set against the finder's 29/29, so it
@@ -280,12 +284,15 @@ to embed. `entity` scope stays ([ADR-0027](../../aim/adr/resolved/0027-entity-sc
 a fact about a literal is an ordinary `scope=entity` fact with
 `target_type=literal`.
 
-`aim` integration is a finder **consumer**: `aim_recall` calls `LiteralFinder`
-when the service exists (progressive enhancement), and nothing is stored in
-aim. The 2026-10-08 addendum to
-[ADR-0052](0052-what-literals-is-for.md) sets how: the finder as a live
-source beside vector recall, convert-a-fact retiring the fact, and the answer
-modes. Not built (Phase 5), along with convert-a-fact (below). A parked option:
+`aim` depends on `literals` (hard) but not on `literals_finder`, and stores
+nothing of a literal. Built 2026-10-08 to 10-10: `aim` replaces
+`[literal:key]` tokens in fact text at recall as the viewing account (a fact
+naming an unreadable literal is withheld), and the chat assistant looks
+values up with `aim_literal`, a wrapper over `literals.lookup` exposed
+through `tool_ai_connector`; the large model is the gate for one-shot
+lookups. `aim_recall` does **not** call the finder: the finder as a live
+recall source, answer modes and convert-a-fact are the unbuilt options in
+the 2026-10-08 addendum to [ADR-0052](0052-what-literals-is-for.md). A parked option:
 an aim-stored gist backend (the gist lives only as a `scope=entity` fact
 targeting the literal). The interface already allows it; it is not built
 because it needs two storage modes, a literal form writing another entity's
@@ -306,19 +313,19 @@ skip.
 - **Annotations bridge (optional, not built):** the gist of the field a
   literal points at may be copied once as its default gist; the literal's own
   gist wins. Annotations address a bundle and field, never an instance, so
-  per-instance literals keep their own gist. See ADR-0047 and ADR-0053.
+  per-instance literals keep their own gist. See "Deferred and pinned" (tracked gists) and ADR-0053.
   Annotations is `^2.0@alpha`; keep the coupling in an optional package.
 
 ## What is built
 
 | Module | Needs | Provides |
 | --- | --- | --- |
-| `literals` | `user`, `views` (no AI) | entity, types, resolvers, audience access, reader, `[literal:key]`, Guardrails constraint, list UI |
+| `literals` | `user`, `views` (no AI) | entity, types, resolvers, restricted-flag access, reader, `[literal:key]`, Guardrails constraint, plain search, `literals.lookup` service, list UI |
 | (in `literals`, was `literals_search`) | none | plain search |
 | `literals_finder` | `drupal/ai` | finder, chooser, outcome cache, Guardrails runner, `drush literals:eval` |
-| `literals_tool` | `tool` | `literals:lookup` |
+| `literals_tool` | `tool` | `literals:lookup` (a thin wrapper over `literals.lookup`; aim sites use `aim_tool`'s `aim_literal` instead) |
 
-Verified: PHPUnit kernel tests (audience matrix, every resolver, reader,
+Verified: PHPUnit kernel tests (visibility matrix, every resolver, reader,
 token, key rules, guardrail wiring, tool, finder over a fake chooser) and
 `drush literals:eval` gold sets (hosted Jev, 0 wrong-confident in every run;
 numbers in [how-it-works.md](how-it-works.md)). The finder's real chooser is
@@ -339,9 +346,9 @@ None of these is built; each names its trigger. Measure before building.
   a measured need (a real index past a few thousand).
 - **Semantic cache** (nearest past question). Needs a tight threshold keyed by
   permission set; "reservations phone" versus "main phone" is the failure.
-- **Groups and per-type access.** Row-level audience works but is fiddly. A
-  group entity carrying the audience, or per-type `view {type} literals`
-  permissions, would replace `audience`, not sit beside it. Wait for a second
+- **Groups and per-type access.** The row-level `restricted` flag is one
+  split only. A group entity carrying an audience, or per-type
+  `view {type} literals` permissions, would replace it, not sit beside it. Wait for a second
   real audience.
 - **Moderation (Content Moderation workflow)** on literal revisions: needed
   for regenerated gists and proposals, pinned until those exist.
@@ -353,6 +360,25 @@ None of these is built; each names its trigger. Measure before building.
   splits the fact into gist and value, a human picks the type, the literal
   carries a `source_fact` back-reference, and the fact is retired after a
   cool-off. Depends on the agreed `retired`/`expires` split in aim's TODO.md.
+- **Candidates and tracked gists** (folded in from the retired ADR-0047;
+  nothing built). Candidates are suggestions, never entities: a provider
+  (a curated YAML list of site tokens, or a generic one over
+  `Token::getInfo()` filtered to site-level types, `current-user` excluded)
+  proposes a (source, key, gist) triple, a person edits and saves, and only
+  then does a `literal` exist, so the count tracks use, not the token list
+  (every literal costs a menu slot). Stores like `site_settings` and
+  `token_custom` hold values but cannot find one from a question, gate it
+  by viewer or carry a gist (checked 2026-10-05); literals is the
+  find-and-gate layer over them. Tracked gists: a nullable gist source
+  (target plus annotation ID) resolved at read time, with a local edit
+  winning and stopping tracking; this replaces "copy the gist once" in
+  section 10 and ships as an optional `literals_annotations` bridge
+  (`Literal::getGist()` is the seam). Gist suggestion prefills from the
+  token's own description; a person or small local model rewrites it into
+  question phrasing. `current-user` tokens resolve per viewer.
+  Facts reference literals through `aim_literal` or an inline
+  `[literal:key]`; a pointer field on `aim_fact` is deferred (it would cut
+  across "`aim` stores nothing about literals").
 - **Probe box** (an "ask a question" form on the edit page showing the match
   and why).
 - **Computed ("latest X") literals:** its identity is a rule, not a vetted
@@ -386,8 +412,7 @@ None of these is built; each names its trigger. Measure before building.
   `'#token_types' => ['literal']`, `'#global_types' => FALSE`; narrow
   `LiteralForm`'s current `'all'` to match) is only worth doing for callers
   that control their render.
-- **Configurable display text for the audience levels** and **per-type
-  restricted permissions**: small polish, nothing needs them yet.
+- **Per-type restricted permissions**: small polish, nothing needs them yet.
 - **An "allow external URLs" type setting**: not wanted; the `url` resolver
   stays internal paths only.
 - **Example phrasings per literal (aliases).** An alias field was built and
@@ -424,7 +449,7 @@ None of these is built; each names its trigger. Measure before building.
 - **A literal field type, a registry entity, an Annotations host, a
   `config_pages` host:** section 1.
 - **Pools as bundles, per-pool permissions and `[literal:pool:key]`:**
-  replaced by types and one audience column (Phase 1 build).
+  replaced by types and one access column (Phase 1 build; the column became the `restricted` flag 2026-10-10).
 - **A literal scope, an `aim_scope_literal` bridge and a gist mirror in
   `aim_fact`:** a second copy of the gist with its own embedding, sync code
   on every save, delete and draft, and a standing duplicate invariant.
@@ -433,7 +458,7 @@ None of these is built; each names its trigger. Measure before building.
 - **Auto-applying regenerated gists, aliases or proposals, and letting
   agents create literal storage or values:** any can silently redirect the
   agent or poison a business-critical value.
-- **Value in the fact text** (the status quo and ADR-0039's rejected option):
+- **Value in the fact text** (the status quo and retired ADR-0039's rejected option):
   drifts, embeds badly, gets consolidated.
 - **A separate vector row per literal under `aim`.**
 
@@ -455,7 +480,7 @@ None of these is built; each names its trigger. Measure before building.
 ## Logging
 
 Per CLAUDE.md: `literals.settings:log_audit` (off) writes insert, update,
-delete and read lines with id, key, type, audience, uid and outcome;
+delete and read lines with id, key, type, restricted flag, uid and outcome;
 `literals_finder.settings:log_audit` logs finder lookups (ids, outcome, tier
 and reason). Never the gist, value or question text. An opt-in
 `log_query_text` would gate the missed-question merge only.

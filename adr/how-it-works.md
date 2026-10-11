@@ -43,17 +43,17 @@ plugin that decides how the value is validated and read.
 | `key` | Machine name, unique across all literals | Yes, as the option ID |
 | `gist` | Short description of what the value is | Yes (chooser) |
 | `value` | The exact payload, read through its resolver | **Never** |
-| `audience` | `anonymous`, `authenticated` or `restricted` | No: used to filter before any model |
+| `restricted` | Boolean: only `view restricted literals` holders see it | No: used to filter before any model |
 
-Resolvers (`text`, `token`, `entity`, `url`) validate the value on save and
+Resolvers (`text`, `token`, `entity`, `url`, `field`) validate the value on save and
 `resolve($account)` it at read time. `entity` and `url` run a view-access
 check at read, and a `url` is an internal path only. `$literal->resolve()`
 is the one call that turns a literal into a value.
 
-**Access is data on the row.** The `audience` column answers a single
+**Access is data on the row.** The `restricted` flag answers a single
 access check and, as a query condition, every list and every finder
-lookup. The default is `authenticated`, so a literal whose audience is
-forgotten is hidden rather than published. Drafts are visible only to
+lookup. `view literals` sees unrestricted literals, `view restricted
+literals` sees all. The default is unrestricted. Drafts are visible only to
 people who can edit.
 
 **Revisions.** Every field is revisionable, so a gist or value change can
@@ -68,7 +68,7 @@ sync. Literals themselves are content, editable on production. Settings:
 
 ```mermaid
 flowchart TD
-  Q[Question + asker + optional context] --> C[Candidates: published, audience filter, view access]
+  Q[Question + asker + optional context] --> C[Candidates: published, restricted filter, view access]
   C --> N{Any?}
   N -- no --> NONE1[none: no_candidates]
   N -- yes --> OC{Outcome cached?}
@@ -83,11 +83,11 @@ flowchart TD
 ```
 
 1. **Candidates.** Published literals with a gist, filtered by the
-   asker's audiences in the query and by `access('view')` per entity. This
+   asker's visible `restricted` flags in the query and by `access('view')` per entity. This
    runs **before** any model sees anything, so a gist the asker cannot see
    never appears in a prompt or a result.
-2. **Outcome cache.** Keyed by the normalized question, the asker's
-   audience set, an admin flag, and a fingerprint of everything else that
+2. **Outcome cache.** Keyed by the normalized question, the visible
+   `restricted` flags and a fingerprint of everything else that
    decides an outcome (the context, the instructions, the thresholds and the
    decision model), so an answer is never served across permission sets or
    after a setting changes. Tagged `literal_list`, so any literal edit
@@ -205,9 +205,9 @@ Same caveat: none of these is an independent blind set.
   "gardening books", the accessibility statement for "wheelchair access").
   The agent-written set's remaining false positives are of this kind
   ("how much is the late fee per day" returned the accounts phone).
-- **Audience matters to the eval.** Three apparent misses on the agent set
-  were correct: `site_name` is authenticated-only and the eval runs as
-  anonymous. With `as: 1` on those queries the set scored 28/29.
+- **Visibility matters to the eval.** Three apparent misses on the agent set
+  were correct: `site_name` was visible to signed-in users only (when access
+  was a three-level audience column) and the eval runs as anonymous. With `as: 1` on those queries the set scored 28/29.
 - **Context can steer the wrong way.** A "library staff asking the IT
   helpdesk" context sent every "you/your" question to none, including "how
   can I call the library", which names the library: the negation over-
@@ -257,7 +257,7 @@ gist says "log in", which the chooser matches. Search lists candidates; it
 never decides.
 
 **Without any AI model, by key:** The `literals` module works with no
-model and no `drupal/ai`: create, validate, restrict by audience, revision,
+model and no `drupal/ai`: create, validate, restrict, revision,
 list, read through `$literal->resolve()` or `literals.reader`, `[literal:key]`
 tokens, and the `literals:lookup` tool by key. By-question lookup needs a
 decision model: without one the finder returns `none` with reason

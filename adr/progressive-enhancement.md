@@ -115,7 +115,7 @@ cost no extra round trip. Candidates:
 - `asks_for_value` (boolean): is the question asking for a stored value at
   all, or is it small talk? Would cut false matches on chat.
 - `sensitive` (boolean): does it ask for something secret-like? Advisory
-  only. The real gate stays `LiteralAudience::visibleTo()`, never the model.
+  only. The real gate stays `LiteralVisibility`, never the model.
 
 Each boolean is a gate that runs before the `choice` margin and threshold
 logic and short-circuits to `none`; it does not change how `choice`
@@ -126,14 +126,14 @@ before trusting the thresholds.
 
 ## What is built today
 
-- Step 0: the `literal` entity, `literal_type` bundles, the four resolver
-  plugins, the audience access rule (single checks, entity queries and
+- Step 0: the `literal` entity, `literal_type` bundles, the five resolver
+  plugins, the `restricted` access rule (single checks, entity queries and
   Views), `literals.reader`, the `[literal:key]` token, the `literals:lookup`
   tool (`literals_tool`), and Guardrails at save.
 - Step 1: `literals_finder`: the chooser with a site-wide or per-call
   context, the outcome cache, `literals:find` and `literals:eval`.
 - The one access rule the finder must keep: filter by
-  `LiteralAudience::visibleTo($account)` before the chooser sees any gist.
+  `LiteralVisibility::visibleFlags($account)` before the chooser sees any gist.
 
 ## Jev limits that shape the menu (TypeSafe docs, read 2026-10-06)
 

@@ -19,9 +19,9 @@ it at read time. Two problems:
 2. Access to the data a token reveals was never checked. It did not bite
    only because no entity data was passed, so `[node:*]` and `[user:*]`
    resolved empty. The `entity` and `url` kinds check view access on their
-   target; `token` did not. The audience column gates the *viewer against the
+   target; `token` did not. The `restricted` flag gates the *viewer against the
    literal*, not the *viewer against the data*, so an author with
-   `create literals` could publish whatever a token reveals to any audience.
+   `edit literals` could publish whatever a token reveals to any viewer.
 
 `AccountSwitcherInterface::switchTo()` would have fixed 1 by making the
 session lie. Rejected: it hides the dependency instead of removing it, and

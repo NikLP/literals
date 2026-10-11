@@ -165,7 +165,7 @@ literals as a standalone fuzzy value store.
 
 Design and decisions live in the `aim` module's ADRs, starting at
 [ADR-0040](adr/0040-literals-probabilistic-lookup-of-exact-values.md)
-and [ADR-0047](adr/0047-literal-candidates-and-tracked-gists.md).
+and [ADR-0052](adr/0052-what-literals-is-for.md).
 [CLAUDE.md](CLAUDE.md) and [DEVELOPING.md](DEVELOPING.md) have the current build state, rules and commands.
 
 ## Drush commands
