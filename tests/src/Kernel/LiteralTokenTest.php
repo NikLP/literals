@@ -115,18 +115,16 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * A token literal embedding another literal resolves it for the asker.
+   * A nested literal saved past validation resolves to nothing, for anyone.
    */
-  public function testNestedTokenUsesTheAskedAccount(): void {
+  public function testNestedLiteralResolvesToNothing(): void {
     $this->createLiteral('members_phone', '555-MEMBERS', ['restricted' => TRUE]);
-    $this->createLiteral('banner', 'Ring [literal:members_phone]', ['type' => 'token']);
-    // The session user may see restricted literals, but the banner is read
-    // for anonymous: the inner literal must not leak through the session
-    // user's access.
+    $banner = $this->createLiteral('banner', '[site:name]', ['type' => 'token']);
+    $banner->set('value', 'Ring [literal:members_phone]')->save();
     $this->setCurrentUser($this->restrictedViewer);
     $reader = $this->container->get('literals.reader');
     $this->assertSame('Ring ', $reader->read('banner', new AnonymousUserSession()));
-    $this->assertSame('Ring 555-MEMBERS', $reader->read('banner', $this->restrictedViewer));
+    $this->assertSame('Ring ', $reader->read('banner', $this->restrictedViewer));
   }
 
   /**
@@ -145,13 +143,13 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * A token literal may reference an existing key but not a made-up one.
+   * A token literal may not contain another literal, real key or not.
    */
-  public function testTokenLiteralValidatesReferencedKeys(): void {
+  public function testTokenLiteralRefusesNestedLiterals(): void {
     $this->createLiteral('real', 'x');
     $base = ['type' => 'token'];
-    $ok = Literal::create($base + ['name' => 'a', 'id' => 'ref_ok', 'value' => '[literal:real]']);
-    $this->assertCount(0, $ok->validate());
+    $nested = Literal::create($base + ['name' => 'a', 'id' => 'ref_nested', 'value' => '[literal:real]']);
+    $this->assertStringContainsString('literals cannot contain literals', (string) $nested->validate());
     $bad = Literal::create($base + ['name' => 'b', 'id' => 'ref_bad', 'value' => '[literal:imaginary]']);
     $this->assertGreaterThan(0, count($bad->validate()));
   }

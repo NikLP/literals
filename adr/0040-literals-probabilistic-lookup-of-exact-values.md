@@ -248,8 +248,7 @@ literal types or enter values (ADR-0035). A narrow `literal_register` tool
 `[literal:key]` (keys are global). A soft dependency on the Token module.
 The handler checks view access itself on every resolve (nothing returned and
 the token stays unreplaced when unreadable), resolves only the published
-revision, reads for `$options['literals_account']` when given (so a nested
-token literal is not evaluated for the session user), and bubbles
+revision, reads for the session user, and bubbles
 `literal_list`, the entity's tags and the access result's contexts. Output
 is plain text; escaping is the caller's job, like core tokens.
 Rejected: a semantic token (`[literal:ask:...]`): token rendering sits on
@@ -460,6 +459,14 @@ None of these is built; each names its trigger. Measure before building.
   agent or poison a business-critical value.
 - **Value in the fact text** (the status quo and retired ADR-0039's rejected option):
   drifts, embeds badly, gets consolidated.
+- **A literal inside a token literal (nesting), decided 2026-10-12:** a
+  literal is one exact value; composing several belongs to the consumer
+  (fact text and the assistant already hold several tokens). Nesting adds
+  recursion, a cache-metadata chain and a "whose access applies" question.
+  Validation refuses it at save, and `TokenResolver::resolve()` strips any
+  `[literal:...]` at resolve time (fail closed, resolves to nothing), so a
+  value saved past validation cannot leak. Reversible: drop the check and
+  the strip.
 - **A separate vector row per literal under `aim`.**
 
 ## Consequences

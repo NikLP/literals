@@ -101,6 +101,9 @@ class TokenResolver extends LiteralResolverBase {
    */
   public function resolve(Literal $literal, AccountInterface $account, CacheableMetadata $metadata): ?string {
     $value = (string) $literal->get('value')->value;
+    // Fail closed: a literal inside a literal is never evaluated, whatever
+    // path the value took past validation. It resolves to nothing.
+    $value = strtr($value, array_fill_keys($this->tokenService->scan($value)['literal'] ?? [], ''));
     // [user:...] always means the account asking, never the session user.
     $data = [];
     if (isset($this->tokenService->scan($value)['user'])) {
@@ -108,7 +111,7 @@ class TokenResolver extends LiteralResolverBase {
       $metadata->addCacheContexts(['user']);
     }
     $bubbleable = new BubbleableMetadata();
-    $text = $this->tokenService->replace($value, $data, ['clear' => TRUE, 'literals_account' => $account], $bubbleable);
+    $text = $this->tokenService->replace($value, $data, ['clear' => TRUE], $bubbleable);
     $metadata->addCacheableDependency($bubbleable);
     return $text;
   }

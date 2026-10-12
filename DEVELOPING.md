@@ -29,9 +29,10 @@ tags and the access context (`user.permissions`).
   (`tel:`) and email (`mailto:`) with the value as text; the text kind and
   an unknown form give the plain value or nothing. Returned as markup so
   the token service does not escape it.
-- Both resolve for the asking account (a token-resolver literal passes
-  `$options['literals_account']` so a nested token is not evaluated for the
-  session user). An unreadable literal gives nothing under `clear`.
+- Both resolve for the asking account. A token-resolver literal cannot
+  contain a literal: validation refuses it, and `TokenResolver::resolve()`
+  strips any `[literal:...]` from a value saved past validation (fail
+  closed, resolves to nothing). An unreadable literal gives nothing under `clear`.
 - `hook_token_info` lists every published literal and its `:link` form;
   the list resets on every literal save or delete.
 

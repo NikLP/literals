@@ -128,20 +128,6 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * Token literals that point at each other do not loop.
-   */
-  public function testCycleIsBroken(): void {
-    $this->createLiteral('first', 'plain', ['type' => 'text']);
-    // Reference known keys only (validation), then re-point to form a cycle.
-    $a = $this->createLiteral('cycle_a', '[literal:first]', ['type' => 'token']);
-    $this->createLiteral('cycle_b', '[literal:cycle_a]', ['type' => 'token']);
-    $a->set('value', '[literal:cycle_b]')->save();
-    $result = $this->reader()->read('cycle_a', new AnonymousUserSession());
-    // The loop is cut: the inner read gives nothing, the outer returns text.
-    $this->assertSame('', $result);
-  }
-
-  /**
    * A literal that references itself resolves to empty, not infinity.
    */
   public function testSelfReferenceIsBroken(): void {

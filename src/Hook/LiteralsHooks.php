@@ -152,8 +152,7 @@ class LiteralsHooks {
     if ($type !== 'literal') {
       return [];
     }
-    // A token literal resolving for another account passes that account.
-    $account = ($options['literals_account'] ?? NULL) instanceof AccountInterface ? $options['literals_account'] : $this->currentUser;
+    $account = $this->currentUser;
     $replacements = [];
     foreach ($tokens as $name => $original) {
       [$key, $format] = array_pad(explode(':', (string) $name, 2), 2, NULL);
