@@ -215,6 +215,55 @@ Same caveat: none of these is an independent blind set.
   toward none. Write contexts positively. Per-medium variants are viable
   as a caller's `context`.
 
+### End to end: does the gate save anything (2026-10-12)
+
+The cost question from [ADR-0052](0052-what-literals-is-for.md) decision 3,
+measured with `drush aim:chatbot-eval` in aim_chatbot: the same 39
+questions (`gold.agentblind.yml`, 12 literals, hosted Jev) through the real
+assistant three ways. **`tool`**: the chat model decides to call
+`aim_literal`. **`prompt`**: no tool, every readable value listed in the
+system prompt. **`gate`**: the finder (Jev) decides first; a match is
+answered from the literal alone, anything else goes to the chat model with
+no lookup tool. "Hosted" is every provider not in `--inhouse` (default
+`typesafeai,ollama`), so Jev counts as in-house, the case where it runs
+inside the perimeter.
+
+```mermaid
+xychart-beta
+    title "Hosted tokens per question (lower is better)"
+    x-axis ["tool", "prompt", "gate"]
+    y-axis "tokens" 0 --> 3600
+    bar [3422, 1874, 923]
+```
+
+```mermaid
+xychart-beta
+    title "Seconds per question (lower is better)"
+    x-axis ["tool", "prompt", "gate"]
+    y-axis "seconds" 0 --> 5
+    bar [4.4, 2.6, 1.6]
+```
+
+| Mode | Hosted tokens | In-house tokens (Jev) | Seconds | Correct, of 23 answerable |
+| --- | --- | --- | --- | --- |
+| `tool` | 3,422 | 241 | 4.4 | 18 (22 on an earlier run: noisy) |
+| `prompt` | 1,874 | 0 | 2.6 | 23 |
+| `gate` | 923 | 484 | 1.6 | 22 |
+
+- **The gate won on hosted usage and time.** The finder answered 23 of 39
+  questions with no chat model at all; the rest cost one chat call.
+- **The tool path loses at this size.** One lookup is three calls (chat
+  model decides, finder matches, chat model writes the reply), two of them
+  hosted.
+- **The prompt path's cost grows with the pool** (about 4,000 tokens at 200
+  literals, every turn) and shows every readable value to a hosted model
+  each time. Not tested yet at that size.
+- **Gate misses:** "phone #" passed the finder and the chat model, with no
+  tool, then said it had no number; "I can't get in to my account" got the
+  password-reset link where the gold set wants a tie.
+- **In-house seconds are still hosted Jev's latency.** Local Jev has not
+  been measured. One set, one hand, one run per mode.
+
 ### Why there is no embedding gate
 
 A gate (embed the question, compare with stored gist vectors, decide alone
