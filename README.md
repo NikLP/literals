@@ -44,9 +44,9 @@ module; the finder and the tool are extras (see below).
    ddev drush en literals -y
    ```
 
-   This installs the module and the admin list view. It grants nothing and
-   creates no literals. For installation of a moderate setup with default types
-   enabled, use the literals_base recipe.
+   This installs the module, its six fixed literal types and the admin list
+   view. It grants nothing and creates no literals. For a moderate setup with
+   the view permissions granted, use the literals_base recipe.
 
 2. **Grant the view permissions.** `view literals` sees every literal not
    marked restricted; `view restricted literals` sees all of them (a

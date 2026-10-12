@@ -86,11 +86,11 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   `pre-audience-removal` (the older ones went with the 2026-10-09 wipe).
 - **Never hand-type `dependencies` or `cache_metadata`** in config: save
   through the API, export, copy to `config/install` minus `uuid`/`_core`.
-- **The module ships no literal types.** The starter types (Text, Phone,
-  Path, Token, Content) live in `recipes/literals_base/config/`; Entity and
-  Field resolvers exist but no type for them ships. A bare `drush en
-  literals` therefore has an empty type list. Content ships with no bundles
-  ticked (opt-in).
+- **The module ships six fixed literal types** in `config/install` (Text,
+  Path, Token, Content, Entity, Field), each with a `description` shown
+  read-only on its edit form (no editable field). Entity and Field ship
+  disabled; Content ships with no bundles ticked (opt-in). The
+  `literals_base` recipe only grants the view permissions.
 - **No update hooks (PoC).** `literals.install` was removed 2026-10-09:
   nothing real depends on this site's data, so a schema or bundle change
   means `drush pmu literals` and re-enable (remove the view from

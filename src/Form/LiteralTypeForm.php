@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\literals\Form;
 
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Entity\BundleEntityFormBase;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -47,27 +48,20 @@ class LiteralTypeForm extends BundleEntityFormBase {
     /** @var \Drupal\literals\Entity\LiteralType $type */
     $type = $this->entity;
 
+    $form['#title'] = $this->t('Edit %label literal type', ['%label' => $type->label()]);
+
     $form['status'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enabled'),
-      '#description' => $this->t('A disabled type is not offered when adding a literal. A type that has literals cannot be disabled.'),
+      '#description' => $this->t('Disabled types are not available when adding a literal. Types that have existing literals cannot be disabled.'),
       '#default_value' => $type->status(),
     ];
 
-    $form['description'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Description'),
-      '#default_value' => $type->get('description'),
-      '#rows' => 2,
-    ];
-
-    $resolver_label = $this->resolverManager->getOptions()[$type->getResolver()] ?? $type->getResolver();
     $form['resolver_display'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Value type'),
-      '#markup' => $resolver_label,
+      '#markup' => Xss::filterAdmin((string) $type->get('description')),
+      '#prefix' => '<p>',
+      '#suffix' => '</p>',
       '#weight' => -100,
-      '#wrapper_attributes' => ['class' => ['container-inline']],
     ];
 
     $form['target_bundles'] = [

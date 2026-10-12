@@ -3,6 +3,6 @@ status: true
 dependencies: {  }
 id: text
 label: Text
-description: ''
+description: 'Exact text returned as written, such as a phone number or an address.'
 resolver: text
 target_bundles: {  }

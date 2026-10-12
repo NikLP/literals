@@ -20,7 +20,7 @@ the anonymous and authenticated roles, makes users (`member`,
 | Key, Guardrails | `LiteralKeyAndGuardrailsTest` | key as ID: uniqueness (validation and primary key), machine-name pattern, immutable, reserved keys; gist/value rejection; value never reaches model guardrails |
 | Search | `LiteralSearchTest` | name/key/gist match, all words, LIKE wildcards and backslash literal, access, limit |
 | Moderation | `LiteralModerationTest` | with Content Moderation, a draft of a published literal is not served until published |
-| Install | `LiteralInstallTest` | six types, settings and view, schema-valid config, nothing granted; `literals_base` grants; demo recipe adds eight, re-applying adds none; clean uninstall |
+| Install | `LiteralInstallTest` | six shipped types, settings and view, schema-valid config, nothing granted; `literals_base` grants; demo recipe adds eight, re-applying adds none; clean uninstall |
 | Admin UI | `Functional/LiteralAdminTest` | admin pages 403/200, literal form (key from name, duplicate and reserved keys, resolver error, key locked on edit), type delete guard, list is editors-only and shows restricted literals, revisions (history page, revert, 403 for viewers) |
 | Submodules | `literals_finder`, `literals_tool`, `literals_chat` | finder cache and outcomes, tool modes (through `literals.lookup`), chat responder |
 | Gist Guardrails form | `literals_finder` `Functional/LiteralGistGuardrailsFormTest` | the shipped set's no-markup rule rejects a gist on add and edit, as an error on the gist field; nothing saved until the gist is plain |

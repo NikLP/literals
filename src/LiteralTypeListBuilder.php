@@ -12,7 +12,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Lists literal types with their resolver, validation and usage.
+ * Lists literal types with their usage.
  */
 class LiteralTypeListBuilder extends ConfigEntityListBuilder {
 
@@ -32,10 +32,8 @@ class LiteralTypeListBuilder extends ConfigEntityListBuilder {
    *   The literal type storage.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
-   * @param \Drupal\literals\LiteralResolverManager $resolverManager
-   *   The literal resolver plugin manager.
    */
-  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, protected EntityTypeManagerInterface $entityTypeManager, protected LiteralResolverManager $resolverManager) {
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, protected EntityTypeManagerInterface $entityTypeManager) {
     parent::__construct($entity_type, $storage);
   }
 
@@ -48,7 +46,6 @@ class LiteralTypeListBuilder extends ConfigEntityListBuilder {
       $entity_type,
       $manager->getStorage($entity_type->id()),
       $manager,
-      $container->get('plugin.manager.literal_resolver'),
     );
   }
 
@@ -57,10 +54,8 @@ class LiteralTypeListBuilder extends ConfigEntityListBuilder {
    */
   public function buildHeader(): array {
     $header['label'] = $this->t('Name');
-    $header['status'] = $this->t('Enabled');
-    $header['resolver'] = $this->t('Resolver');
-    $header['description'] = $this->t('Description');
-    $header['count'] = $this->t('Literals');
+    $header['count'] = ['data' => $this->t('# in use'), 'style' => 'text-align: center'];
+    $header['status'] = ['data' => $this->t('Enabled'), 'style' => 'text-align: center'];
     return $header + parent::buildHeader();
   }
 
@@ -69,13 +64,15 @@ class LiteralTypeListBuilder extends ConfigEntityListBuilder {
    */
   public function buildRow(EntityInterface $entity): array {
     /** @var \Drupal\literals\Entity\LiteralType $entity */
-    $options = $this->resolverManager->getOptions();
-    $resolver = $entity->getResolver();
     $row['label'] = $entity->label();
-    $row['status'] = $entity->status() ? $this->t('Yes') : $this->t('No');
-    $row['resolver'] = $options[$resolver] ?? $resolver;
-    $row['description'] = $entity->get('description');
-    $row['count'] = $this->getCounts()[$entity->id()] ?? 0;
+    $row['count'] = [
+      'data' => $this->getCounts()[$entity->id()] ?? 0,
+      'style' => 'text-align: center',
+    ];
+    $row['status'] = [
+      'data' => $entity->status() ? $this->t('Yes') : $this->t('No'),
+      'style' => 'text-align: center',
+    ];
     return $row + parent::buildRow($entity);
   }
 

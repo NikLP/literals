@@ -3,6 +3,6 @@ status: true
 dependencies: {  }
 id: url
 label: 'Path'
-description: ''
+description: 'An internal path such as <code>/news</code>, access checked for the viewer.'
 resolver: url
 target_bundles: {  }

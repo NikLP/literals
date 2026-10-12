@@ -70,7 +70,7 @@ class LiteralType extends ConfigEntityBundleBase implements RevisionableEntityBu
   protected string $label;
 
   /**
-   * What this type is for.
+   * What this type is for, shown read-only on the edit form.
    */
   protected string $description = '';
 

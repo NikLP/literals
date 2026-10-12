@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies: {  }
+id: token
+label: Token
+description: 'Tokens (e.g. <code>[site:name]</code>) are resolved when displayed, according
+  to the permissions of the viewer.'
+resolver: token
+target_bundles: {  }

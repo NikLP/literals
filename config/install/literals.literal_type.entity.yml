@@ -3,6 +3,6 @@ status: false
 dependencies: {  }
 id: entity
 label: Entity
-description: ''
+description: 'Any entity, as type:id (e.g. <code>node:12</code>). Resolves to its URL.'
 resolver: entity
 target_bundles: {  }

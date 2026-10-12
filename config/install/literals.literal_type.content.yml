@@ -3,6 +3,6 @@ status: true
 dependencies: {  }
 id: content
 label: Content
-description: ''
+description: 'A piece of content on this site, picked by title. Resolves to its URL.'
 resolver: content
 target_bundles: {  }

@@ -1,8 +1,0 @@
-langcode: en
-status: true
-dependencies: {  }
-id: token
-label: Token
-description: ''
-resolver: token
-target_bundles: {  }

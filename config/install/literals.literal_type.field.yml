@@ -1,0 +1,8 @@
+langcode: en
+status: false
+dependencies: {  }
+id: field
+label: Field
+description: 'A field value from a single entity, as <code>type:id:field</code> (e.g. <code>node:12:field_phone</code>). Resolves to the field value, access checked for the viewer.'
+resolver: field
+target_bundles: {  }
