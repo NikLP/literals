@@ -6,4 +6,3 @@ label: Content
 description: ''
 resolver: content
 target_bundles: {  }
-validate_as: string

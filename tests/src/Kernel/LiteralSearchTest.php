@@ -45,7 +45,7 @@ class LiteralSearchTest extends LiteralsKernelTestBase {
    */
   public function testMatchesNameKeyAndGist(): void {
     $this->createLiteral('main_phone', '+44 1223 000000', [
-      'type' => 'phone',
+      'type' => 'text',
       'name' => 'Main phone',
       'gist' => 'The library switchboard',
     ]);
@@ -62,7 +62,7 @@ class LiteralSearchTest extends LiteralsKernelTestBase {
    */
   public function testAllWordsMustMatch(): void {
     $this->createLiteral('main_phone', '+44 1223 000000', [
-      'type' => 'phone',
+      'type' => 'text',
       'name' => 'Main phone',
       'gist' => 'The library switchboard',
     ]);

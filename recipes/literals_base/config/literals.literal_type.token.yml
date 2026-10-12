@@ -6,4 +6,3 @@ label: Token
 description: ''
 resolver: token
 target_bundles: {  }
-validate_as: string

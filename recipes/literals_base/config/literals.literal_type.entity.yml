@@ -1,0 +1,8 @@
+langcode: en
+status: false
+dependencies: {  }
+id: entity
+label: Entity
+description: ''
+resolver: entity
+target_bundles: {  }

@@ -5,10 +5,11 @@ entity.literal.collection:
   parent: system.admin_content
 
 entity.literal_type.collection:
-  title: 'Literal types'
-  description: 'The sorts of value a literal can hold.'
+  title: 'Value types'
+  description: 'Which sorts of value a literal can hold.'
   route_name: entity.literal_type.collection
-  parent: system.admin_structure
+  parent: literals.admin_config
+  weight: 10
 
 literals.admin_config:
   title: 'Literals'

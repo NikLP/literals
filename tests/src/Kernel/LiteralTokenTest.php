@@ -28,22 +28,22 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
    * A readable literal replaces; an unknown key clears.
    */
   public function testReplacesAndClears(): void {
-    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'text']);
     $this->setCurrentUser(new AnonymousUserSession());
     $this->assertSame('Call +44 1223 000000.', $this->replace('Call [literal:main_phone].'));
     $this->assertSame('Call .', $this->replace('Call [literal:nosuch].'));
   }
 
   /**
-   * The :link form is an HTML link for url, phone and email, text otherwise.
+   * The :link form is an HTML link for a url, plain escaped text otherwise.
    */
   public function testLinkForm(): void {
-    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'text']);
     $this->createLiteral('contact', 'help@example.com', ['type' => 'text', 'name' => 'Help']);
     $this->createLiteral('login', '/user/login', ['type' => 'url', 'name' => 'Sign <in>']);
     $this->createLiteral('hours', 'Mon-Fri <9>-17', ['name' => 'Hours']);
     $this->setCurrentUser(new AnonymousUserSession());
-    $this->assertSame('<a href="tel:+441223000000">+44 1223 000000</a>', $this->replace('[literal:main_phone:link]'));
+    $this->assertSame('+44 1223 000000', $this->replace('[literal:main_phone:link]'), 'Text has no link');
     $this->assertSame('Mon-Fri &lt;9&gt;-17', $this->replace('[literal:hours:link]'), 'Text has no link and is escaped');
     $this->assertSame('+44 1223 000000', $this->replace('[literal:main_phone]'), 'The bare form is unchanged');
     $login = $this->replace('[literal:login:link]');
@@ -59,19 +59,19 @@ class LiteralTokenTest extends LiteralsKernelTestBase {
    * The :link form respects the restricted flag.
    */
   public function testLinkFormRespectsRestriction(): void {
-    $this->createLiteral('members', '+44 1111 000000', ['type' => 'phone', 'restricted' => TRUE]);
+    $this->createLiteral('members', '+44 1111 000000', ['type' => 'text', 'restricted' => TRUE]);
     $this->setCurrentUser($this->member);
     $metadata = new BubbleableMetadata();
     $this->assertSame('', $this->replace('[literal:members:link]', $metadata));
     $this->setCurrentUser($this->restrictedViewer);
-    $this->assertSame('<a href="tel:+441111000000">+44 1111 000000</a>', $this->replace('[literal:members:link]'));
+    $this->assertSame('+44 1111 000000', $this->replace('[literal:members:link]'));
   }
 
   /**
    * The token browser lists the :link form.
    */
   public function testTokenInfoListsLinkForm(): void {
-    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'text']);
     $info = $this->container->get('token')->getInfo()['tokens']['literal'];
     $this->assertArrayHasKey('main_phone:link', $info);
   }

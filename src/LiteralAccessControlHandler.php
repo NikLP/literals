@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\literals\Entity\LiteralType;
 
 /**
  * Access control handler for the literal entity type.
@@ -59,6 +60,10 @@ class LiteralAccessControlHandler extends EntityAccessControlHandler {
    * {@inheritdoc}
    */
   protected function checkCreateAccess(AccountInterface $account, array $context, $entity_bundle = NULL) {
+    // A disabled type is not offered for new literals.
+    if ($entity_bundle && !LiteralType::load($entity_bundle)?->status()) {
+      return AccessResult::forbidden()->addCacheTags(['config:literals.literal_type.' . $entity_bundle]);
+    }
     return AccessResult::allowedIfHasPermission($account, 'edit literals')
       ->orIf(AccessResult::allowedIfHasPermission($account, $this->entityType->getAdminPermission()));
   }

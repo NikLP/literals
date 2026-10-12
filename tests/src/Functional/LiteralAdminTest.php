@@ -63,7 +63,7 @@ class LiteralAdminTest extends BrowserTestBase {
    * Admin pages are for administrators only.
    */
   public function testAdminPagesAccess(): void {
-    $pages = ['/admin/content/literals', '/admin/structure/literal-types', '/admin/config/literals'];
+    $pages = ['/admin/content/literals', '/admin/config/literals/types', '/admin/config/literals'];
     foreach ($pages as $page) {
       $this->drupalGet($page);
       $this->assertSession()->statusCodeEquals(403);
@@ -84,10 +84,9 @@ class LiteralAdminTest extends BrowserTestBase {
   }
 
   /**
-   * The form takes a key once, refuses bad ones and validates the value.
+   * The form takes a key once and refuses bad ones.
    */
   public function testLiteralForm(): void {
-    LiteralType::create(['id' => 'phone_test', 'label' => 'Phone', 'resolver' => 'text', 'validate_as' => 'phone'])->save();
     $this->literal('taken');
     $this->drupalLogin($this->drupalCreateUser(['edit literals']));
 
@@ -104,10 +103,6 @@ class LiteralAdminTest extends BrowserTestBase {
     $this->assertSession()->pageTextContains('is reserved');
     $this->assertNull(Literal::load('url'));
 
-    $this->drupalGet('/admin/content/literals/add/phone_test');
-    $this->submitForm(['name[0][value]' => 'Bad', 'id' => 'bad_phone', 'value[0][value]' => 'not a phone'], 'Save');
-    $this->assertSession()->pageTextContains('not a valid phone');
-
     $this->drupalGet('/admin/content/literals/main_phone/edit');
     $this->assertSession()->fieldDisabled('id');
     $this->submitForm(['value[0][value]' => '43'], 'Save');
@@ -115,14 +110,19 @@ class LiteralAdminTest extends BrowserTestBase {
   }
 
   /**
-   * A type in use cannot be deleted.
+   * A type in use cannot be disabled; an empty one can, and is then not offered.
    */
-  public function testTypeDeleteGuard(): void {
+  public function testTypeDisableGuard(): void {
     $this->literal('uses_text');
     $this->drupalLogin($this->drupalCreateUser(['administer literals']));
-    $this->drupalGet('/admin/structure/literal-types/text/delete');
-    $this->assertSession()->pageTextContains('is used by 1 literal');
-    $this->assertSession()->buttonNotExists('Delete');
+    $this->drupalGet('/admin/config/literals/types/text/edit');
+    $this->submitForm(['status' => FALSE], 'Save');
+    $this->assertSession()->pageTextContains('Cannot disable');
+    $this->assertTrue(LiteralType::load('text')->status());
+    LiteralType::create(['id' => 'spare', 'label' => 'Spare', 'resolver' => 'text'])->save();
+    $this->drupalGet('/admin/config/literals/types/spare/edit');
+    $this->submitForm(['status' => FALSE], 'Save');
+    $this->assertFalse(LiteralType::load('spare')->status());
   }
 
   /**

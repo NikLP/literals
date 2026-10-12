@@ -32,22 +32,6 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
   }
 
   /**
-   * The phone pattern accepts phone-ish strings only.
-   */
-  public function testPhoneValidation(): void {
-    foreach (['+44 1223 000000', '(555) 010-0100', '555.010.0100', '+1 555 0102'] as $ok) {
-      $this->assertTrue($this->valid('phone', $ok), $ok);
-    }
-    foreach (['call me', '12', 'abc123456', '+44 1223 000000 ext <b>', ''] as $bad) {
-      // The empty string is skipped by the constraint (required handles it).
-      if ($bad === '') {
-        continue;
-      }
-      $this->assertFalse($this->valid('phone', $bad), $bad);
-    }
-  }
-
-  /**
    * Plain text accepts anything and resolves to itself.
    */
   public function testTextResolves(): void {
@@ -241,20 +225,6 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
     $metadata = new CacheableMetadata();
     $literal->resolve($this->createUser(['access user profiles']), $metadata);
     $this->assertContains('user:' . $uid, $metadata->getCacheTags());
-  }
-
-  /**
-   * Text values validated as whole numbers and email addresses.
-   */
-  public function testIntAndEmailValidation(): void {
-    LiteralType::create(['id' => 'int', 'label' => 'Number', 'resolver' => 'text', 'validate_as' => 'int'])->save();
-    LiteralType::create(['id' => 'email', 'label' => 'Email', 'resolver' => 'text', 'validate_as' => 'email'])->save();
-    $this->assertTrue($this->valid('int', '42'));
-    $this->assertTrue($this->valid('int', '-3'));
-    $this->assertFalse($this->valid('int', '4.2'));
-    $this->assertFalse($this->valid('int', 'forty'));
-    $this->assertTrue($this->valid('email', 'help@example.com'));
-    $this->assertFalse($this->valid('email', 'help at example'));
   }
 
   /**

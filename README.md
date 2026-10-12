@@ -72,7 +72,7 @@ module; the finder and the tool are extras (see below).
    ```
 
 4. **Check it.** As admin these should load: `/admin/content/literals`
-   (the list), `/admin/structure/literal-types`. Anonymous gets 403 on
+   (the list), `/admin/config/literals/types`. Anonymous gets 403 on
    both.
    A literal's own page, `/admin/content/literals/{id}`, is its edit form.
 

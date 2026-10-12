@@ -57,9 +57,8 @@ class LiteralTypeListBuilder extends ConfigEntityListBuilder {
    */
   public function buildHeader(): array {
     $header['label'] = $this->t('Name');
-    $header['id'] = $this->t('Machine name');
+    $header['status'] = $this->t('Enabled');
     $header['resolver'] = $this->t('Resolver');
-    $header['validate_as'] = $this->t('Validated as');
     $header['description'] = $this->t('Description');
     $header['count'] = $this->t('Literals');
     return $header + parent::buildHeader();
@@ -73,9 +72,8 @@ class LiteralTypeListBuilder extends ConfigEntityListBuilder {
     $options = $this->resolverManager->getOptions();
     $resolver = $entity->getResolver();
     $row['label'] = $entity->label();
-    $row['id'] = $entity->id();
+    $row['status'] = $entity->status() ? $this->t('Yes') : $this->t('No');
     $row['resolver'] = $options[$resolver] ?? $resolver;
-    $row['validate_as'] = $resolver === 'text' ? $entity->getValidateAs() : '-';
     $row['description'] = $entity->get('description');
     $row['count'] = $this->getCounts()[$entity->id()] ?? 0;
     return $row + parent::buildRow($entity);

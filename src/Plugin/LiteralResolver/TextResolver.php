@@ -10,10 +10,9 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\literals\Attribute\LiteralResolver;
 use Drupal\literals\Entity\Literal;
 use Drupal\literals\LiteralResolverBase;
-use Drupal\literals\ResolvedLiteral;
 
 /**
- * A plain text value, optionally validated as a number, phone or email.
+ * A plain text value.
  *
  * No external URLs: a link literal uses the url resolver, which accepts
  * internal paths only and checks route access.
@@ -26,25 +25,10 @@ use Drupal\literals\ResolvedLiteral;
 class TextResolver extends LiteralResolverBase {
 
   /**
-   * Validation patterns by the "validate as" option.
-   */
-  public const PATTERNS = [
-    'int' => '/^-?\d+$/',
-    'phone' => '/^\+?[0-9 ()\-.]{6,25}$/',
-  ];
-
-  /**
    * {@inheritdoc}
    */
   public function validate(Literal $literal): array {
-    $value = (string) $literal->get('value')->value;
-    $format = $literal->getType()->getValidateAs();
-    $valid = match ($format) {
-      'int', 'phone' => (bool) preg_match(self::PATTERNS[$format], $value),
-      'email' => (bool) filter_var($value, FILTER_VALIDATE_EMAIL),
-      default => TRUE,
-    };
-    return $valid ? [] : [(string) new TranslatableMarkup('The value is not a valid @format.', ['@format' => $format])];
+    return [];
   }
 
   /**
@@ -52,17 +36,6 @@ class TextResolver extends LiteralResolverBase {
    */
   public function resolve(Literal $literal, AccountInterface $account, CacheableMetadata $metadata): ?string {
     return (string) $literal->get('value')->value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function kind(Literal $literal): string {
-    return match ($literal->getType()->getValidateAs()) {
-      'phone' => ResolvedLiteral::KIND_PHONE,
-      'email' => ResolvedLiteral::KIND_EMAIL,
-      default => ResolvedLiteral::KIND_TEXT,
-    };
   }
 
 }

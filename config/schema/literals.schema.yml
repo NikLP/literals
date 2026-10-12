@@ -24,16 +24,6 @@ literals.literal_type.*:
       sequence:
         type: string
         label: 'Entity type and bundle'
-    validate_as:
-      type: string
-      label: 'Validate as'
-      constraints:
-        Choice:
-          choices:
-            - string
-            - int
-            - phone
-            - email
 
 literals.settings:
   type: config_object

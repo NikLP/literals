@@ -9,7 +9,6 @@ use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\RevisionableEntityBundleInterface;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\literals\Form\LiteralTypeDeleteForm;
 use Drupal\literals\Form\LiteralTypeForm;
 use Drupal\literals\LiteralTypeListBuilder;
 
@@ -18,7 +17,7 @@ use Drupal\literals\LiteralTypeListBuilder;
  *
  * A type says what sort of value its literals hold (text, token, entity,
  * URL: a LiteralResolver plugin) and carries that resolver's settings, e.g. a
- * Text type validated as a phone number. Fieldable, so a type can carry extra
+ * Text type or a Content type limited to some bundles. Fieldable, so a type can carry extra
  * fields beside the shared name, key, value and gist.
  */
 #[ConfigEntityType(
@@ -32,32 +31,29 @@ use Drupal\literals\LiteralTypeListBuilder;
     'id' => 'id',
     'label' => 'label',
     'uuid' => 'uuid',
+    'status' => 'status',
   ],
   handlers: [
     'list_builder' => LiteralTypeListBuilder::class,
     'form' => [
-      'add' => LiteralTypeForm::class,
       'edit' => LiteralTypeForm::class,
-      'delete' => LiteralTypeDeleteForm::class,
     ],
     'route_provider' => [
       'html' => AdminHtmlRouteProvider::class,
     ],
   ],
   links: [
-    'add-form' => '/admin/structure/literal-types/add',
-    'edit-form' => '/admin/structure/literal-types/{literal_type}/edit',
-    'delete-form' => '/admin/structure/literal-types/{literal_type}/delete',
-    'collection' => '/admin/structure/literal-types',
+    'edit-form' => '/admin/config/literals/types/{literal_type}/edit',
+    'collection' => '/admin/config/literals/types',
   ],
   admin_permission: 'administer literals',
   bundle_of: 'literal',
   config_export: [
     'id',
     'label',
+    'status',
     'description',
     'resolver',
-    'validate_as',
     'target_bundles',
   ],
 )]
@@ -84,13 +80,6 @@ class LiteralType extends ConfigEntityBundleBase implements RevisionableEntityBu
   protected string $resolver = 'text';
 
   /**
-   * For the text resolver: how values are validated on save.
-   *
-   * One of string, int, phone, email or url.
-   */
-  protected string $validate_as = 'string';
-
-  /**
    * For the content resolver: the bundles literals may point at.
    *
    * Each is "entity_type:bundle", e.g. "node:page". Empty means none: a
@@ -115,13 +104,6 @@ class LiteralType extends ConfigEntityBundleBase implements RevisionableEntityBu
    */
   public function getTargetBundles(): array {
     return array_values($this->target_bundles);
-  }
-
-  /**
-   * Returns how text values are validated.
-   */
-  public function getValidateAs(): string {
-    return $this->validate_as;
   }
 
   /**

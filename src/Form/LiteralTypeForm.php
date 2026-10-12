@@ -8,12 +8,13 @@ use Drupal\Core\Entity\BundleEntityFormBase;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\literals\Entity\LiteralType;
 use Drupal\literals\LiteralResolverManager;
 use Drupal\literals\Plugin\LiteralResolver\ContentResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Add and edit form for a literal type.
+ * Edit form for a literal type.
  */
 class LiteralTypeForm extends BundleEntityFormBase {
 
@@ -46,22 +47,11 @@ class LiteralTypeForm extends BundleEntityFormBase {
     /** @var \Drupal\literals\Entity\LiteralType $type */
     $type = $this->entity;
 
-    $form['label'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Name'),
-      '#default_value' => $type->label(),
-      '#required' => TRUE,
-      '#maxlength' => 255,
-    ];
-
-    $form['id'] = [
-      '#type' => 'machine_name',
-      '#default_value' => $type->id(),
-      '#machine_name' => [
-        'exists' => '\Drupal\literals\Entity\LiteralType::load',
-        'source' => ['label'],
-      ],
-      '#disabled' => !$type->isNew(),
+    $form['status'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enabled'),
+      '#description' => $this->t('A disabled type is not offered when adding a literal. A type that has literals cannot be disabled.'),
+      '#default_value' => $type->status(),
     ];
 
     $form['description'] = [
@@ -72,26 +62,13 @@ class LiteralTypeForm extends BundleEntityFormBase {
     ];
 
     $resolver_label = $this->resolverManager->getOptions()[$type->getResolver()] ?? $type->getResolver();
-    $form['resolver'] = [
-      '#type' => 'select',
+    $form['resolver_display'] = [
+      '#type' => 'item',
       '#title' => $this->t('Value type'),
-      '#description' => $this->t('What a literal of this type holds, such as text, a page or a token. Cannot be changed after the type is created.'),
-      '#options' => $this->resolverManager->getOptions(),
-      '#default_value' => $type->getResolver(),
-      '#required' => TRUE,
-      '#access' => $type->isNew(),
+      '#markup' => $resolver_label,
+      '#weight' => -100,
+      '#wrapper_attributes' => ['class' => ['container-inline']],
     ];
-
-    if (!$type->isNew()) {
-      // Shown as plain text: a disabled select looks broken.
-      $form['resolver_display'] = [
-        '#type' => 'item',
-        '#title' => $this->t('Value type'),
-        '#markup' => $resolver_label,
-        '#weight' => -100,
-        '#wrapper_attributes' => ['class' => ['container-inline']],
-      ];
-    }
 
     $form['target_bundles'] = [
       '#type' => 'checkboxes',
@@ -99,32 +76,11 @@ class LiteralTypeForm extends BundleEntityFormBase {
       '#description' => $this->t('The kinds of content a literal of this type can point at. Nothing is allowed until ticked, so new kinds of content stay out until you add them.'),
       '#options' => ContentResolver::bundleOptions($this->entityTypeManager, $this->bundleInfo),
       '#default_value' => $type->getTargetBundles(),
-      '#states' => ['visible' => [':input[name="resolver"]' => ['value' => 'content']]],
     ];
 
-    $form['validate_as'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Validate as'),
-      '#description' => $this->t('How text values are checked when saved.'),
-      '#options' => [
-        'string' => $this->t('Any text'),
-        'int' => $this->t('Whole number'),
-        'phone' => $this->t('Phone number'),
-        'email' => $this->t('Email address'),
-      ],
-      '#default_value' => $type->getValidateAs(),
-      '#states' => ['visible' => [':input[name="resolver"]' => ['value' => 'text']]],
-    ];
+    $form['target_bundles']['#access'] = $type->getResolver() === 'content';
 
-    if (!$type->isNew()) {
-      // The value type is fixed, so there is no select for #states to watch.
-      foreach (['target_bundles' => 'content', 'validate_as' => 'text'] as $key => $resolver) {
-        unset($form[$key]['#states']);
-        $form[$key]['#access'] = $type->getResolver() === $resolver;
-      }
-    }
-
-    return $this->protectBundleIdElement($form);
+    return $form;
   }
 
   /**
@@ -134,6 +90,26 @@ class LiteralTypeForm extends BundleEntityFormBase {
     // Checked boxes only, as a plain list.
     $form_state->setValue('target_bundles', array_values(array_filter((array) $form_state->getValue('target_bundles'))));
     return parent::buildEntity($form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    parent::validateForm($form, $form_state);
+    if (!$form_state->getValue('status') && LiteralType::load($this->entity->id())?->status()) {
+      $count = $this->entityTypeManager->getStorage('literal')->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', $this->entity->id())
+        ->count()
+        ->execute();
+      if ($count) {
+        $form_state->setErrorByName('status', $this->t('Cannot disable %label: @count literals use it.', [
+          '%label' => $this->entity->label(),
+          '@count' => $count,
+        ]));
+      }
+    }
   }
 
   /**
