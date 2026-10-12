@@ -8,4 +8,11 @@ dependencies:
   - drupal:views
 config_devel:
   install:
+    - literals.literal_type.entity
+    - literals.literal_type.phone
+    - literals.literal_type.text
+    - literals.literal_type.field
+    - literals.literal_type.token
+    - literals.literal_type.url
+    - literals.settings
     - views.view.literals

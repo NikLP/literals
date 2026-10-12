@@ -2,7 +2,7 @@ langcode: en
 status: true
 dependencies: {  }
 id: url
-label: 'URL or path'
+label: 'Path'
 description: ''
 resolver: url
 validate_as: string
