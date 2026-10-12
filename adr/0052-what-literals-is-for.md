@@ -42,15 +42,21 @@ better? The test case was "I want to pay my council tax". Findings:
    of defensibility: correct-or-none answers; values kept out of prompts;
    per-viewer access at resolve time; non-chat consumers (tokens, form
    fields, MCP). The cost gate is a fifth, to be measured, not assumed.
-3. **The large model is the gate; the finder is optional.** The chat model
-   decides when a question is a one-shot lookup and calls `aim_literal`
-   (`literals.lookup`), so nothing runs a decision model on every question.
-   A separate "is this one-shot?" classifier ahead of recall, or the finder
-   as a gate on every query (it answers match, ambiguous or none in about
-   0.3 s, but sends the whole menu, about 4,000 tokens at 200 literals), is
-   unbuilt and kept only if measured to pay: share of traffic removed,
-   against its own latency. If it does not save cost or latency, the cost
-   story is dropped and the other four uses stand alone.
+3. **The finder is the gate, ahead of the chat model.** Measured
+   2026-10-12 (`drush aim:chatbot-eval`, numbers and charts in
+   [how-it-works.md](how-it-works.md)): letting the chat model decide to call
+   `aim_literal` cost two hosted calls plus the finder and still
+   under-called the tool (20/51 on the 101-literal set, against the
+   finder's 50/51 on the same questions). Putting the finder (a small
+   decision model, Jev) first and handing the question to the chat model only
+   on `none` or `ambiguous` used a fifth to a quarter of the hosted tokens
+   at 101 literals, was the fastest, and kept per-viewer visibility. The
+   prompt-stuffing alternative scaled with the pool (3x tokens at 101
+   literals) and cannot serve two audiences. A hit skips the hosted model
+   only; the Jev call stays, as it is the fuzzy match. Not built: the plan
+   is a `ChatProcessor` in aim_chatbot (aim's TODO.md). `aim_literal` stays
+   for MCP and external agents, which have no gate in front of them. Not yet
+   measured: local Jev latency.
 4. **Avoid the second sitemap with a menu and page candidate provider**
    (the candidates idea in ADR-0040 "Deferred and pinned"): enumerate main-menu links and nodes
    flagged as entry points, label = menu title, value = path or entity,
@@ -127,10 +133,8 @@ is unbuilt design.
 
 ## Open questions
 
-- Does the gate (decision 3) save anything measurable? Setup-dependent
-  since 2026-10-09: with the assistant calling the lookup tool itself, the
-  finder runs only on lookups, so the pre-gate and this
-  measurement apply to a setup that asks the finder on every question.
-  Both stay in aim's TODO.md for later.
+- Gate (decision 3): answered 2026-10-12 for hosted tokens, time and
+  visibility. Open: local Jev latency, and whether a Jev-written sentence
+  around the value is worth one more in-house call.
 - Does a menu and page provider keep gist coverage high enough to matter?
 - Annotation or literal: one type with a resolver, or two?

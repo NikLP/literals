@@ -81,7 +81,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    * Key mode returns the value, or the same "none" for every kind of miss.
    */
   public function testKeyMode(): void {
-    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '+44 1223 000000', ['type' => 'text', 'gist' => 'The main switchboard']);
     $this->createLiteral('internal', 'staff-only', ['restricted' => TRUE]);
     $this->createLiteral('draft', 'draft', ['status' => 0]);
     $caller = $this->createUser(['use literal lookup tool']);
@@ -91,7 +91,8 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
     $this->assertSame('match', $values['outcome']);
     $this->assertSame('+44 1223 000000', $values['value']);
     $this->assertSame('Main_phone', $values['label']);
-    $this->assertSame('phone', $values['kind']);
+    $this->assertSame('text', $values['kind']);
+    $this->assertSame('The main switchboard', $values['gist']);
 
     $misses = [];
     foreach (['nosuchkey', 'internal', 'draft'] as $key) {
@@ -117,7 +118,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    * No input is a failure; a key takes precedence over a question.
    */
   public function testInputRules(): void {
-    $this->createLiteral('main_phone', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '111 1111', ['type' => 'text']);
     $caller = $this->createUser(['use literal lookup tool']);
     [$ok] = $this->runTool([], $caller);
     $this->assertFalse($ok);
@@ -130,8 +131,8 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    * Question mode: match, ambiguous, none.
    */
   public function testQuestionMode(): void {
-    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone']);
-    $this->createLiteral('phone_b', '222 2222', ['type' => 'phone']);
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'text']);
+    $this->createLiteral('phone_b', '222 2222', ['type' => 'text']);
     $caller = $this->createUser(['use literal lookup tool']);
 
     [, , $values] = $this->runTool(['question' => 'phone'], $caller);
@@ -156,7 +157,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    * A matched literal whose value cannot resolve for the caller is "none".
    */
   public function testQuestionMatchThatCannotResolve(): void {
-    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'text']);
     $page = $this->createPage('Draft', FALSE);
     $this->createLiteral('gone', 'node:' . $page->id(), ['type' => 'entity']);
     $caller = $this->createUser(['use literal lookup tool', 'access content']);
@@ -169,9 +170,9 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    * Search mode lists candidates (key, name, gist), never values.
    */
   public function testSearchMode(): void {
-    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone', 'name' => 'Main phone', 'gist' => 'The switchboard']);
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'text', 'name' => 'Main phone', 'gist' => 'The switchboard']);
     $this->createLiteral('internal_line', '222 2222', [
-      'type' => 'phone',
+      'type' => 'text',
       'name' => 'Staff phone',
       'restricted' => TRUE,
     ]);
@@ -197,7 +198,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    * The tool passes no context to the finder, and a caller cannot supply one.
    */
   public function testNoCallerContext(): void {
-    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'text']);
     $caller = $this->createUser(['use literal lookup tool']);
 
     $this->runTool(['question' => 'phone'], $caller);
@@ -211,7 +212,7 @@ class LiteralLookupToolTest extends LiteralsKernelTestBase {
    * Key beats question beats search.
    */
   public function testModePrecedence(): void {
-    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'text']);
     $caller = $this->createUser(['use literal lookup tool']);
     [, , $values] = $this->runTool(['key' => 'phone_a', 'question' => 'ambiguous', 'search' => 'phone'], $caller);
     $this->assertSame('match', $values['outcome']);

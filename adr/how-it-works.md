@@ -219,7 +219,7 @@ Same caveat: none of these is an independent blind set.
 
 The cost question from [ADR-0052](0052-what-literals-is-for.md) decision 3,
 measured with `drush aim:chatbot-eval` in aim_chatbot: the same 39
-questions (`gold.agentblind.yml`, 12 literals, hosted Jev) through the real
+questions (`gold.agentblind.yml`, 11 literals, hosted Jev) through the real
 assistant three ways. **`tool`**: the chat model decides to call
 `aim_literal`. **`prompt`**: no tool, every readable value listed in the
 system prompt. **`gate`**: the finder (Jev) decides first; a match is
@@ -264,6 +264,56 @@ xychart-beta
 - **In-house seconds are still hosted Jev's latency.** Local Jev has not
   been measured. One set, one hand, one run per mode.
 
+#### Same three modes at 101 literals
+
+The `pl_*` pool from `pool100.seed.php.txt` added (phones seeded as `text`,
+the `phone` type being gone), then removed again. Two sets: the same 39
+agent-written questions, and `gold.pool100.yml` (59 questions written for
+the pool).
+
+| Mode | Hosted tokens, 11 literals | Hosted tokens, 101 | Seconds, 101 | Correct, agent set | Correct, pool set |
+| --- | --- | --- | --- | --- | --- |
+| `tool` | 3,422 | 3,360 | 4.2 | 20/23 | 20/51 |
+| `prompt` | 1,874 | 5,599 | 2.6 | 22/23 | 37/51 |
+| `gate` | 923 | 604 | 1.3 | 23/23 | 50/51 |
+
+- **The prompt path's cost scales with the pool**, as predicted: about 3x
+  the hosted tokens at 101 literals. The tool path stays flat. The gate
+  falls, since more questions are caught by the finder (28 of 39, 52 of 59);
+  its menu cost moves to Jev (about 3,400 in-house tokens per question).
+- **The chat model is a poor gate.** On the pool set the tool path scored
+  20/51 while the finder alone scored 50/51 on the same questions: the chat
+  model often never called the tool ("I can only help with library
+  questions" for "help with my CV", "I don't have a facilities number" for
+  a leak).
+- **Caveat on the text literals:** "correct" means the stored value appears
+  in the reply. Both chat-model paths often rephrase ("Tuesday and Thursday,
+  10:00-16:00" for "Tue and Thu 10:00-16:00"), so they are marked wrong. That
+  is the paraphrase literals exist to prevent, but it is harsher than a
+  phone number mismatch. The gate returns the stored text untouched.
+
+#### Restricted values (2026-10-12)
+
+`gold.restricted.yml`: two restricted literals (`staff_line`,
+`balls_email`), five phrasings each way, asked as anonymous (must get
+nothing) and as a signed-in user (must get the value).
+
+| Mode | Signed-in gets the value | Restricted value shown to anonymous |
+| --- | --- | --- |
+| `tool` | 5/5 | 0 |
+| `gate` | 5/5 | 0 |
+| `prompt` | 1/5 | 0 |
+
+- **`tool` and `gate` respect visibility** because the value is resolved for
+  the asking account at lookup time.
+- **`prompt` cannot serve both audiences.** Its list is built once, so it
+  held only what anonymous may read: no leak, but the signed-in user was told
+  "I don't have that recorded". Listing everything for everyone would leak.
+  The command's "leak" count for `prompt` here (4) is public numbers offered
+  as alternatives, not the restricted ones.
+- Two literals and one test account: a check that the plumbing holds, not
+  coverage of the access model.
+
 ### Why there is no embedding gate
 
 A gate (embed the question, compare with stored gist vectors, decide alone
@@ -273,8 +323,12 @@ faster at 9 (0.18 s against 0.31 s, 20 of 39 queries answered with no model
 call) and not at 234 (0.44 s against 0.41 s, 5 of 70). Without a decision
 model it was a shortlister: at margin 0.2, 17 of 29 hits, 12 candidate
 lists, no wrong picks, but 3 of 10 unanswerable questions got candidates
-instead of `none`; a looser margin picked wrongly. See
-[progressive-enhancement.md](progressive-enhancement.md).
+instead of `none`; a looser margin picked wrongly. It cost about 450 lines,
+two stored fields, a queue, an embedding provider and three thresholds that
+drifted once; the code is in git history before the removal. Revisit it only
+if menus pass a few hundred literals **and** a measured need appears (a
+metered or slow decision model is the likeliest reason). The ladder of steps
+is in [progressive-enhancement.md](progressive-enhancement.md).
 
 ## Short answers: scale, safety, no models
 

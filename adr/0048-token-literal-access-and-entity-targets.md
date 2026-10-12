@@ -1,9 +1,11 @@
 # ADR-0048: Token literals - resolve for the asking account, and name an entity target for entity data
 
-**Status:** Part A built 2026-10-05; Part B proposed, unbuilt.
+**Status:** Resolved 2026-10-12. Part A built 2026-10-05. Part B (a target
+for entity tokens) dropped: entity data is reached through the `entity`,
+`field` and `content` resolvers instead, each with its own view-access check.
 **Date:** 2026-10-05
 Relates to [ADR-0040](0040-literals-probabilistic-lookup-of-exact-values.md)
-("Types and resolvers", "Access").
+("The parts, settled").
 
 ## Context
 
@@ -41,48 +43,23 @@ leaves 2 untouched.
   `current-date`) and the asking account's own data. Nothing crosses an
   account boundary, by construction rather than by author trust.
 
-### Part B (proposed): entity data via an explicit target
+### Part B (dropped): entity data via an explicit target on the token kind
 
-Entity tokens (`[node:title]`, `[user:mail]` of another user) are core to the
-module's purpose, so they must be supported, with the access check the
-`entity` kind already does:
-
-- The literal names its target as `entity_type:id`, same format as the
-  `entity` kind.
-- `resolve()` loads the target and requires `access('view', $account)`. On
-  denial or a missing target it returns `NULL` (never a partial string).
-- The loaded entity is passed as token data under its type
-  (`['node' => $node]`); the entity's cache tags and the access result's
-  cacheability are merged into the caller's metadata.
-- `validate()` accepts a type with `needs-data` only when it matches the
-  target's entity type.
-
-**Open: where the target lives.** Options:
-
-| Option | For | Against |
-| --- | --- | --- |
-| Second base field `target` on `literal`, used by the token kind only | Value stays a plain template; validated and queried as data; fits how `entity` stores `type:id` | A column unused by three of four kinds; an entity-wide change needing an update hook |
-| Composite value `node:12\|[node:title]` | No schema change | Parsing inside one string; both parts validated by hand; ambiguous if a template contains `\|` |
-| A per-type setting fixing the target (type "Library node") | No per-literal field; access decision made once per type | One target per type; wrong for many literals |
-
-Recommendation: the second field, shown only when the type's kind is
-`token`. It keeps the access-checked reference a first-class value, which is
-what the `entity` kind already does.
+Proposed: a `target` (`entity_type:id`) on token literals so `[node:title]`
+could resolve with an access check, with three options for where the target
+lives (a second base field, a composite value, a per-type setting). Not
+built, and no longer needed: the `entity` resolver returns a link to an
+entity, the `field` resolver returns one field's value from one entity
+(`entity_type:id:field_name`, access is the intersection of the literal's
+rule and the field's view access), and the `content` resolver covers content
+entities. The token kind stays limited to global values and the asking
+account's own data; `validate()` still rejects the rest.
 
 ## Consequences
 
 - Part A needs no migration; the one existing token literal (`[site:name]`)
   is unaffected. `current-user` literals saved earlier would now fail
   validation on next save and resolve without that token's data.
-- Callers must still pass and bubble `CacheableMetadata`; nothing calls
-  `Literal::resolve()` yet (HANDOFF Phase 2 item 1). Without bubbling, per
-  user resolved text can be cached for the wrong user.
-- Part B adds a view-access check per resolve; entity-bearing results get
-  the entity's tags, so editing the node invalidates cached literals.
-
-## Open questions
-
-- Part B target storage (table above).
-- Whether `user` data for another account (`[user:mail]` of user 7) belongs
-  in Part B's target or stays banned. Default: it is just an entity target,
-  with the user's own view access deciding.
+- Callers must pass and bubble `CacheableMetadata`, or per-user resolved text
+  can be cached for the wrong user. `LiteralReader` does; a new caller of
+  `Literal::resolve()` must too.

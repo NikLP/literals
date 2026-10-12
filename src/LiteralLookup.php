@@ -67,7 +67,7 @@ final class LiteralLookup {
    *
    * @return array{success: bool, message: \Drupal\Core\StringTranslation\TranslatableMarkup, values: array<string, string>}
    *   Whether the call was valid, a message for the caller, and the values
-   *   outcome, key, candidates, value, label and kind (all always set).
+   *   outcome, key, candidates, value, label, kind and gist (all always set).
    */
   public function lookup(array $input, ?AccountInterface $account = NULL, string $caller = 'lookup'): array {
     $account ??= $this->currentUser;
@@ -222,7 +222,10 @@ final class LiteralLookup {
    *   The result, as lookup() returns it.
    */
   protected function matched(string $key, ResolvedLiteral $item): array {
-    return $this->success(new TranslatableMarkup('Found literal @key.', ['@key' => $key]), self::MATCH, $key, $item->toArray());
+    // The gist helps the caller judge whether the value fits the question.
+    // The reader has already access-checked this literal for the asker.
+    $gist = Literal::load($key)?->getGist() ?? '';
+    return $this->success(new TranslatableMarkup('Found literal @key.', ['@key' => $key]), self::MATCH, $key, $item->toArray() + ['gist' => $gist]);
   }
 
   /**
@@ -235,7 +238,7 @@ final class LiteralLookup {
    * @param string $key
    *   The key, or the comma-separated candidate keys.
    * @param array $values
-   *   Any of candidates, value, label and kind.
+   *   Any of candidates, value, label, kind and gist.
    *
    * @return array
    *   The result, as lookup() returns it.
@@ -251,6 +254,7 @@ final class LiteralLookup {
         'value' => '',
         'label' => '',
         'kind' => '',
+        'gist' => '',
       ],
     ];
   }

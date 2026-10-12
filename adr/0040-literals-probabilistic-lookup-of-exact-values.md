@@ -12,8 +12,8 @@ Supersedes the retired ADR-0039 (`scope: token`, label-only facts resolving live
 
 Related: [ADR-0048](0048-token-literal-access-and-entity-targets.md)
 (token access, entity targets), [ADR-0052](0052-what-literals-is-for.md)
-(what it is for), [ADR-0053](../../aim/adr/0053-gist-shared-vocabulary.md)
-(the shared "gist" term). Current state and runbooks:
+(what it is for), [ADR-0049](../../aim/adr/0049-finder-family-parked.md) section D
+(the shared "gist" term, formerly ADR-0053). Current state and runbooks:
 [CLAUDE.md](../CLAUDE.md) and [DEVELOPING.md](../DEVELOPING.md); how it works and its
 measurements: [how-it-works.md](how-it-works.md); the model ladder:
 [progressive-enhancement.md](progressive-enhancement.md).
@@ -101,159 +101,60 @@ fields must live together in one place with revisions, access and a list UI:
   (core `ContentEntityForm`, Views, Field UI). The Phase 1 build went standalone
   and the UI stayed small. The Annotations bridge is optional (section 10).
 
-### 2. Anatomy of a literal
+### 2 to 7. The parts, settled (mechanics live in the docs)
 
-- **Name:** the human label (the entity label).
-- **Key:** a machine name generated from the name, editable, **unique across
-  all literals**. Not semantic. It is the option ID handed to the Decision
-  API, the exact-lookup handle, and the stable identifier in audit lines
-  (which cannot log text). Keys equal to a literal field name or an entity
-  token (`url`, `name`, `value`) are refused, because the Token module adds
-  entity tokens under the same `literal` namespace.
-- **Value:** the exact thing returned, interpreted by the type's resolver.
-- **Gist:** short free text (255 characters) describing what the value is
-  for. The only part the chooser ever sees beside the key. A gist answers a
-  one-shot question, not a document: Jev's own guidance prefers concise
-  descriptions, and small local models budget about 125 options in 512
-  tokens. An author may put arbitrary house names after a plain-text `ALSO`
-  ("Main telephone number, ALSO the Beacon Line"); measured 9/9 against 4/9
-  without, with no field and no parser (see "Rejected").
-- **Restricted:** a flag narrowing who may see it (section 4).
-- No numeric confidence field. The judgement lives in the gist's wording.
+Condensed 2026-10-12: these sections described what is now documented where
+it is maintained, so only the decisions and their reasons stay here. Anatomy
+and stored fields: [how-it-works.md](how-it-works.md) "What is stored". Types,
+the finder, the tool and tokens in use: [DEVELOPING.md](../DEVELOPING.md).
+The rules in force (access, keys, revisions, the `field` resolver):
+[CLAUDE.md](../CLAUDE.md) "Decisions in force".
 
-### 3. Types and resolvers
-
-The bundle is a `literal_type` config entity (fieldable, Field UI on its
-edit form). A type names a **resolver** (`LiteralResolver` plugin: `text`,
-`token`, `entity`, `url`, `field`) and carries its settings (text: `validate_as` of
-any text, whole number, phone, email or URL). A site defines its own types
-("Phone number": text, validated as phone; "Page link": url).
-
-A literal holds exactly one value. The resolver validates it on save (a
-`LiteralValue` constraint, so it applies to agents and Drush, not just form
-submits) and `resolve($account)` reads it at read time. The finder, token
-handler and tool all call one `$literal->resolve()` and never read `value`.
-Rejected: a literal holding several fields of mixed kinds (the `config_pages`
-model), because the finder would have to understand arbitrary field types.
-
-- `entity` stores `entity_type:id` and resolves to the entity's URL after a
-  view-access check.
-- `url` is **internal paths only** (starts with a slash, access checked for
-  the viewer): external URLs cannot be access checked. An "allow external"
-  type setting waits for a reason.
-- `token` must contain at least one known token; a cycle guard stops token
-  literals looping.
-- `field` (built 2026-10-10) returns one field of an entity; access is the
-  intersection of the literal's own view rule and the field's.
-
-### 4. Access: one `restricted` flag
-
-Each literal has a boolean `restricted` (default off, so a new literal is
-visible to anyone with `view literals`). Two flat
-permissions split the rest: `view literals` sees every literal not marked
-restricted, `view restricted literals` sees all of them. `edit literals`
-creates, edits and deletes any literal and sees drafts and restricted ones;
-`administer literals` adds types and settings; `use literal lookup tool`
-(`literals_tool`) gates the tool. `LiteralVisibility::visibleFlags($account)`
-returns the flag values an account may see and answers both a single access
-check and a list query, applied by the access handler and a
-`hook_query_alter` for entity queries and Views. **Every consumer filters
-this way before any gist reaches a model.** A hidden literal is
-indistinguishable from a missing one. The `literal_audience` config entities
-and the three-level `audience` column were removed 2026-10-10 as more
-machinery than one realistic split needed.
-
-Core's access handler memoizes per entity per request. View access varies on
-`user.permissions`, which is all the rule depends on, so a page using
-`[literal:key]` does not fragment per user.
-
-Not built, the likely first extension when a second real audience exists:
-per-type "restricted" permissions, or a group that carries the audience (see
-"Deferred").
-
-### 5. The finder and the chooser
-
-Terms: the **finder** is the whole lookup (access filter, outcome cache,
-chooser, result); the **chooser** is only the model call inside it.
-
-`LiteralFinder::find($question, $account, $context)` returns a
-`LiteralFindResult`: `match`, `ambiguous` or `none` (literals, never values),
-the tier that answered (`cache`, `chooser`) and a reason.
-
-1. **Candidates:** published literals, filtered by the `restricted` flag in the query and
-   by `access('view')` per entity.
-2. **Outcome cache** (`cache.default`): key = question + the visible `restricted` flags + a fingerprint of the settings, context and decision model's
-   thresholds; tagged `literal_list`; a `none` is cached `miss_ttl` seconds;
-   errors are never cached. Never served across permission sets.
-3. **Chooser over the whole menu:** one Decision API `ChoiceQuestion`
-   (`drupal/ai`'s `Decision` operation type) whose options are key + gist per
-   candidate plus a `__none__` option. No decision model configured: `none`
-   with reason `no_backend`.
-
-Rules over the answer's per-option probabilities: argmax `__none__` is
-`none`; a lead over the best other literal under `choice_margin` is
-`ambiguous`; a top below `match_threshold` is `none` (`low_confidence`).
-Defaults are 0.5 and 0.2, untuned placeholders that held on every gold set.
-
-- **Whole menu, no shortlist.** The full menu held at 234 literals with no
-  loss in accuracy or speed (about 0.3 to 0.4 s per query on hosted Jev,
-  flat). No vector DB, Search API or embedding gate (all built or measured,
-  none paid; see "Rejected").
-- **Values never go to the chooser.** Only key and gist do. Only a write-time
-  check would ever need a value.
-- **Context.** `chooser_context` (settings, prepended to the instructions)
-  says who is being asked, so "you" and "your" resolve to the site's owner;
-  one sentence also removed near-topic false positives about other
-  organizations. Write contexts positively: a negation ("not the library")
-  over-steered. A caller may pass its own context to `find()` (replaces the
-  site default for that lookup); the tool does not expose one. It is a hint,
-  not a filter. `chooser_instructions` overrides the built-in task prompt.
-- **Misses are visible:** `none` and `ambiguous` are first-class results,
-  never a guess. A wrong confident match is invisible without a spot-check;
-  0 were seen in any run.
-- **Hosted-model caution.** CLAUDE.md allows hosted Jev for synthetic or demo
-  data only. Gists go to the hosted chooser; values never do. A production
-  site needs a local decision model or a data-handling decision first.
-- **Latency:** hosted Jev 0.17 to 0.41 s per call, local `tev1:4b` on this
-  CPU-only laptop 10 to 14 s ([ADR-0038](../../aim/adr/0038-local-decision-models-parked.md)).
-  Supplied figures for a warm GPU (15 to 80 ms p50) are unsourced and
-  describe short inputs; re-measure a local model at 50 to 500 options
-  before deciding on any pool-chopping.
-
-### 6. Tool, search and lookup modes
-
-`literals:lookup` (Tool API, so MCP via `mcp_server_tool_bridge`; submodule
-`literals_tool`) has three modes with precedence `key` > `question` >
-`search`. It returns `outcome` (match, ambiguous, none, candidates), `key`,
-`value` (empty unless a match) and `candidates` ("key: name - gist" lines)
-for `search` and for an ambiguous question, so an agent can see the choices
-and ask again by key. Missing, draft and not-visible are one identical
-"none". The logic is typed service methods returning a value object, with
-the tool a thin wrapper, so it can adopt method-attribute tooling
-([ADR-0044](../../aim/adr/0044-tool-api-method-attributes.md)).
-
-`literals_search` is plain search with no AI: every word (up to 6) must
-appear in name, key or gist, case-insensitive, published only, visibility
-filtered, no scoring. It lists candidates and never decides. Its
-autocomplete route (removed 2026-10-07, no consumer) returned key + escaped name + gist, never values.
-A keyword baseline got 4/29 on the seed set against the finder's 29/29, so it
-is no substitute for the chooser.
-
-Agents propose, they never write storage: no tool lets an agent create
-literal types or enter values (ADR-0035). A narrow `literal_register` tool
-(gist and pointer to an existing target) is not built.
-
-### 7. Tokens
-
-`[literal:key]` (keys are global). A soft dependency on the Token module.
-The handler checks view access itself on every resolve (nothing returned and
-the token stays unreplaced when unreadable), resolves only the published
-revision, reads for the session user, and bubbles
-`literal_list`, the entity's tags and the access result's contexts. Output
-is plain text; escaping is the caller's job, like core tokens.
-Rejected: a semantic token (`[literal:ask:...]`): token rendering sits on
-hot, cached paths, and a model call there is slow, nondeterministic and
-uncacheable. Semantic lookup stays in the tool and finder.
+- **Anatomy.** Name, key (the entity ID, unique, immutable, the only handle
+  logs may carry), value, gist (255 characters, one-shot wording; arbitrary
+  house names go after a plain-text `ALSO`, measured 9/9 against 4/9 without,
+  no field and no parser) and a `restricted` flag. No numeric confidence
+  field: the judgement lives in the gist's wording.
+- **One value per literal, validated by its type's resolver at save** (a
+  constraint, so agents and Drush are covered). The finder, tokens and tool
+  call one `$literal->resolve()` and never read `value`. Rejected: a literal
+  holding several fields of mixed kinds (the `config_pages` model), because
+  the finder would have to understand arbitrary field types. `url` is
+  internal paths only (external URLs cannot be access checked).
+- **Access is one boolean, not audiences.** The `literal_audience` entities
+  and three-level column were removed 2026-10-10 as more machinery than one
+  realistic split needed. `LiteralVisibility::visibleFlags($account)` answers
+  both a single check and a list query, and every consumer filters with it
+  before any gist reaches a model. A hidden literal is indistinguishable from
+  a missing one. Likely first extension when a second real audience exists:
+  per-type "restricted" permissions, or a group carrying the audience.
+- **The finder is the whole lookup; the chooser is the one model call in it.**
+  It returns `match`, `ambiguous` or `none` (literals, never values), the
+  tier that answered and a reason. The whole menu goes to the chooser with
+  no shortlist (234 literals held, about 0.3 to 0.4 s flat); no vector DB,
+  Search API or embedding gate (all built or measured, none paid; see
+  "Rejected"). Values never go to the chooser, only key and gist. Misses are
+  first-class results, never a guess. Defaults (`match_threshold` 0.5,
+  `choice_margin` 0.2) are untuned placeholders that held on every gold set.
+  Hosted Jev is for synthetic or demo data only (gists go to it, values
+  never do); a production site needs a local decision model or a
+  data-handling decision first. Latency and the context-line findings are in
+  how-it-works.md and progressive-enhancement.md.
+- **Tool, search and lookup modes.** `literals:lookup` has three modes with
+  precedence `key` > `question` > `search`; missing, draft and not-visible are
+  one identical "none". The logic is typed service methods returning a value
+  object, the tool a thin wrapper, so it can adopt method-attribute tooling
+  (ADR-0044, retired). Plain search (no AI, every word must appear) lists
+  candidates and never decides; a keyword baseline got 4/29 on the seed set
+  against the finder's 29/29. Agents propose, they never write storage: no
+  tool creates literal types or enters values (ADR-0035), and a narrow
+  `literal_register` tool (gist and pointer to an existing target) is not
+  built.
+- **Tokens.** `[literal:key]`, checked for view access on every resolve,
+  published revision only, escaping left to the caller like core tokens.
+  Rejected: a semantic token (`[literal:ask:...]`), because token rendering
+  sits on hot cached paths and a model call there is slow, nondeterministic
+  and uncacheable.
 
 ### 8. Guardrails at save
 
@@ -270,7 +171,7 @@ the query path): a **one-intent** check (a gist naming two values is
 rejected), a **neighbour** check (could a question be answered by one literal
 and not another), and a **match** check (does this gist fit this value).
 The match check is plausibility, not truth, and
-[ADR-0037](../../aim/adr/0037-transient-source-passages-for-grounding.md)
+[ADR-0037](../../aim/adr/resolved/0037-transient-source-passages-for-grounding.md)
 found bare plausibility the wrong test for small local models; measure
 before leaning on it.
 
@@ -288,8 +189,8 @@ nothing of a literal. Built 2026-10-08 to 10-10: `aim` replaces
 `[literal:key]` tokens in fact text at recall as the viewing account (a fact
 naming an unreadable literal is withheld), and the chat assistant looks
 values up with `aim_literal`, a wrapper over `literals.lookup` exposed
-through `tool_ai_connector`; the large model is the gate for one-shot
-lookups. `aim_recall` does **not** call the finder: the finder as a live
+through `tool_ai_connector`; today the large model is the gate for one-shot
+lookups (measured 2026-10-12: a finder-first gate beats that, ADR-0052 decision 3). `aim_recall` does **not** call the finder: the finder as a live
 recall source, answer modes and convert-a-fact are the unbuilt options in
 the 2026-10-08 addendum to [ADR-0052](0052-what-literals-is-for.md). A parked option:
 an aim-stored gist backend (the gist lives only as a `scope=entity` fact
@@ -312,18 +213,12 @@ skip.
 - **Annotations bridge (optional, not built):** the gist of the field a
   literal points at may be copied once as its default gist; the literal's own
   gist wins. Annotations address a bundle and field, never an instance, so
-  per-instance literals keep their own gist. See "Deferred and pinned" (tracked gists) and ADR-0053.
+  per-instance literals keep their own gist. See "Deferred and pinned" (tracked gists) and [ADR-0049](../../aim/adr/0049-finder-family-parked.md) section D.
   Annotations is `^2.0@alpha`; keep the coupling in an optional package.
 
 ## What is built
 
-| Module | Needs | Provides |
-| --- | --- | --- |
-| `literals` | `user`, `views` (no AI) | entity, types, resolvers, restricted-flag access, reader, `[literal:key]`, Guardrails constraint, plain search, `literals.lookup` service, list UI |
-| (in `literals`, was `literals_search`) | none | plain search |
-| `literals_finder` | `drupal/ai` | finder, chooser, outcome cache, Guardrails runner, `drush literals:eval` |
-| `literals_tool` | `tool` | `literals:lookup` (a thin wrapper over `literals.lookup`; aim sites use `aim_tool`'s `aim_literal` instead) |
-
+Modules and what each provides: [CLAUDE.md](../CLAUDE.md) "Modules".
 Verified: PHPUnit kernel tests (visibility matrix, every resolver, reader,
 token, key rules, guardrail wiring, tool, finder over a fake chooser) and
 `drush literals:eval` gold sets (hosted Jev, 0 wrong-confident in every run;

@@ -10,7 +10,7 @@ The short version: **literals works with no model at all, and the one model
 it can use is a decision model.** Nothing is locked in: adding the finder is
 a module install and a provider setting, not a rewrite.
 
-Terms follow ADR-0040 ("The finder and the chooser"). The **finder** is the whole lookup (filter
+Terms follow ADR-0040 ("The parts, settled"). The **finder** is the whole lookup (filter
 by access, check the cache, ask the chooser, return `match`, `ambiguous` or
 `none`). The **chooser** is the one model call inside it (a Decision API
 `ChoiceQuestion` over each literal's key and gist).
@@ -41,33 +41,13 @@ candidates are a staged choice (group, then literal: two sequential calls,
 still only `drupal/ai`) or a vector index (Search API, `ai_search`, a vector
 DB provider). Neither is built.
 
-## An embedding gate was built and removed
+## Where a model is called, and the removed embedding gate
 
-On 2026-10-05 a gate sat in front of the chooser: embed the question,
-compare it with stored gist vectors in PHP, and decide alone or shortlist
-the top 5. It was removed the same day. With a decision model it added no
-accuracy (identical hits, same correct-none rate, at 9 and at 234 literals)
-and, past a few hundred literals, no speed (near-neighbours leave small
-leads, so the model was needed anyway). On its own, without a decision
-model, it was a shortlister, not a decider: at the safe margin it decided 17
-of 29 answerable questions, never picked wrongly, but could not answer
-"none" to near-topic questions ("email of the librarian" returned five
-phone-ish candidates). It cost about 450 lines, two stored fields, a queue,
-an embedding provider and three thresholds that drifted once. The numbers
-are in [how-it-works.md](how-it-works.md); the code is in git history before
-the removal. Revisit it only if menus pass a few hundred literals **and** a
-measured need appears (a metered or slow decision model is the likeliest
-reason).
-
-## Where a model is called
-
-| Place | What it does | Needs | When it runs |
-| --- | --- | --- | --- |
-| Chooser | Picks one literal (or `none`) from key plus gist | Decision model (hosted Jev here) | Step 1, uncached questions only |
-| Guardrails | Checks gist and value text at save, deterministic guardrails only for the value | `drupal/ai` Guardrails (`literals_finder` provides the set) | At save, if `literals_finder` is enabled |
-
-Not model calls: the exact-key lookup, the outcome cache, the access filter
-and token replacement.
+One model call in the module (the chooser), plus model-backed Guardrails at
+save when `literals_finder` is on. The table of what each is sent and never
+sent is in [how-it-works.md](how-it-works.md), "Where the models are called".
+An embedding gate in front of the chooser was built and removed on
+2026-10-05; why is in the same document, "Why there is no embedding gate".
 
 ## What is known per call
 
@@ -126,14 +106,10 @@ before trusting the thresholds.
 
 ## What is built today
 
-- Step 0: the `literal` entity, `literal_type` bundles, the five resolver
-  plugins, the `restricted` access rule (single checks, entity queries and
-  Views), `literals.reader`, the `[literal:key]` token, the `literals:lookup`
-  tool (`literals_tool`), and Guardrails at save.
-- Step 1: `literals_finder`: the chooser with a site-wide or per-call
-  context, the outcome cache, `literals:find` and `literals:eval`.
-- The one access rule the finder must keep: filter by
-  `LiteralVisibility::visibleFlags($account)` before the chooser sees any gist.
+See [ADR-0040](0040-literals-probabilistic-lookup-of-exact-values.md) "What is
+built" and [CLAUDE.md](../CLAUDE.md). The one access rule the finder must
+keep: filter by `LiteralVisibility::visibleFlags($account)` before the
+chooser sees any gist.
 
 ## Jev limits that shape the menu (TypeSafe docs, read 2026-10-06)
 

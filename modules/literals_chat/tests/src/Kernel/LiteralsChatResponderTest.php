@@ -55,7 +55,7 @@ class LiteralsChatResponderTest extends LiteralsKernelTestBase {
     // The login page is anonymous-only, so ask as anonymous.
     $answer = $this->container->get('literals_chat.responder')->answer('login', new AnonymousUserSession());
     $this->assertSame('match', $answer['outcome']);
-    $this->assertSame('Here you go:', $answer['message']);
+    $this->assertSame('This might be it - Sign in:', $answer['message']);
     $this->assertSame('url', $answer['items'][0]['kind']);
     $this->assertSame('Sign in', $answer['items'][0]['label']);
     $this->assertStringEndsWith('/user/login', $answer['items'][0]['value']);
@@ -65,9 +65,9 @@ class LiteralsChatResponderTest extends LiteralsKernelTestBase {
    * A text match names the label and carries the exact value.
    */
   public function testTextMatch(): void {
-    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone', 'name' => 'Main phone']);
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'text', 'name' => 'Main phone']);
     $answer = $this->container->get('literals_chat.responder')->answer('phone_a', $this->member);
-    $this->assertSame('Main phone:', $answer['message']);
+    $this->assertSame('This might be it - Main phone:', $answer['message']);
     $this->assertSame('111 1111', $answer['items'][0]['value']);
   }
 
@@ -75,8 +75,8 @@ class LiteralsChatResponderTest extends LiteralsKernelTestBase {
    * An ambiguous question lists every candidate that resolves.
    */
   public function testAmbiguousListsCandidates(): void {
-    $this->createLiteral('phone_a', '111 1111', ['type' => 'phone']);
-    $this->createLiteral('phone_b', '222 2222', ['type' => 'phone']);
+    $this->createLiteral('phone_a', '111 1111', ['type' => 'text']);
+    $this->createLiteral('phone_b', '222 2222', ['type' => 'text']);
     $answer = $this->container->get('literals_chat.responder')->answer('ambiguous', $this->member);
     $this->assertSame('ambiguous', $answer['outcome']);
     $this->assertCount(2, $answer['items']);

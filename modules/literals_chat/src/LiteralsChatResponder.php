@@ -132,10 +132,8 @@ class LiteralsChatResponder {
    */
   protected function message(string $outcome, array $items): string {
     if ($outcome === LiteralFindResult::MATCH) {
-      return match ($items[0]['kind']) {
-        ResolvedLiteral::KIND_URL => 'Here you go:',
-        default => $items[0]['label'] . ':',
-      };
+      // The label is always named, so a wrong match is easy to spot.
+      return 'This might be it - ' . $items[0]['label'] . ':';
     }
     if ($outcome === LiteralFindResult::AMBIGUOUS) {
       return 'A few of these might be what you mean:';
