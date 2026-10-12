@@ -13,3 +13,18 @@ literals.settings:
     _title: 'Literals settings'
   requirements:
     _permission: 'administer literals'
+
+literals.content_autocomplete:
+  path: '/admin/content/literals/content-autocomplete'
+  defaults:
+    _controller: '\Drupal\literals\Controller\ContentAutocompleteController::suggest'
+  requirements:
+    _permission: 'edit literals'
+
+literals.restriction_confirm:
+  path: '/admin/content/literals/restriction'
+  defaults:
+    _form: '\Drupal\literals\Form\RestrictionConfirmForm'
+    _title: 'Confirm restriction change'
+  requirements:
+    _permission: 'edit literals'

@@ -44,10 +44,9 @@ module; the finder and the tool are extras (see below).
    ddev drush en literals -y
    ```
 
-   This installs the six literal types (`text`, `phone`, `url`, `token`,
-   `entity`, `field`), `literals.settings` (audit logging, at
-   `/admin/config/literals/settings`) and the admin list view. It grants
-   nothing and creates no literals.
+   This installs the module and the admin list view. It grants nothing and
+   creates no literals. For installation of a moderate setup with default types
+   enabled, use the literals_base recipe.
 
 2. **Grant the view permissions.** `view literals` sees every literal not
    marked restricted; `view restricted literals` sees all of them (a
@@ -153,20 +152,13 @@ literals as a standalone fuzzy value store.
   provider. Without it the gist is only read by plain search, so a clear
   name is enough. With it, literals is a small fuzzy-matching memory that
   runs on its own, with no `aim` and no chat model: describe the value in
-  words and it finds the exact one.
+  words and it finds the right one.
 - `literals_tool` - the `literals:lookup` Tool API / MCP tool, for sites
   running `literals` **without** `aim`. An aim site uses `aim_tool`'s
   `aim_literal` instead: the same `literals.lookup` service under aim's
   name, so the two never both need enabling.
 - `literals_chat` - a chat responder over the finder; a demo surface, likely
   to be scrapped.
-
-## More
-
-Design and decisions live in the `aim` module's ADRs, starting at
-[ADR-0040](adr/0040-literals-probabilistic-lookup-of-exact-values.md)
-and [ADR-0052](adr/0052-what-literals-is-for.md).
-[CLAUDE.md](CLAUDE.md) and [DEVELOPING.md](DEVELOPING.md) have the current build state, rules and commands.
 
 ## Drush commands
 

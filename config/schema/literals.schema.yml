@@ -18,6 +18,12 @@ literals.literal_type.*:
         PluginExists:
           manager: plugin.manager.literal_resolver
           interface: '\Drupal\literals\LiteralResolverInterface'
+    target_bundles:
+      type: sequence
+      label: 'Target bundles'
+      sequence:
+        type: string
+        label: 'Entity type and bundle'
     validate_as:
       type: string
       label: 'Validate as'

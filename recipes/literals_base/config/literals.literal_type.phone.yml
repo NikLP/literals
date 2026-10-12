@@ -5,4 +5,5 @@ id: phone
 label: 'Phone'
 description: ''
 resolver: text
+target_bundles: {  }
 validate_as: phone

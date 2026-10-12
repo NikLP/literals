@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Drupal\literals\Form;
 
 use Drupal\Core\Entity\BundleEntityFormBase;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\literals\LiteralResolverManager;
+use Drupal\literals\Plugin\LiteralResolver\ContentResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -19,14 +22,20 @@ class LiteralTypeForm extends BundleEntityFormBase {
    *
    * @param \Drupal\literals\LiteralResolverManager $resolverManager
    *   The literal resolver plugin manager.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
+   * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $bundleInfo
+   *   The bundle info service.
    */
-  public function __construct(protected LiteralResolverManager $resolverManager) {}
+  public function __construct(protected LiteralResolverManager $resolverManager, EntityTypeManagerInterface $entityTypeManager, protected EntityTypeBundleInfoInterface $bundleInfo) {
+    $this->entityTypeManager = $entityTypeManager;
+  }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('plugin.manager.literal_resolver'));
+    return new static($container->get('plugin.manager.literal_resolver'), $container->get('entity_type.manager'), $container->get('entity_type.bundle.info'));
   }
 
   /**
@@ -44,6 +53,7 @@ class LiteralTypeForm extends BundleEntityFormBase {
       '#required' => TRUE,
       '#maxlength' => 255,
     ];
+
     $form['id'] = [
       '#type' => 'machine_name',
       '#default_value' => $type->id(),
@@ -53,20 +63,45 @@ class LiteralTypeForm extends BundleEntityFormBase {
       ],
       '#disabled' => !$type->isNew(),
     ];
+
     $form['description'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Description'),
       '#default_value' => $type->get('description'),
+      '#rows' => 2,
     ];
+
+    $resolver_label = $this->resolverManager->getOptions()[$type->getResolver()] ?? $type->getResolver();
     $form['resolver'] = [
       '#type' => 'select',
-      '#title' => $this->t('Resolver'),
-      '#description' => $this->t('What the value of a literal of this type is. Fixed once literals exist.'),
+      '#title' => $this->t('Value type'),
+      '#description' => $this->t('What a literal of this type holds, such as text, a page or a token. Cannot be changed after the type is created.'),
       '#options' => $this->resolverManager->getOptions(),
       '#default_value' => $type->getResolver(),
       '#required' => TRUE,
-      '#disabled' => !$type->isNew(),
+      '#access' => $type->isNew(),
     ];
+
+    if (!$type->isNew()) {
+      // Shown as plain text: a disabled select looks broken.
+      $form['resolver_display'] = [
+        '#type' => 'item',
+        '#title' => $this->t('Value type'),
+        '#markup' => $resolver_label,
+        '#weight' => -100,
+        '#wrapper_attributes' => ['class' => ['container-inline']],
+      ];
+    }
+
+    $form['target_bundles'] = [
+      '#type' => 'checkboxes',
+      '#title' => $this->t('Content types'),
+      '#description' => $this->t('The kinds of content a literal of this type can point at. Nothing is allowed until ticked, so new kinds of content stay out until you add them.'),
+      '#options' => ContentResolver::bundleOptions($this->entityTypeManager, $this->bundleInfo),
+      '#default_value' => $type->getTargetBundles(),
+      '#states' => ['visible' => [':input[name="resolver"]' => ['value' => 'content']]],
+    ];
+
     $form['validate_as'] = [
       '#type' => 'select',
       '#title' => $this->t('Validate as'),
@@ -81,7 +116,24 @@ class LiteralTypeForm extends BundleEntityFormBase {
       '#states' => ['visible' => [':input[name="resolver"]' => ['value' => 'text']]],
     ];
 
+    if (!$type->isNew()) {
+      // The value type is fixed, so there is no select for #states to watch.
+      foreach (['target_bundles' => 'content', 'validate_as' => 'text'] as $key => $resolver) {
+        unset($form[$key]['#states']);
+        $form[$key]['#access'] = $type->getResolver() === $resolver;
+      }
+    }
+
     return $this->protectBundleIdElement($form);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildEntity(array $form, FormStateInterface $form_state) {
+    // Checked boxes only, as a plain list.
+    $form_state->setValue('target_bundles', array_values(array_filter((array) $form_state->getValue('target_bundles'))));
+    return parent::buildEntity($form, $form_state);
   }
 
   /**

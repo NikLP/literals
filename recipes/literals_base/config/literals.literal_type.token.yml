@@ -1,8 +1,9 @@
 langcode: en
 status: true
 dependencies: {  }
-id: url
-label: 'Path'
+id: token
+label: Token
 description: ''
-resolver: url
+resolver: token
+target_bundles: {  }
 validate_as: string

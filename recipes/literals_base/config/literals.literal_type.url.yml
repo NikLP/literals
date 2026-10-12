@@ -1,8 +1,9 @@
 langcode: en
 status: true
 dependencies: {  }
-id: field
-label: Field
+id: url
+label: 'Path'
 description: ''
-resolver: field
+resolver: url
+target_bundles: {  }
 validate_as: string

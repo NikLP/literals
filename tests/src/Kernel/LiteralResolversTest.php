@@ -123,6 +123,39 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
   }
 
   /**
+   * The content resolver takes editorial content only, resolving like entity.
+   */
+  public function testContentKind(): void {
+    $page = $this->createPage('Open page');
+    $this->assertFalse($this->valid('content', 'node:' . $page->id()), 'Opt-in: nothing allowed until ticked');
+    LiteralType::load('content')->set('target_bundles', ['node:page'])->save();
+    $this->assertTrue($this->valid('content', 'node:' . $page->id()));
+    $this->assertFalse($this->valid('content', 'node:999'));
+    $this->assertFalse($this->valid('content', 'nonsense'));
+    $this->assertFalse($this->valid('content', 'user:1'), 'Users are not editorial content');
+    $this->assertFalse($this->valid('content', 'literal_type:text'));
+    $this->assertFalse($this->valid('content', 'taxonomy_term:1'), 'Terms have no owner');
+
+    $literal = $this->createLiteral('open_page', 'node:' . $page->id(), ['type' => 'content']);
+    $viewer = $this->createUser(['access content']);
+    $this->assertStringContainsString('/node/' . $page->id(), $literal->resolve($viewer, new CacheableMetadata()));
+  }
+
+  /**
+   * A content type limited to bundles refuses other bundles and entity types.
+   */
+  public function testContentKindBundleLimit(): void {
+    $page = $this->createPage('Open page');
+    $type = LiteralType::load('content');
+    $type->set('target_bundles', ['node:article'])->save();
+    $this->assertFalse($this->valid('content', 'node:' . $page->id()), 'Page is not an allowed bundle');
+
+    $type->set('target_bundles', ['node:page'])->save();
+    $this->assertTrue($this->valid('content', 'node:' . $page->id()));
+    $this->assertFalse($this->valid('content', 'taxonomy_term:1'), 'Terms are not allowed');
+  }
+
+  /**
    * A deleted target resolves to NULL, never an error.
    */
   public function testEntityKindDeletedTarget(): void {

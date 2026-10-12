@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityConstraintViolationListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Site\Settings;
+use Drupal\Core\Utility\Token;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -27,11 +28,17 @@ class LiteralForm extends ContentEntityForm {
   protected KeyValueFactoryInterface $keyValueFactory;
 
   /**
+   * The token service.
+   */
+  protected Token $tokenService;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
     $instance = parent::create($container);
     $instance->keyValueFactory = $container->get('keyvalue');
+    $instance->tokenService = $container->get('token');
     return $instance;
   }
 
@@ -67,8 +74,8 @@ class LiteralForm extends ContentEntityForm {
       if ($this->moduleHandler->moduleExists('token')) {
         $form['value']['token_help'] = [
           '#theme' => 'token_tree_link',
-          '#token_types' => 'all',
-          '#global_types' => TRUE,
+          '#token_types' => $this->supportedTokenTypes(),
+          '#global_types' => FALSE,
           '#weight' => 10,
         ];
       }
@@ -78,6 +85,10 @@ class LiteralForm extends ContentEntityForm {
     }
     if ($resolver === 'url' && $this->moduleHandler->moduleExists('node') && isset($form['value']['widget'][0]['value'])) {
       $this->addContentAutocomplete($form['value']['widget'][0]['value']);
+    }
+
+    if ($resolver === 'content' && isset($form['value']['widget'][0]['value'])) {
+      $this->addContentPicker($form['value']['widget'][0]['value']);
     }
 
     $form['advanced'] = [
@@ -107,6 +118,34 @@ class LiteralForm extends ContentEntityForm {
     $form['revision_information']['#weight'] = 20;
 
     return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function save(array $form, FormStateInterface $form_state): int {
+    $status = parent::save($form, $form_state);
+    $form_state->setRedirectUrl($this->entity->toUrl('collection'));
+    return $status;
+  }
+
+  /**
+   * The token types a token literal can resolve.
+   *
+   * Mirrors TokenResolver::validate(): no session-bound current-user, no literal (recursion), and
+   * nothing that needs an entity, except user (the asking account).
+   *
+   * @return string[]
+   *   Token type IDs.
+   */
+  protected function supportedTokenTypes(): array {
+    $types = [];
+    foreach ($this->tokenService->getInfo()['types'] ?? [] as $id => $info) {
+      if ($id === 'user' || (!in_array($id, ['current-user', 'literal'], TRUE) && empty($info['needs-data']))) {
+        $types[] = $id;
+      }
+    }
+    return $types;
   }
 
   /**
@@ -187,6 +226,49 @@ class LiteralForm extends ContentEntityForm {
     $value = trim((string) $element['#value']);
     if (preg_match('/\((\d+)\)$/', $value, $matches)) {
       $form_state->setValueForElement($element, '/node/' . $matches[1]);
+    }
+  }
+
+  /**
+   * Turns the value element into a content autocomplete.
+   *
+   * Typing a title offers matching content of every content type; picking
+   * one stores "entity_type:id".
+   *
+   * @param array $element
+   *   The value form element.
+   */
+  protected function addContentPicker(array &$element): void {
+    $stored = trim((string) $this->entity->get('value')->value);
+    $label = $stored;
+    [$type, $id] = array_pad(explode(':', $stored, 2), 2, '');
+    if ($id !== '' && $this->entityTypeManager->hasDefinition($type)) {
+      $entity = $this->entityTypeManager->getStorage($type)->load($id);
+      $label = $entity ? $entity->label() . ' (' . $stored . ')' : $stored;
+    }
+    $element['#type'] = 'textfield';
+    $element['#default_value'] = $label;
+    $element['#maxlength'] = 255;
+    $element['#size'] = 60;
+    $element['#autocomplete_route_name'] = 'literals.content_autocomplete';
+    $element['#autocomplete_route_parameters'] = ['type' => $this->entity->bundle()];
+    $element['#description'] = $this->t('Start typing a title, then pick a suggestion.');
+    unset($element['#rows'], $element['#placeholder']);
+    $element['#element_validate'][] = [static::class, 'pickedContentToValue'];
+  }
+
+  /**
+   * Element validate: turns "Title (node:12)" into "node:12".
+   *
+   * @param array $element
+   *   The value form element.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   */
+  public static function pickedContentToValue(array &$element, FormStateInterface $form_state): void {
+    $value = trim((string) $element['#value']);
+    if (preg_match('/\(([a-z0-9_]+:[^()\s]+)\)$/', $value, $matches)) {
+      $form_state->setValueForElement($element, $matches[1]);
     }
   }
 

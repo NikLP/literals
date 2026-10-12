@@ -38,11 +38,13 @@ class LiteralInstallTest extends KernelTestBase {
 
   /**
    * The shipped config exists, grants nothing and validates against schema.
+   *
+   * The module ships no literal types: the literals_base recipe does.
    */
   public function testShippedConfig(): void {
     $types = array_keys($this->container->get('entity_type.manager')->getStorage('literal_type')->loadMultiple());
     sort($types);
-    $this->assertSame(['entity', 'field', 'phone', 'text', 'token', 'url'], $types);
+    $this->assertSame([], $types);
     $this->assertNotNull($this->config('views.view.literals')->get('id'));
 
     $typed = $this->container->get('config.typed');

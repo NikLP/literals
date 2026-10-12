@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\Form\DeleteMultipleForm;
 use Drupal\Core\Entity\Form\RevisionDeleteForm;
 use Drupal\Core\Entity\Form\RevisionRevertForm;
 use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
@@ -50,6 +51,7 @@ use Drupal\views\EntityViewsData;
     'form' => [
       'default' => LiteralForm::class,
       'delete' => ContentEntityDeleteForm::class,
+      'delete-multiple-confirm' => DeleteMultipleForm::class,
       'revision-delete' => RevisionDeleteForm::class,
       'revision-revert' => RevisionRevertForm::class,
     ],
@@ -80,6 +82,7 @@ use Drupal\views\EntityViewsData;
     'canonical' => '/admin/content/literals/{literal}',
     'edit-form' => '/admin/content/literals/{literal}/edit',
     'delete-form' => '/admin/content/literals/{literal}/delete',
+    'delete-multiple-form' => '/admin/content/literals/delete',
     'version-history' => '/admin/content/literals/{literal}/revisions',
     'revision-revert-form' => '/admin/content/literals/{literal}/revision/{literal_revision}/revert',
     'revision-delete-form' => '/admin/content/literals/{literal}/revision/{literal_revision}/delete',

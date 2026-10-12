@@ -58,6 +58,7 @@ use Drupal\literals\LiteralTypeListBuilder;
     'description',
     'resolver',
     'validate_as',
+    'target_bundles',
   ],
 )]
 class LiteralType extends ConfigEntityBundleBase implements RevisionableEntityBundleInterface {
@@ -90,10 +91,30 @@ class LiteralType extends ConfigEntityBundleBase implements RevisionableEntityBu
   protected string $validate_as = 'string';
 
   /**
+   * For the content resolver: the bundles literals may point at.
+   *
+   * Each is "entity_type:bundle", e.g. "node:page". Empty means none: a
+   * content type is opt-in.
+   *
+   * @var string[]
+   */
+  protected array $target_bundles = [];
+
+  /**
    * Returns the resolver plugin ID.
    */
   public function getResolver(): string {
     return $this->resolver;
+  }
+
+  /**
+   * Returns the bundles literals of this type may point at.
+   *
+   * @return string[]
+   *   "entity_type:bundle" strings, empty for none.
+   */
+  public function getTargetBundles(): array {
+    return array_values($this->target_bundles);
   }
 
   /**

@@ -1,6 +1,6 @@
 name: Literals
 type: module
-description: 'Exact values (a phone number, a URL) found by a plain-language description, never guessed.'
+description: 'Multi-type internal value store.'
 package: AIM
 core_version_requirement: ^11
 dependencies:
@@ -8,11 +8,5 @@ dependencies:
   - drupal:views
 config_devel:
   install:
-    - literals.literal_type.entity
-    - literals.literal_type.phone
-    - literals.literal_type.text
-    - literals.literal_type.field
-    - literals.literal_type.token
-    - literals.literal_type.url
     - literals.settings
     - views.view.literals

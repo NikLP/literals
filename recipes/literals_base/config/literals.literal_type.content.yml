@@ -1,8 +1,9 @@
 langcode: en
 status: true
 dependencies: {  }
-id: token
-label: Token
+id: content
+label: Content
 description: ''
-resolver: token
+resolver: content
+target_bundles: {  }
 validate_as: string

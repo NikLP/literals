@@ -68,6 +68,7 @@ abstract class LiteralsKernelTestBase extends KernelTestBase {
     LiteralType::create(['id' => 'phone', 'label' => 'Phone', 'resolver' => 'text', 'validate_as' => 'phone'])->save();
     LiteralType::create(['id' => 'token', 'label' => 'Token', 'resolver' => 'token'])->save();
     LiteralType::create(['id' => 'entity', 'label' => 'Entity', 'resolver' => 'entity'])->save();
+    LiteralType::create(['id' => 'content', 'label' => 'Content', 'resolver' => 'content'])->save();
     LiteralType::create(['id' => 'url', 'label' => 'URL', 'resolver' => 'url'])->save();
     LiteralType::create(['id' => 'field', 'label' => 'Field', 'resolver' => 'field'])->save();
 

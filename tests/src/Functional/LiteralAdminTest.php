@@ -28,6 +28,15 @@ class LiteralAdminTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    // The module ships no types (the literals_base recipe does).
+    LiteralType::create(['id' => 'text', 'label' => 'Text', 'resolver' => 'text'])->save();
+  }
+
+  /**
    * Creates and saves a literal.
    *
    * @param string $id

@@ -66,13 +66,18 @@ class TokenResolver extends LiteralResolverBase {
     }
     $unknown = [];
     $unsupported = [];
+    $incomplete = [];
     foreach ($found as $type => $tokens) {
       foreach (array_keys($tokens) as $name) {
         $token = "[$type:$name]";
         if (!isset($available[$type][explode(':', (string) $name)[0]])) {
           $unknown[] = $token;
         }
-        elseif ($type === 'current-user' || (!empty($info['types'][$type]['needs-data']) && $type !== 'user')) {
+        elseif (!empty($available[$type][$name]['type'])) {
+          // A group of tokens, not a value: it needs a field after it.
+          $incomplete[] = $token;
+        }
+        elseif (in_array($type, ['current-user', 'literal'], TRUE) || (!empty($info['types'][$type]['needs-data']) && $type !== 'user')) {
           // Session-bound, or needs an entity this resolver cannot supply.
           $unsupported[] = $token;
         }
@@ -82,8 +87,11 @@ class TokenResolver extends LiteralResolverBase {
     if ($unknown) {
       $errors[] = (string) new TranslatableMarkup('Unknown token: @tokens', ['@tokens' => implode(', ', $unknown)]);
     }
+    if ($incomplete) {
+      $errors[] = (string) new TranslatableMarkup('Incomplete token: @tokens. Add the field to read, e.g. [config_page:page:field_name].', ['@tokens' => implode(', ', $incomplete)]);
+    }
     if ($unsupported) {
-      $errors[] = (string) new TranslatableMarkup('Not supported here: @tokens. Use [user:...] for the viewing account; entity tokens need an entity target.', ['@tokens' => implode(', ', $unsupported)]);
+      $errors[] = (string) new TranslatableMarkup('Not supported here: @tokens. Use [user:...] for the viewing account; entity tokens need an entity target; literals cannot contain literals.', ['@tokens' => implode(', ', $unsupported)]);
     }
     return $errors;
   }
