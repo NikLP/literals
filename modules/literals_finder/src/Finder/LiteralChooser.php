@@ -49,7 +49,7 @@ class LiteralChooser implements LiteralChooserInterface {
   /**
    * {@inheritdoc}
    */
-  public function choose(string $question, array $candidates, ?string $context = NULL): LiteralFindResult {
+  public function choose(string $question, array $candidates, ?string $context = NULL, ?array $thresholds = NULL): LiteralFindResult {
     $default = $this->aiProvider->getDefaultProviderForOperationType('decision');
     if (empty($default['provider_id']) || empty($default['model_id'])) {
       throw new \RuntimeException('No default decision provider is configured.');
@@ -80,8 +80,8 @@ class LiteralChooser implements LiteralChooserInterface {
     $answer = $provider->decision($input, $default['model_id'], ['literals_choose'])->getNormalized()->getChoice('choice');
 
     $settings = $this->configFactory->get('literals_finder.settings');
-    $threshold = (float) $settings->get('match_threshold');
-    $margin = (float) $settings->get('choice_margin');
+    $threshold = (float) ($thresholds['match_threshold'] ?? $settings->get('match_threshold'));
+    $margin = (float) ($thresholds['choice_margin'] ?? $settings->get('choice_margin'));
 
     $probabilities = $answer->getProbabilities();
     arsort($probabilities);

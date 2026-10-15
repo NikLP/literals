@@ -51,7 +51,7 @@ class LiteralFinder implements LiteralFinderInterface {
   /**
    * {@inheritdoc}
    */
-  public function find(string $question, ?AccountInterface $account = NULL, ?string $context = NULL): LiteralFindResult {
+  public function find(string $question, ?AccountInterface $account = NULL, ?string $context = NULL, ?array $thresholds = NULL): LiteralFindResult {
     $account ??= $this->currentUser;
     $question = mb_substr(trim($question), 0, max(20, (int) $this->configFactory->get('literals_finder.settings')->get('max_question_length') ?: 300));
     $candidates = $this->candidates($account);
@@ -62,7 +62,7 @@ class LiteralFinder implements LiteralFinderInterface {
     // Never serve across permission sets: the key carries what is visible.
     $normalized = mb_strtolower(preg_replace('/\s+/', ' ', $question));
     $visible = json_encode(LiteralVisibility::visibleFlags($account));
-    $cid = 'literals:find:' . hash('sha256', "$normalized|$visible|" . $this->settingsFingerprint($context));
+    $cid = 'literals:find:' . hash('sha256', "$normalized|$visible|" . $this->settingsFingerprint($context, $thresholds));
     if ($hit = $this->cache->get($cid)) {
       $by_id = $this->entityTypeManager->getStorage('literal')->loadMultiple($hit->data['ids']);
       // A cached id the asker can no longer see just drops out.
@@ -73,7 +73,7 @@ class LiteralFinder implements LiteralFinderInterface {
     }
 
     try {
-      $result = $this->lookup($question, $candidates, $context);
+      $result = $this->lookup($question, $candidates, $context, $thresholds);
     }
     catch (\Throwable $e) {
       // A model failure is not a "none": it is reported, never cached.
@@ -108,14 +108,17 @@ class LiteralFinder implements LiteralFinderInterface {
    *
    * @param string|null $context
    *   The caller's context, if any.
+   * @param array|null $thresholds
+   *   The caller's threshold overrides, if any.
    *
    * @return string
    *   A hash.
    */
-  protected function settingsFingerprint(?string $context): string {
+  protected function settingsFingerprint(?string $context, ?array $thresholds = NULL): string {
     $settings = $this->configFactory->get('literals_finder.settings')->getRawData();
     unset($settings['_core'], $settings['log_audit']);
     $settings['context'] = $context ?? '';
+    $settings['thresholds'] = $thresholds ?? [];
     ksort($settings);
     return hash('sha256', serialize($settings));
   }
@@ -129,12 +132,14 @@ class LiteralFinder implements LiteralFinderInterface {
    *   Literals the asker may see.
    * @param string|null $context
    *   The caller's context for the chooser, if any.
+   * @param array|null $thresholds
+   *   The caller's threshold overrides for the chooser, if any.
    */
-  protected function lookup(string $question, array $candidates, ?string $context = NULL): LiteralFindResult {
+  protected function lookup(string $question, array $candidates, ?string $context = NULL, ?array $thresholds = NULL): LiteralFindResult {
     if (!$this->chooser->isAvailable()) {
       return new LiteralFindResult(LiteralFindResult::NONE, [], 'pool', 'no_backend');
     }
-    return $this->chooser->choose($question, $candidates, $context);
+    return $this->chooser->choose($question, $candidates, $context, $thresholds);
   }
 
   /**

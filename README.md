@@ -52,8 +52,9 @@ module; the finder and the tool are extras (see below).
    marked restricted; `view restricted literals` sees all of them (a
    literal's **Restricted** checkbox). Nothing is granted on install (a
    literal nobody can see fails closed), so choose deliberately. The
-   `literals_base` recipe grants `view literals` to everyone and `view
-   restricted literals` to signed-in users:
+   `literals_base` recipe grants `view literals` to everyone; grant `view
+   restricted literals` yourself to the staff role that should see
+   restricted values:
 
    ```bash
    ddev drush recipe modules/custom/literals/recipes/literals_base

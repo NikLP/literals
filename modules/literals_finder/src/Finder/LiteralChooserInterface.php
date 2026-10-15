@@ -26,6 +26,9 @@ interface LiteralChooserInterface {
    * @param string|null $context
    *   Who is being asked and why, put before the instructions. NULL uses the
    *   site's configured context.
+   * @param array|null $thresholds
+   *   Overrides of match_threshold and choice_margin for this call, or NULL
+   *   for the site settings.
    *
    * @return \Drupal\literals_finder\Finder\LiteralFindResult
    *   Match, ambiguous (the near-tied options) or none.
@@ -33,6 +36,6 @@ interface LiteralChooserInterface {
    * @throws \RuntimeException
    *   When no decision model is configured or the call fails.
    */
-  public function choose(string $question, array $candidates, ?string $context = NULL): LiteralFindResult;
+  public function choose(string $question, array $candidates, ?string $context = NULL, ?array $thresholds = NULL): LiteralFindResult;
 
 }

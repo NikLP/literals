@@ -76,7 +76,7 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
    * No decision model is "none" with reason no_backend, and never cached.
    */
   public function testNoBackendIsNotCached(): void {
-    $this->createLiteral('main_phone', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '111 1111', ['type' => 'text']);
     FakeChooser::$available = FALSE;
     $result = $this->finder()->find('phone number', $this->member);
     $this->assertSame('none', $result->outcome);
@@ -96,7 +96,7 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
   public function testNoCandidates(): void {
     $result = $this->finder()->find('phone number', $this->member);
     $this->assertSame('no_candidates', $result->reason);
-    $this->createLiteral('main_phone', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '111 1111', ['type' => 'text']);
     $result = $this->finder()->find('   ', $this->member);
     $this->assertSame('no_candidates', $result->reason);
     // A literal with no gist is not on the menu.
@@ -108,7 +108,7 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
    * A repeat of a question (case and spacing aside) is served from the cache.
    */
   public function testOutcomeCache(): void {
-    $this->createLiteral('main_phone', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '111 1111', ['type' => 'text']);
     FakeChooser::$answer = ['match', ['main_phone']];
 
     $first = $this->finder()->find('Phone  number', $this->member);
@@ -124,12 +124,12 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
    * Saving a literal drops cached outcomes, so a stale "none" cannot stick.
    */
   public function testCacheClearsOnLiteralSave(): void {
-    $this->createLiteral('main_phone', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '111 1111', ['type' => 'text']);
     FakeChooser::$answer = ['none', []];
     $this->assertSame('none', $this->finder()->find('fax number', $this->member)->outcome);
     $this->assertSame('cache', $this->finder()->find('fax number', $this->member)->tier);
 
-    $this->createLiteral('fax', '222 2222', ['type' => 'phone']);
+    $this->createLiteral('fax', '222 2222', ['type' => 'text']);
     FakeChooser::$answer = ['match', ['fax']];
     $result = $this->finder()->find('fax number', $this->member);
     $this->assertSame('chooser', $result->tier);
@@ -140,7 +140,7 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
    * Changed settings, a changed site context or another call context re-ask.
    */
   public function testCacheFingerprint(): void {
-    $this->createLiteral('main_phone', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '111 1111', ['type' => 'text']);
     FakeChooser::$answer = ['match', ['main_phone']];
     $this->finder()->find('your phone', $this->member);
     $this->assertSame(1, FakeChooser::$calls);
@@ -162,18 +162,26 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
     $this->finder()->find('your phone', $this->member);
     $this->assertSame(4, FakeChooser::$calls, 'A changed threshold is not served stale');
 
+    // A caller's stricter thresholds are a different ask and reach the chooser.
+    $strict = ['match_threshold' => 0.8, 'choice_margin' => 0.4];
+    $this->finder()->find('your phone', $this->member, NULL, $strict);
+    $this->assertSame(5, FakeChooser::$calls, 'Strict thresholds are not served from the default answer');
+    $this->assertSame($strict, FakeChooser::$lastThresholds);
+    $this->finder()->find('your phone', $this->member, NULL, $strict);
+    $this->assertSame(5, FakeChooser::$calls, 'The same strict ask is cached');
+
     // The audit switch is not part of the outcome.
     $this->config('literals_finder.settings')->set('log_audit', FALSE)->save();
     $this->finder()->find('your phone', $this->member);
-    $this->assertSame(4, FakeChooser::$calls);
+    $this->assertSame(5, FakeChooser::$calls);
   }
 
   /**
    * The chooser sees only what the asker may view, and caches do not cross.
    */
   public function testRestrictedFilterAndCacheSeparation(): void {
-    $this->createLiteral('main_phone', '111 1111', ['type' => 'phone']);
-    $this->createLiteral('staff_line', '222 2222', ['type' => 'phone', 'restricted' => TRUE]);
+    $this->createLiteral('main_phone', '111 1111', ['type' => 'text']);
+    $this->createLiteral('staff_line', '222 2222', ['type' => 'text', 'restricted' => TRUE]);
     $this->createLiteral('draft', 'x', ['status' => 0]);
     FakeChooser::$answer = ['ambiguous', ['main_phone', 'staff_line']];
 
@@ -195,7 +203,7 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
    * A model failure is reported as none/error and never cached.
    */
   public function testChooserFailureIsNotCached(): void {
-    $this->createLiteral('main_phone', '111 1111', ['type' => 'phone']);
+    $this->createLiteral('main_phone', '111 1111', ['type' => 'text']);
     FakeChooser::$throw = TRUE;
     $result = $this->finder()->find('phone', $this->member);
     $this->assertSame('none', $result->outcome);
@@ -236,6 +244,11 @@ class FakeChooser implements LiteralChooserInterface {
   public static ?string $lastContext = NULL;
 
   /**
+   * The threshold overrides of the last call.
+   */
+  public static ?array $lastThresholds = NULL;
+
+  /**
    * The candidate keys of the last call.
    */
   public static array $lastKeys = [];
@@ -253,6 +266,7 @@ class FakeChooser implements LiteralChooserInterface {
     self::$throw = FALSE;
     self::$calls = 0;
     self::$lastContext = NULL;
+    self::$lastThresholds = NULL;
     self::$lastKeys = [];
     self::$answer = ['none', []];
   }
@@ -267,8 +281,9 @@ class FakeChooser implements LiteralChooserInterface {
   /**
    * {@inheritdoc}
    */
-  public function choose(string $question, array $candidates, ?string $context = NULL): LiteralFindResult {
+  public function choose(string $question, array $candidates, ?string $context = NULL, ?array $thresholds = NULL): LiteralFindResult {
     self::$calls++;
+    self::$lastThresholds = $thresholds;
     self::$lastContext = $context;
     self::$lastKeys = array_values(array_map(fn ($l) => $l->id(), $candidates));
     if (self::$throw) {

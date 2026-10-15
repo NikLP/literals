@@ -25,10 +25,14 @@ interface LiteralFinderInterface {
    *   Who is being asked and why (for example, which website or role the
    *   question is put on behalf of), given to the chooser model. It replaces
    *   the site's configured context for this lookup. NULL uses the default.
+   * @param array|null $thresholds
+   *   Per-call overrides of match_threshold and choice_margin, for a caller
+   *   that wants a stricter bar than the site default (for example one that
+   *   acts on a match with no one checking it). NULL uses the site settings.
    *
    * @return \Drupal\literals_finder\Finder\LiteralFindResult
    *   Match, ambiguous or none. Never a guess.
    */
-  public function find(string $question, ?AccountInterface $account = NULL, ?string $context = NULL): LiteralFindResult;
+  public function find(string $question, ?AccountInterface $account = NULL, ?string $context = NULL, ?array $thresholds = NULL): LiteralFindResult;
 
 }
