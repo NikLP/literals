@@ -31,6 +31,8 @@ final class LiteralLookup {
 
   public const NONE = 'none';
 
+  public const UNAVAILABLE = 'unavailable';
+
   public const CANDIDATES = 'candidates';
 
   /**
@@ -152,6 +154,16 @@ final class LiteralLookup {
         self::AMBIGUOUS,
         implode(',', $keys),
         ['candidates' => $this->describe($result->literals)],
+      );
+    }
+    // A finder that could not run (model error, no model configured) is not
+    // a "none": saying "not recorded" for a value that is recorded is a
+    // wrong answer, so the caller is told to say it cannot check right now.
+    if ($result->outcome === self::NONE && in_array($result->reason, ['error', 'no_backend'], TRUE)) {
+      return $this->success(
+        new TranslatableMarkup('The lookup could not be completed right now. This does not mean the value is not recorded: tell the visitor you cannot check at the moment and to try again shortly.'),
+        self::UNAVAILABLE,
+        '',
       );
     }
     return $this->notFound();
