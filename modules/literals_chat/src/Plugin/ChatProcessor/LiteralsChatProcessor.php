@@ -62,6 +62,7 @@ class LiteralsChatProcessor extends ChatProcessorBase implements ContainerFactor
     if (!$input) {
       throw new \InvalidArgumentException('Input must be set before execution.');
     }
+
     $question = '';
     foreach (array_reverse($input->getMessages()) as $message) {
       if ($message->getRole() === 'user') {
@@ -69,6 +70,7 @@ class LiteralsChatProcessor extends ChatProcessorBase implements ContainerFactor
         break;
       }
     }
+
     $answer = $this->responder->answer($question, $this->currentUser);
     return new ChatOutput(new ChatMessage('assistant', $this->responder->toMarkdown($answer)), [], []);
   }

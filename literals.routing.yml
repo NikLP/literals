@@ -6,14 +6,6 @@ literals.admin_config:
   requirements:
     _permission: 'administer literals'
 
-literals.settings:
-  path: '/admin/config/literals/settings'
-  defaults:
-    _form: '\Drupal\literals\Form\LiteralsSettingsForm'
-    _title: 'Literals settings'
-  requirements:
-    _permission: 'administer literals'
-
 literals.content_autocomplete:
   path: '/admin/content/literals/content-autocomplete'
   defaults:
@@ -28,3 +20,11 @@ literals.restriction_confirm:
     _title: 'Confirm restriction change'
   requirements:
     _permission: 'edit literals'
+
+literals.settings:
+  path: '/admin/config/literals/settings'
+  defaults:
+    _form: '\Drupal\literals\Form\LiteralsSettingsForm'
+    _title: 'Literals settings'
+  requirements:
+    _permission: 'administer literals'

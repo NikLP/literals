@@ -1,26 +1,26 @@
 entity.literal.collection:
   title: 'Literals'
-  description: 'Exact values with a plain-language description.'
+  description: 'Exact values with a plain-language description'
   route_name: entity.literal.collection
   parent: system.admin_content
 
-entity.literal_type.collection:
-  title: 'Literal types'
-  description: 'The fixed kinds of literal, and which can be used.'
-  route_name: entity.literal_type.collection
-  parent: literals.admin_config
-  weight: 10
-
 literals.admin_config:
   title: 'Literals'
-  description: 'Configure literals.'
+  description: 'Configure literals'
   parent: system.admin_config
   route_name: literals.admin_config
   weight: 0
+
+entity.literal_type.collection:
+  title: 'Literals types'
+  description: 'The fixed types of literal, and which can be used.'
+  route_name: entity.literal_type.collection
+  parent: literals.admin_config
+  weight: -10
 
 literals.settings:
   title: 'Settings'
   description: 'Audit logging for literal writes and reads.'
   parent: literals.admin_config
   route_name: literals.settings
-  weight: 0
+  weight: 10

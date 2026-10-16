@@ -1,6 +1,6 @@
 name: Literals
 type: module
-description: 'Multi-type internal value store.'
+description: 'Multi-type internal key/value store.'
 package: AIM
 core_version_requirement: ^11
 dependencies:
