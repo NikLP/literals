@@ -161,7 +161,7 @@ final class LiteralLookup {
     // wrong answer, so the caller is told to say it cannot check right now.
     if ($result->outcome === self::NONE && in_array($result->reason, ['error', 'no_backend'], TRUE)) {
       return $this->success(
-        new TranslatableMarkup('The lookup could not be completed right now. This does not mean the value is not recorded: tell the visitor you cannot check at the moment and to try again shortly.'),
+        new TranslatableMarkup('The exact-value lookup could not run right now. This does not mean the value is not recorded: check memory with the recall tool before answering, and if that finds nothing say you cannot verify exact values at the moment and to try again shortly.'),
         self::UNAVAILABLE,
         '',
       );
