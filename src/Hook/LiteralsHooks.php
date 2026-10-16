@@ -59,6 +59,7 @@ class LiteralsHooks {
   public function ginContentFormRoutes(): array {
     return [
       'entity.literal.add_form',
+      'entity.literal.canonical',
       'entity.literal.edit_form',
     ];
   }
