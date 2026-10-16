@@ -198,7 +198,7 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
       ->setRevisionable(TRUE)
       ->setDefaultValue(FALSE)
       ->setDisplayConfigurable('form', TRUE)
-      ->setDisplayOptions('form', ['type' => 'boolean_checkbox', 'weight' => 2, 'settings' => ['display_label' => TRUE]]);
+      ->setDisplayOptions('form', ['type' => 'boolean_checkbox', 'weight' => 3, 'settings' => ['display_label' => TRUE]]);
 
     $fields['value'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Value'))
@@ -218,7 +218,7 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
       ->setSetting('max_length', 255)
       ->addConstraint('LiteralGuardrails')
       ->setDisplayConfigurable('form', TRUE)
-      ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => 15]);
+      ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => 2]);
 
     $fields += static::ownerBaseFieldDefinitions($entity_type);
     $fields['uid']
