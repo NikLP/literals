@@ -128,8 +128,10 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   Validate config schema with
   `\Drupal::service('config.typed')->createFromNameAndData($name, $data)->validate()`
   (`config:inspect` is not available).
-- The two `ai.ai_guardrail*` configs raise a schema warning about
-  `check_all_messages` (an upstream schema gap, same as aim's copy).
+- The `ai.ai_guardrail.literals_max_length` config uses `scan_all_user_messages`
+  (ai renamed it from `check_all_messages`; the old key made a schema error
+  on every install/import, fixed 2026-10-18 here and in aim's copy). The
+  schema-checker exclusions in the finder's tests may now be removable.
 
 ## Lint and tests
 
