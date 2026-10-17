@@ -58,7 +58,7 @@ class LiteralForm extends ContentEntityForm {
       '#description' => $this->t('Used in [literal:key] tokens. Cannot change once saved.'),
       '#maxlength' => 64,
       '#default_value' => $literal->id(),
-      '#disabled' => !$literal->isNew(),
+      '#access' => $literal->isNew(),
       '#weight' => 1,
       '#machine_name' => [
         'source' => ['name', 'widget', 0, 'value'],

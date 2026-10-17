@@ -3,3 +3,23 @@ description: 'Demo literals for the fictional Harbourside Community Library demo
 type: 'Demo'
 recipes:
   - literals_base
+install:
+  - literals_finder
+  - literals_chat
+  - ai_chatbot
+config:
+  import:
+    literals_finder: '*'
+  actions:
+    user.role.authenticated:
+      grantPermissions:
+        - 'use literals chat'
+        - 'access deepchat api'
+    block.block.literals_demo_chat:
+      placeBlockInDefaultTheme:
+        plugin: ai_deepchat_block
+        region: content
+        settings:
+          label: 'Ask the library'
+          label_display: visible
+          chat_processor_plugin: literals_chat_processor

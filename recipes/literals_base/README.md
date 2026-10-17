@@ -18,5 +18,8 @@ module itself, not this recipe. Content has no bundles ticked, so it holds
 nothing until you tick some on its edit screen.
 
 ```bash
-ddev drush recipe modules/custom/literals/recipes/literals_base
+ddev drush recipe /var/www/html/web/modules/custom/literals/recipes/literals_base
 ```
+
+Adjust the path to where the module sits (`/var/www/html/web/modules/contrib/literals/...` if
+installed through Composer).

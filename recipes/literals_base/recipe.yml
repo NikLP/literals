@@ -4,6 +4,10 @@ type: 'Configuration'
 install:
   - literals
 config:
+  # A recipe-installed module is installed in syncing mode, so its own
+  # config/install is skipped; import it explicitly.
+  import:
+    literals: '*'
   actions:
     user.role.anonymous:
       grantPermissions:

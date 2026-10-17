@@ -10,8 +10,11 @@ Re-applying skips literals that already exist (matched by UUID), so a
 value edited on the site is not overwritten.
 
 ```bash
-ddev drush recipe modules/custom/literals/recipes/literals_demo_library
+ddev drush recipe /var/www/html/web/modules/custom/literals/recipes/literals_demo_library
 ```
+
+Adjust the path to where the module sits (`/var/www/html/web/modules/contrib/literals/...` if
+installed through Composer).
 
 Phone numbers are fictional. The `url` literals point at core paths
 (`/user/login`, `/user/password`, `/user`), so they resolve on any site.
