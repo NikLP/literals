@@ -23,3 +23,8 @@ config:
           label: 'Ask the library'
           label_display: visible
           chat_processor_plugin: literals_chat_processor
+          # The default placement (toolbar) needs the admin toolbar and does
+          # not work on a front-end theme.
+          placement: bottom-right
+          bot_name: 'Library Assistant'
+          first_message: "Hi! I'm the Harbourside Library assistant. Ask me about opening hours, borrowing, events or services."
