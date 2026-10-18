@@ -84,9 +84,14 @@ site default for that lookup.
 Gold sets are in `modules/literals_finder/eval/`: `gold.seed.yml`,
 `gold.paraphrase.yml`, `gold.blind.yml`, `gold.agentblind.yml` (written by
 a cold agent from the menu alone), `gold.stress.yml`, `gold.pool100.yml`.
-Pool seeders: `scale.gen.php.txt` (up to 225 synthetic `zz_` literals;
-instructions in its header), `pool100.seed.php.txt` (90 `pl_*` literals;
-`POOL_CLEAN=1` removes them), `stress.seed.php.txt`. All numbers so far are
+Test pools are YAML in `modules/literals_finder/eval/pools/` (`pool100`: 90
+`pl_*` literals, `stress`: 14 `st_*`), loaded and removed with
+`drush literals:pool load|clean NAME` (runs as user 1; removes exactly the
+keys the file lists). `drush literals:pool-scale --count=60 --gold=PATH`
+generates up to 225 synthetic `zz_` literals and a matching gold set from
+`pools/scale.yml`; `--clean` removes them. The pools are synthetic fixtures
+for regression runs, not a basis for tuning a real site (see
+`eval/TUNING.md`). All numbers so far are
 in-sample (written by the module's author or an agent, not independently);
 a set written by someone else is the fair test.
 

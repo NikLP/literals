@@ -1,4 +1,4 @@
-# Questions for the 91 pl_* literals (pool100.seed.php.txt). Written by Claude,
+# Questions for the 91 pl_* literals (drush literals:pool load pool100). Written by Claude,
 # not blind. Run alongside gold.seed/blind/paraphrase to see regressions from a
 # bigger pool. Nones are things no literal covers (and no old none-query is
 # made answerable by the pool).

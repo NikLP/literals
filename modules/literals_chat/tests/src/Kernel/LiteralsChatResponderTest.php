@@ -141,7 +141,7 @@ class FakeChatFinder implements LiteralFinderInterface {
   /**
    * {@inheritdoc}
    */
-  public function find(string $question, ?AccountInterface $account = NULL, ?string $context = NULL): LiteralFindResult {
+  public function find(string $question, ?AccountInterface $account = NULL, ?string $context = NULL, ?array $thresholds = NULL): LiteralFindResult {
     $keys = $question === 'ambiguous' ? ['phone_a', 'phone_b'] : [$question];
     $storage = $this->entityTypeManager->getStorage('literal');
     $found = [];

@@ -152,7 +152,7 @@ seeing the one query it fixed.
 | Set | Pool | Answerable hits | Wrong-confident | Unanswerable correct | Time per query |
 | --- | --- | --- | --- | --- | --- |
 | Seed (`eval/gold.seed.yml`, with "you/your" phrasings) | 9 literals | 29/29 | 0 | 10/10 | 0.3 s |
-| Synthetic, near-neighbour heavy (`eval/scale.gen.php.txt`) | 60 | 60/60 | 0 | 10/10 | 0.4 s |
+| Synthetic, near-neighbour heavy (`drush literals:pool-scale`) | 60 | 60/60 | 0 | 10/10 | 0.4 s |
 | Synthetic | 234 | 60/60 | 0 | 10/10 (3 repeat runs) | 0.4 s |
 
 Keyword baseline on the seed set (2026-10-06, same 39 queries): the
@@ -266,7 +266,7 @@ xychart-beta
 
 #### Same three modes at 101 literals
 
-The `pl_*` pool from `pool100.seed.php.txt` added (phones seeded as `text`,
+The `pl_*` pool from `eval/pools/pool100.yml` added (phones seeded as `text`,
 the `phone` type being gone), then removed again. Two sets: the same 39
 agent-written questions, and `gold.pool100.yml` (59 questions written for
 the pool).

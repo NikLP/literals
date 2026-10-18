@@ -83,12 +83,35 @@ class LiteralChooser implements LiteralChooserInterface {
     $threshold = (float) ($thresholds['match_threshold'] ?? $settings->get('match_threshold'));
     $margin = (float) ($thresholds['choice_margin'] ?? $settings->get('choice_margin'));
 
-    $probabilities = $answer->getProbabilities();
+    return $this->interpret($answer->getProbabilities(), $by_key, $threshold, $margin);
+  }
+
+  /**
+   * Turns the model's probabilities into a find result.
+   *
+   * @param float[] $probabilities
+   *   Probabilities keyed by literal key, plus the none option.
+   * @param \Drupal\literals\Entity\Literal[] $by_key
+   *   The candidate literals keyed by key.
+   * @param float $threshold
+   *   The least probability a top pick needs to be returned at all.
+   * @param float $margin
+   *   The lead the top pick needs over the runner-up.
+   *
+   * @return \Drupal\literals_finder\Finder\LiteralFindResult
+   *   The result.
+   */
+  public function interpret(array $probabilities, array $by_key, float $threshold, float $margin): LiteralFindResult {
     arsort($probabilities);
     $ranked = array_keys($probabilities);
     $top = $ranked[0];
     if ($top === self::NONE_OPTION || !isset($by_key[$top])) {
       return new LiteralFindResult(LiteralFindResult::NONE, [], 'chooser', 'chose_none');
+    }
+    // A top pick under the threshold is no answer, however the rest lie: a flat
+    // spread would otherwise tie almost the whole pool.
+    if ($probabilities[$top] < $threshold) {
+      return new LiteralFindResult(LiteralFindResult::NONE, [], 'chooser', 'low_confidence');
     }
     // The lead is over the best other literal: "none" is only a rival for the
     // top place, never part of a tie.
@@ -99,16 +122,14 @@ class LiteralChooser implements LiteralChooserInterface {
       }
     }
     if ($probabilities[$top] - $rival < $margin) {
+      // Only literals the model itself believes in are contenders.
       $tied = [];
       foreach ($probabilities as $key => $p) {
-        if ($key !== self::NONE_OPTION && isset($by_key[$key]) && $probabilities[$top] - $p < $margin) {
+        if ($key !== self::NONE_OPTION && isset($by_key[$key]) && $p >= $threshold && $probabilities[$top] - $p < $margin) {
           $tied[] = $by_key[$key];
         }
       }
       return new LiteralFindResult(LiteralFindResult::AMBIGUOUS, $tied, 'chooser');
-    }
-    if ($probabilities[$top] < $threshold) {
-      return new LiteralFindResult(LiteralFindResult::NONE, [], 'chooser', 'low_confidence');
     }
     return new LiteralFindResult(LiteralFindResult::MATCH, [$by_key[$top]], 'chooser');
   }

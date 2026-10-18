@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\literals\Entity\Literal;
 use Drupal\literals_finder\Finder\LiteralFindResult;
 use Drupal\literals_finder\Finder\LiteralFinderInterface;
 use Drupal\user\Entity\User;
@@ -151,6 +152,124 @@ final class LiteralsCommands extends DrushCommands {
       'Unanswerable: correct none ' . $pct($score['none_ok'], $unanswerable) . ', false positive ' . $score['none_fp'],
       sprintf('Mean time %.2fs per query', $gold ? $elapsed / count($gold) : 0),
     ]);
+  }
+
+  /**
+   * Loads or removes a test pool of literals from eval/pools/NAME.yml.
+   *
+   * Runs as user 1. Existing literals with a pool key are replaced on load.
+   * Removing deletes exactly the keys the pool file lists.
+   */
+  #[CLI\Command(name: 'literals:pool')]
+  #[CLI\Argument(name: 'action', description: 'load or clean.')]
+  #[CLI\Argument(name: 'name', description: 'Pool name: a file in eval/pools, without .yml (pool100, stress).')]
+  public function pool(string $action, string $name): void {
+    if (!in_array($action, ['load', 'clean'], TRUE) || !preg_match('/^[a-z0-9_]+$/', $name)) {
+      throw new \InvalidArgumentException('Usage: literals:pool load|clean NAME');
+    }
+    $file = $this->moduleList->getPath('literals_finder') . "/eval/pools/$name.yml";
+    if (!is_file($file)) {
+      throw new \InvalidArgumentException("No pool file at $file");
+    }
+    $rows = Yaml::decode(file_get_contents($file))['literals'] ?? [];
+    $storage = $this->entityTypeManager->getStorage('literal');
+    $this->accountSwitcher->switchTo(User::load(1));
+    try {
+      $existing = $storage->loadMultiple(array_column($rows, 'id'));
+      $storage->delete($existing);
+      if ($action === 'clean') {
+        $this->io()->success(count($existing) . ' literals removed.');
+        return;
+      }
+      $made = 0;
+      foreach ($rows as $row) {
+        $literal = $storage->create([
+          'type' => $row['type'],
+          'bundle' => $row['type'],
+          'id' => $row['id'],
+          'name' => $row['name'],
+          'gist' => $row['gist'],
+          'value' => $row['value'],
+          'restricted' => !empty($row['restricted']),
+          'status' => 1,
+        ]);
+        $violations = $literal->validate();
+        if (count($violations)) {
+          $this->logger()->warning('{id}: {message}', ['id' => $row['id'], 'message' => $violations[0]->getMessage()]);
+          continue;
+        }
+        $literal->save();
+        $made++;
+      }
+      $this->io()->success("$made of " . count($rows) . ' literals loaded.');
+    }
+    finally {
+      $this->accountSwitcher->switchBack();
+    }
+  }
+
+  /**
+   * Generates a synthetic zz_ pool and a matching gold set.
+   *
+   * Reads eval/pools/scale.yml. The gold set is a fixed 60 sampled questions
+   * plus the unanswerable ones, written to --gold. Runs as user 1.
+   */
+  #[CLI\Command(name: 'literals:pool-scale')]
+  #[CLI\Option(name: 'count', description: 'Number of literals to create (max 225).')]
+  #[CLI\Option(name: 'gold', description: 'Where to write the gold YAML.')]
+  #[CLI\Option(name: 'clean', description: 'Remove the zz_ literals instead.')]
+  public function poolScale(array $options = ['count' => 60, 'gold' => '/tmp/scale-gold.yml', 'clean' => FALSE]): void {
+    $storage = $this->entityTypeManager->getStorage('literal');
+    $this->accountSwitcher->switchTo(User::load(1));
+    try {
+      $old = array_filter($storage->loadMultiple(), fn ($l) => str_starts_with((string) $l->id(), 'zz_'));
+      $storage->delete($old);
+      if ($options['clean']) {
+        $this->io()->success(count($old) . ' literals removed.');
+        return;
+      }
+      $spec = Yaml::decode(file_get_contents($this->moduleList->getPath('literals_finder') . '/eval/pools/scale.yml'));
+      $limit = (int) $options['count'];
+      $gold = [];
+      $count = 0;
+      foreach ($spec['departments'] as $department) {
+        foreach ($spec['kinds'] as $kind => $k) {
+          if ($count >= $limit) {
+            break 2;
+          }
+          $slug = 'zz_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($department)) . '_' . $kind;
+          $gist = sprintf($k['gist'], $department);
+          $literal = Literal::create([
+            'type' => $k['type'],
+            'name' => ucfirst($gist),
+            'id' => $slug,
+            'value' => sprintf($k['value'], $k['offset'] + $count),
+            'gist' => $gist,
+            'status' => 1,
+          ]);
+          if (count($literal->validate())) {
+            continue;
+          }
+          $literal->save();
+          foreach ($k['questions'] as $q) {
+            $gold[] = ['q' => sprintf($q, strtolower($department)), 'expect' => $slug];
+          }
+          $count++;
+        }
+      }
+      // A fixed sample size, whatever the pool size.
+      mt_srand(42);
+      shuffle($gold);
+      $gold = array_slice($gold, 0, 60);
+      foreach ($spec['unanswerable'] as $q) {
+        $gold[] = ['q' => $q, 'expect' => 'none'];
+      }
+      file_put_contents($options['gold'], Yaml::encode(['queries' => $gold]));
+      $this->io()->success("$count literals created, " . count($gold) . " gold questions in {$options['gold']}.");
+    }
+    finally {
+      $this->accountSwitcher->switchBack();
+    }
   }
 
 }

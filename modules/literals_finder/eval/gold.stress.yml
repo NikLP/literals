@@ -1,4 +1,4 @@
-# Stress set 2026-10-06 (Claude). Needs the st_* literals from stress_seed.php:
+# Stress set 2026-10-06 (Claude). Needs the st_* literals: drush literals:pool load stress
 # near-neighbour phones/hours, restricted literals.
 queries:
   - {q: 'phone number for the cafe', expect: st_cafe_phone}

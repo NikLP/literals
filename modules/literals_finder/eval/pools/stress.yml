@@ -1,0 +1,75 @@
+# Stress pool (st_* keys), some restricted. Written by Claude, synthetic.
+literals:
+  - type: text
+    id: st_cafe_phone
+    name: 'Cafe phone'
+    gist: 'The phone number for the library cafe'
+    value: '+44 20 7946 0001'
+  - type: text
+    id: st_fax
+    name: Fax
+    gist: 'The fax number for sending documents to the library'
+    value: '+44 20 7946 0002'
+  - type: text
+    id: st_security_phone
+    name: 'Security phone'
+    gist: 'Out-of-hours security desk phone, staff only'
+    value: '+44 20 7946 0003'
+    restricted: true
+  - type: text
+    id: st_children_phone
+    name: 'Childrens library phone'
+    gist: 'The phone number for the childrens library and story time bookings'
+    value: '+44 20 7946 0004'
+  - type: text
+    id: st_late_fee
+    name: 'Late fee'
+    gist: 'How much the daily late fee is for an overdue book'
+    value: '20p per day'
+  - type: text
+    id: st_wifi
+    name: 'Wifi password'
+    gist: 'The guest wifi password inside the library'
+    value: guest-books-2026
+    restricted: true
+  - type: text
+    id: st_director_email
+    name: 'Director email'
+    gist: 'The email address of the library director, for formal complaints'
+    value: director@example.org
+  - type: text
+    id: st_wheelchair
+    name: Accessibility
+    gist: 'Wheelchair and step-free access information'
+    value: 'Step-free entrance on Mill Street'
+  - type: text
+    id: st_membership_cost
+    name: 'Membership cost'
+    gist: 'How much it costs to join the library'
+    value: 'Free for residents'
+  - type: url
+    id: st_renew
+    name: 'Renew books'
+    gist: 'Where to renew borrowed books online'
+    value: /user/login
+  - type: url
+    id: st_events
+    name: Events
+    gist: 'Where to see upcoming events and talks'
+    value: /user/login
+  - type: url
+    id: st_staff_login
+    name: 'Staff login'
+    gist: 'Sign in page for library staff only'
+    value: /user/login
+    restricted: true
+  - type: text
+    id: st_open_sunday
+    name: 'Sunday hours'
+    gist: 'Opening hours on Sundays and bank holidays only'
+    value: '11:00-16:00'
+  - type: text
+    id: st_open_weekday
+    name: 'Weekday hours'
+    gist: 'Opening hours Monday to Friday'
+    value: '09:00-19:00'
