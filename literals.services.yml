@@ -23,3 +23,9 @@ services:
   Drupal\literals\Hook\LiteralsHooks:
     class: Drupal\literals\Hook\LiteralsHooks
     arguments: ['@literals.reader', '@token', '@current_user', '@entity_type.manager']
+
+  literals.uninstall_validator:
+    class: Drupal\literals\LiteralsUninstallValidator
+    arguments: ['@entity_type.manager']
+    tags:
+      - { name: module_install.uninstall_validator }

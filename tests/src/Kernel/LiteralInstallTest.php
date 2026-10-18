@@ -78,6 +78,16 @@ class LiteralInstallTest extends KernelTestBase {
   }
 
   /**
+   * With literals present, uninstalling is blocked with the way out.
+   */
+  public function testUninstallBlockedWithLiterals(): void {
+    User::create(['uid' => 1, 'name' => 'root', 'status' => 1])->save();
+    Literal::create(['type' => 'text', 'name' => 'Phone', 'id' => 'phone', 'value' => '1', 'gist' => 'The phone', 'status' => 1])->save();
+    $reasons = $this->container->get('module_installer')->validateUninstall(['literals']);
+    $this->assertStringContainsString('Delete it before uninstalling', implode(' ', array_map('strval', $reasons['literals'] ?? [])));
+  }
+
+  /**
    * The module uninstalls cleanly once its literals are deleted.
    */
   public function testUninstall(): void {

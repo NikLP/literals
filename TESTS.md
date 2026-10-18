@@ -20,21 +20,18 @@ the anonymous and authenticated roles, makes users (`member`,
 | Key, Guardrails | `LiteralKeyAndGuardrailsTest` | key as ID: uniqueness (validation and primary key), machine-name pattern, immutable, reserved keys; gist/value rejection; value never reaches model guardrails |
 | Search | `LiteralSearchTest` | name/key/gist match, all words, LIKE wildcards and backslash literal, access, limit |
 | Moderation | `LiteralModerationTest` | with Content Moderation, a draft of a published literal is not served until published |
-| Install | `LiteralInstallTest` | six shipped types, settings and view, schema-valid config, nothing granted; `literals_base` grants; demo recipe adds eight, re-applying adds none; clean uninstall |
+| Install | `LiteralInstallTest` | six shipped types, settings and view, schema-valid config, nothing granted; `literals_base` grants; demo recipe adds eight, re-applying adds none; clean uninstall; uninstall blocked with the delete-first message while literals exist |
 | Admin UI | `Functional/LiteralAdminTest` | admin pages 403/200, literal form (key from name, duplicate and reserved keys, resolver error, key locked on edit), type delete guard, list is editors-only and shows restricted literals, revisions (history page, revert, 403 for viewers) |
 | Submodules | `literals_finder`, `literals_tool`, `literals_chat` | finder cache and outcomes, tool modes (through `literals.lookup`), chat responder |
 | Gist Guardrails form | `literals_finder` `Functional/LiteralGistGuardrailsFormTest` | the shipped set's no-markup rule rejects a gist on add and edit, as an error on the gist field; nothing saved until the gist is plain |
-| aim integration | aim's `Kernel/AimRecallLiteralTokensTest` | `recall()` reads tokens per viewer, withholds or redacts per `show_redacted_facts`, follows value changes, unpublishing and deletion |
+| aim integration | aim's `Kernel/AimRecallLiteralTokensTest`; `aim_tool`'s `Kernel/AimToolPermissionsTest::testLiteralToolLooksUp` (`aim_literal` through `literals.lookup`: key, restricted, search, question without finder) | `recall()` reads tokens per viewer, withholds or redacts per `show_redacted_facts`, follows value changes, unpublishing and deletion |
 
 The real chooser (Decision API) is covered only by `drush literals:eval`.
 That is deliberate; do not try to mock it into a PHPUnit "pass".
 
 ## Gaps
 
-- **aim integration**: `aim_literal` against `literals:lookup` has no
-  PHPUnit test. Both are thin wrappers over the `literals.lookup` service
-  (tested through `literals_tool`), and the demo's `preflight.js` smoke
-  check asks `aim_literal` a question and compares the value.
+None open.
 
 ## Not worth testing
 
