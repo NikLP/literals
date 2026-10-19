@@ -2,8 +2,8 @@
 
 **Status:** Accepted (settled by the Phase 1 to 3 builds); built through the finder, tokens, tool and
 search (see "What is built"). Refactored 2026-10-07 from a draft with nine
-addenda into the current state; the superseded designs (a field type, an
-Annotations host, a `config_pages` host, pool bundles, an `aim_fact` mirror,
+addenda into the current state; the superseded designs (a field type, a
+`config_pages` host, pool bundles, an `aim_fact` mirror,
 an embedding gate) are summarized under "Rejected" (the alias field is
 pinned, see "Deferred and pinned") and the
 full text is in the `aim` repo history (`adr/0040-...` at commit 502f799).
@@ -46,11 +46,6 @@ Two facts shape everything below:
    Exact lookup by key (PHP, tokens, the tool) is a complete product with no
    AI at all; the finder is the optional layer on top.
 
-**Against Annotations** ([ADR-0024](../../aim/adr/0024-annotations-integration-target-scoped-promotion.md)),
-the same mapping read in opposite directions: Annotations describes a place
-and asks what goes there (data **in**); literals describes a value and asks
-where it lives (data **out**). Good annotation text makes good gists.
-
 **Prior art.** Two shallow `drupal-code-query` searches and web searches
 (2026-10-03) found no contrib module or CMS field type doing
 semantic-description-to-exact-value lookup; treat "no existing module" as
@@ -87,19 +82,13 @@ and timestamps; the bundle is the **type** (section 3). Values are content,
 not config: editing a phone number on production never needs a config import.
 Only the types are config.
 
-It is an entity and not a field type or an Annotations bundle because the
+It is an entity and not a field type because the
 fields must live together in one place with revisions, access and a list UI:
 
 - A `literal` **field** on any host gains nothing the host does not already
   provide, and a formatter owns neither data nor an index.
 - **`config_pages` cannot host values:** no revisions, no Content Moderation,
   access per page type only, and its token handler does no view-access check.
-- **Annotations as a host** (a `literal` annotation type) would reuse a heavy
-  surface built for another concept. The entity, bundle, access handler and
-  permissions are about 450 lines of boilerplate (the `AimFact`/`AimScope`
-  pattern); the real cost is the editing UI, and a thin one is mostly free
-  (core `ContentEntityForm`, Views, Field UI). The Phase 1 build went standalone
-  and the UI stayed small. The Annotations bridge is optional (section 10).
 
 ### 2 to 7. The parts, settled (mechanics live in the docs)
 
@@ -210,11 +199,6 @@ skip.
   logging (question text is personal data). Risk: widening a gist pulls the
   literal toward vague neighbours (a wider alias list created a false
   positive in a trial); the neighbour check is the guard.
-- **Annotations bridge (optional, not built):** the gist of the field a
-  literal points at may be copied once as its default gist; the literal's own
-  gist wins. Annotations address a bundle and field, never an instance, so
-  per-instance literals keep their own gist. See "Deferred and pinned" (tracked gists) and [ADR-0049](../../aim/adr/0049-finder-family-parked.md) section D.
-  Annotations is `^2.0@alpha`; keep the coupling in an optional package.
 
 ## What is built
 
@@ -254,7 +238,7 @@ None of these is built; each names its trigger. Measure before building.
   splits the fact into gist and value, a human picks the type, the literal
   carries a `source_fact` back-reference, and the fact is retired after a
   cool-off. Depends on the agreed `retired`/`expires` split in aim's TODO.md.
-- **Candidates and tracked gists** (folded in from the retired ADR-0047;
+- **Candidates** (folded in from the retired ADR-0047;
   nothing built). Candidates are suggestions, never entities: a provider
   (a curated YAML list of site tokens, or a generic one over
   `Token::getInfo()` filtered to site-level types, `current-user` excluded)
@@ -263,11 +247,7 @@ None of these is built; each names its trigger. Measure before building.
   (every literal costs a menu slot). Stores like `site_settings` and
   `token_custom` hold values but cannot find one from a question, gate it
   by viewer or carry a gist (checked 2026-10-05); literals is the
-  find-and-gate layer over them. Tracked gists: a nullable gist source
-  (target plus annotation ID) resolved at read time, with a local edit
-  winning and stopping tracking; this replaces "copy the gist once" in
-  section 10 and ships as an optional `literals_annotations` bridge
-  (`Literal::getGist()` is the seam). Gist suggestion prefills from the
+  find-and-gate layer over them. Gist suggestion prefills from the
   token's own description; a person or small local model rewrites it into
   question phrasing. `current-user` tokens resolve per viewer.
   Facts reference literals through `aim_literal` or an inline
@@ -340,7 +320,7 @@ None of these is built; each names its trigger. Measure before building.
   (section on measurements in how-it-works.md). At most a per-type
   threshold, if one type misbehaves.
 - **Rewriting the query with Jev:** it cannot generate text.
-- **A literal field type, a registry entity, an Annotations host, a
+- **A literal field type, a registry entity, a
   `config_pages` host:** section 1.
 - **Pools as bundles, per-pool permissions and `[literal:pool:key]`:**
   replaced by types and one access column (Phase 1 build; the column became the `restricted` flag 2026-10-10).

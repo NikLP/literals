@@ -27,21 +27,22 @@ better? The test case was "I want to pay my council tax". Findings:
   "our phone number", a `[literal:key]` token, an MCP tool).
 - **The model never sees values.** The chooser sees gists and IDs only; the
   value is resolved afterward. A hosted chat model doing recall would see it.
-- **The cost-saving claim is unmeasured.** The intended design is a cheap
-  typed Jev question ("is this one-shot?") routing simple queries to a fixed
-  answer before recall or a large model. That gate does not exist. Today
-  literals is a tool the chat model chooses to call, which saves nothing.
+- **The cost saving is real, and measured at the gate.** The finder (a
+  cheap typed Jev question) runs ahead of the chat model, and a hit skips
+  the hosted call (decision 3). A chat model that merely has `aim_literal`
+  as a tool saves nothing, which is why the gate sits in front of it.
 
 ## Decision
 
 1. **Position literals as a find-and-gate layer for things, not fields.** A
    literal is a thing a person would point at (a phone number, a login page,
    a "pay your council tax" entry point). A field is only where a value
-   lives, and annotations on fields describe storage, not findable things.
+   lives.
 2. **Do not justify it by chat cost alone.** Four independent uses, in order
    of defensibility: correct-or-none answers; values kept out of prompts;
    per-viewer access at resolve time; non-chat consumers (tokens, form
-   fields, MCP). The cost gate is a fifth, to be measured, not assumed.
+   fields, MCP). The cost gate is a fifth, measured 2026-10-12 (decision 3); it is the
+   weakest of the five reasons to adopt literals, not the strongest.
 3. **The finder is the gate, ahead of the chat model.** Measured
    2026-10-12 (`drush aim:chatbot-eval`, numbers and charts in
    [how-it-works.md](how-it-works.md)): letting the chat model decide to call
@@ -53,26 +54,22 @@ better? The test case was "I want to pay my council tax". Findings:
    at 101 literals, was the fastest, and kept per-viewer visibility. The
    prompt-stuffing alternative scaled with the pool (3x tokens at 101
    literals) and cannot serve two audiences. A hit skips the hosted model
-   only; the Jev call stays, as it is the fuzzy match. Not built: the plan
-   is a `ChatProcessor` in aim_chatbot (aim's TODO.md). `aim_literal` stays
+   only; the Jev call stays, as it is the fuzzy match. Built: `AimGateProcessor`, a `ChatProcessor` in aim_chatbot (open points in aim's TODO.md). `aim_literal` stays
    for MCP and external agents, which have no gate in front of them. Not yet
    measured: local Jev latency.
 4. **Avoid the second sitemap with a menu and page candidate provider**
    (the candidates idea in ADR-0040 "Deferred and pinned"): enumerate main-menu links and nodes
    flagged as entry points, label = menu title, value = path or entity,
-   resolver does the access check, gist tracked from the target's
-   annotation with the menu title as fallback. Nobody retypes the sitemap.
+   resolver does the access check, gist from the menu title. Nobody
+   retypes the sitemap.
 5. **Resolvers return a pair, not a string.** `{label, url}`, so a bare
    `/node/5` becomes a usable link. Literals supplies the data (the
    literal's name, or the entity title); the caller (chat, block, aim's
    gate) renders it. Built: `ResolvedLiteral` and `LiteralReader::readItem()`.
 6. **Harvesting gists from Drupal metadata alone does not work.** Core
-   metadata is too thin to describe things in the words people use, which
-   is why Annotations exists. Gists for entry points come from annotations
-   on points of interest (menus, key pages), not on fields. Until
-   annotations are built (ADR-0024 is blocked on the ADR-0002 gate and an
-   Annotations write path), this is design only.
-7. **Build no more literal-specific gist machinery until then**
+   metadata is too thin to describe things in the words people use, so a
+   gist is written (or suggested from the token's description) by a person.
+7. **Build no more literal-specific gist machinery for now**
    (aliases, pools, vector tier stay pinned). The finder stays as a
    demonstration: a typed decision model matches a question to an exact
    value with no vector DB, and no value reaches a prompt. It is not
@@ -122,9 +119,6 @@ is unbuilt design.
 
 ## Consequences
 
-- Literals may dissolve into annotations on things plus a resolve step and
-  an audience rule. Whether that needs its own entity type or just an
-  annotation with a resolver is settled once annotations exist.
 - A short fixed list, or a few verbatim facts with consolidation opted out
   ([ADR-0020](../../aim/adr/0020-verbatim-facts-consolidation-opt-out.md)), covers the
   "well known but unavailable" case on a typical site without a finder. The
@@ -137,4 +131,3 @@ is unbuilt design.
   visibility. Open: local Jev latency, and whether a Jev-written sentence
   around the value is worth one more in-house call.
 - Does a menu and page provider keep gist coverage high enough to matter?
-- Annotation or literal: one type with a resolver, or two?
