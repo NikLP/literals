@@ -74,7 +74,7 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   by a form-level `machine_name` element in `LiteralForm` (not a widget,
   so `flagViolations()` reports its errors). Uniqueness is core's
   `UniqueField` plus the primary key.
-- **Keys are immutable** after create (form element disabled, and the
+- **Keys are immutable** after create (form element hidden once saved, and the
   `LiteralKey` constraint refuses a change): facts embed `[literal:key]`, so
   a rename would silently redact them.
 

@@ -64,10 +64,12 @@ class LiteralInstallTest extends KernelTestBase {
     $recipes = dirname(__DIR__, 3) . '/recipes/';
     RecipeRunner::processRecipe(Recipe::createFromDirectory($recipes . 'literals_base'));
     $this->assertSame(['view literals'], Role::load('anonymous')->getPermissions());
-    $authenticated = Role::load('authenticated')->getPermissions();
-    sort($authenticated);
-    $this->assertSame(['view literals', 'view restricted literals'], $authenticated);
+    // Restricted literals need a staff role granted; the recipe does not.
+    $this->assertSame(['view literals'], Role::load('authenticated')->getPermissions());
 
+    // The demo places a block in the default theme.
+    $this->container->get('theme_installer')->install(['stark']);
+    $this->config('system.theme')->set('default', 'stark')->save();
     $demo = Recipe::createFromDirectory($recipes . 'literals_demo_library');
     RecipeRunner::processRecipe($demo);
     $this->assertCount(8, Literal::loadMultiple());
@@ -82,7 +84,14 @@ class LiteralInstallTest extends KernelTestBase {
    */
   public function testUninstallBlockedWithLiterals(): void {
     User::create(['uid' => 1, 'name' => 'root', 'status' => 1])->save();
-    Literal::create(['type' => 'text', 'name' => 'Phone', 'id' => 'phone', 'value' => '1', 'gist' => 'The phone', 'status' => 1])->save();
+    Literal::create([
+      'type' => 'text',
+      'name' => 'Phone',
+      'id' => 'phone',
+      'value' => '1',
+      'gist' => 'The phone',
+      'status' => 1,
+    ])->save();
     $reasons = $this->container->get('module_installer')->validateUninstall(['literals']);
     $this->assertStringContainsString('Delete it before uninstalling', implode(' ', array_map('strval', $reasons['literals'] ?? [])));
   }

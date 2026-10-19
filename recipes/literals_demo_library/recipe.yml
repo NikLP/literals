@@ -7,6 +7,7 @@ install:
   - literals_finder
   - literals_chat
   - ai_chatbot
+  - block
 config:
   import:
     literals_finder: '*'

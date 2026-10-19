@@ -109,6 +109,18 @@ class LiteralReaderTest extends LiteralsKernelTestBase {
   }
 
   /**
+   * A restricted literal varies by permissions, so a cached copy is keyed.
+   */
+  public function testRestrictedLiteralBubblesPermissionContext(): void {
+    $this->createLiteral('internal', 'staff-only', ['restricted' => TRUE]);
+    foreach ([$this->member, $this->restrictedViewer] as $account) {
+      $metadata = new CacheableMetadata();
+      $this->reader()->read('internal', $account, $metadata);
+      $this->assertContains('user.permissions', $metadata->getCacheContexts());
+    }
+  }
+
+  /**
    * Cache metadata carries the literal list tag, the entity and the user.
    */
   public function testCacheMetadata(): void {

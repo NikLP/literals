@@ -9,7 +9,7 @@ how it works and its measurements are in [adr/how-it-works.md](adr/how-it-works.
 | --- | --- |
 | `literals.reader` `read($key, $account)` | the resolved value string, or NULL (missing, draft and not visible are one identical NULL) |
 | `literals.reader` `readItem($key, $account)` | a `ResolvedLiteral` (`value`, `label`, `kind` of url/phone/email/text) or NULL; `->href()` gives the safe link target (http(s), `tel:`, `mailto:`) or NULL |
-| `$literal->resolveItem($account, $metadata)` | the same, from a loaded `Literal` |
+| `$literal->resolveItem($account, $metadata)` | the same, from a loaded `Literal`. `@internal`: it skips the literal's own access check (`restricted`) and does not add the `user.permissions` context, so new code reads through `literals.reader` instead; `$metadata` is required |
 | `literals.search` `search($text, $account, $limit)` | published, visible literals whose name, key or gist contain every typed word (up to 6); candidates, never a decision |
 | `literals.lookup` `lookup($input, $account, $caller)` | the one tool-shaped lookup: `$input` has `key`, `question` (needs the finder) or `search`; returns `success`, `message` and `values` (`outcome` match/ambiguous/candidates/none, `key`, `candidates`, `value`, `label`, `kind`, `gist`). Both lookup tools (`literals:lookup`, aim's `aim_literal`) only wrap it |
 | `literals_finder.finder` `find($question, $account, $context = NULL)` | a `LiteralFindResult`: `match` / `ambiguous` / `none` with `Literal` entities (no values), a tier and a reason |

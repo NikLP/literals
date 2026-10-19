@@ -205,13 +205,13 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
     $viewer = $this->createUser(['access user profiles']);
 
     // No "access user profiles": the entity itself is not viewable.
-    $this->assertNull($name->resolve($this->restrictedViewer));
+    $this->assertNull($name->resolve($this->restrictedViewer, new CacheableMetadata()));
     // Entity viewable, name field viewable.
-    $this->assertSame('member', $name->resolve($viewer));
+    $this->assertSame('member', $name->resolve($viewer, new CacheableMetadata()));
     // Entity viewable, but core denies another account's mail field.
-    $this->assertNull($mail->resolve($viewer));
+    $this->assertNull($mail->resolve($viewer, new CacheableMetadata()));
     // The account itself may see its own mail; it is an email address.
-    $item = $mail->resolveItem($this->member);
+    $item = $mail->resolveItem($this->member, new CacheableMetadata());
     $this->assertSame('member@example.com', $item?->value);
     $this->assertSame('mailto:member@example.com', $item?->href());
   }
@@ -233,10 +233,10 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
   public function testEntityLabelAndNoCanonical(): void {
     $page = $this->createPage('Open page');
     $literal = $this->createLiteral('open_page', 'node:' . $page->id(), ['type' => 'entity', 'name' => 'Our page']);
-    $this->assertSame('Open page', $literal->resolveItem($this->createUser(['access content']))?->label);
+    $this->assertSame('Open page', $literal->resolveItem($this->createUser(['access content']), new CacheableMetadata())?->label);
     // A literal type has an edit form but no canonical page.
     $typed = $this->createLiteral('a_type', 'literal_type:text', ['type' => 'entity']);
-    $this->assertNull($typed->resolve($this->admin));
+    $this->assertNull($typed->resolve($this->admin, new CacheableMetadata()));
   }
 
   /**
@@ -244,7 +244,7 @@ class LiteralResolversTest extends LiteralsKernelTestBase {
    */
   public function testTokenForAnonymousViewer(): void {
     $literal = $this->createLiteral('greeting', 'Hello [user:name]', ['type' => 'token']);
-    $value = $literal->resolve(new AnonymousUserSession());
+    $value = $literal->resolve(new AnonymousUserSession(), new CacheableMetadata());
     $this->assertIsString($value);
     $this->assertStringStartsWith('Hello', $value);
     $this->assertStringNotContainsString('[user:', $value);

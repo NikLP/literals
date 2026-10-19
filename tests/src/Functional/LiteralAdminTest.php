@@ -102,7 +102,8 @@ class LiteralAdminTest extends BrowserTestBase {
     $this->assertNull(Literal::load('url'));
 
     $this->drupalGet('/admin/content/literals/main_phone/edit');
-    $this->assertSession()->fieldDisabled('id');
+    // The key is not offered at all once saved.
+    $this->assertSession()->fieldNotExists('id');
     $this->submitForm(['value[0][value]' => '43'], 'Save');
     $this->assertSame('43', Literal::load('main_phone')->get('value')->value);
   }

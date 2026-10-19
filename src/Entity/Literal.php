@@ -101,31 +101,43 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
   /**
    * Resolves the value according to the literal's resolver.
    *
+   * Does not check the literal's own access (the restricted flag). Outside
+   * resolver tests, read through LiteralReader instead.
+   *
+   * @internal
+   *
    * @param \Drupal\Core\Session\AccountInterface|null $account
-   *   The account the value is for. Defaults to the current user.
-   * @param \Drupal\Core\Cache\CacheableMetadata|null $metadata
-   *   Collects cache metadata of everything consulted.
+   *   The account the value is for. NULL means the current user.
+   * @param \Drupal\Core\Cache\CacheableMetadata $metadata
+   *   Collects cache metadata of everything consulted. Required so a caller
+   *   cannot drop it: bubble it into whatever is cached.
    *
    * @return string|null
    *   The resolved value, or NULL when it cannot be resolved for the account.
    */
-  public function resolve(?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL): ?string {
-    return $this->getResolverPlugin()->resolve($this, $account ?? \Drupal::currentUser(), $metadata ?? new CacheableMetadata());
+  public function resolve(?AccountInterface $account, CacheableMetadata $metadata): ?string {
+    return $this->getResolverPlugin()->resolve($this, $account ?? \Drupal::currentUser(), $metadata);
   }
 
   /**
    * Resolves the literal to its value plus a label and a kind.
    *
+   * Does not check the literal's own access (the restricted flag). Outside
+   * resolver tests, read through LiteralReader instead.
+   *
+   * @internal
+   *
    * @param \Drupal\Core\Session\AccountInterface|null $account
-   *   The account the value is for. Defaults to the current user.
-   * @param \Drupal\Core\Cache\CacheableMetadata|null $metadata
-   *   Collects cache metadata of everything consulted.
+   *   The account the value is for. NULL means the current user.
+   * @param \Drupal\Core\Cache\CacheableMetadata $metadata
+   *   Collects cache metadata of everything consulted. Required so a caller
+   *   cannot drop it: bubble it into whatever is cached.
    *
    * @return \Drupal\literals\ResolvedLiteral|null
    *   The resolved literal, or NULL when it cannot be resolved for the account.
    */
-  public function resolveItem(?AccountInterface $account = NULL, ?CacheableMetadata $metadata = NULL): ?ResolvedLiteral {
-    return $this->getResolverPlugin()->resolveItem($this, $account ?? \Drupal::currentUser(), $metadata ?? new CacheableMetadata());
+  public function resolveItem(?AccountInterface $account, CacheableMetadata $metadata): ?ResolvedLiteral {
+    return $this->getResolverPlugin()->resolveItem($this, $account ?? \Drupal::currentUser(), $metadata);
   }
 
   /**
