@@ -28,13 +28,6 @@ class LiteralAdminTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * {@inheritdoc}
-   */
-  protected function setUp(): void {
-    parent::setUp();
-  }
-
-  /**
    * Creates and saves a literal.
    *
    * @param string $id
@@ -109,7 +102,7 @@ class LiteralAdminTest extends BrowserTestBase {
   }
 
   /**
-   * A type in use cannot be disabled; an empty one can, and is then not offered.
+   * A type in use cannot be disabled; an empty one can, and is not offered.
    */
   public function testTypeDisableGuard(): void {
     $this->literal('uses_text');
