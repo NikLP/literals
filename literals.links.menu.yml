@@ -13,7 +13,7 @@ literals.admin_config:
 
 entity.literal_type.collection:
   title: 'Literals types'
-  description: 'The fixed types of literal, and which can be used.'
+  description: 'Enable and configure the literal types.'
   route_name: entity.literal_type.collection
   parent: literals.admin_config
   weight: -10
