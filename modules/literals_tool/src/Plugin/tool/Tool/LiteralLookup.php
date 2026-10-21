@@ -29,6 +29,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   label: new TranslatableMarkup('Look up a literal'),
   description: new TranslatableMarkup('Returns an exact value (a phone number, a URL, a name) kept as a literal. Give a key when it is known; search to list candidate literals by typing words from their name or description; or question to have a model pick one from a plain-language question (never guesses: an unclear question returns candidates or nothing).'),
   operation: ToolOperation::Read,
+  permission: 'use literal lookup tool',
   input_definitions: [
     'key' => new InputDefinition(
       data_type: 'string',

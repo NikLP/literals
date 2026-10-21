@@ -259,7 +259,7 @@ class FakeFinder {
       'phone' => (object) ['outcome' => 'match', 'literals' => $by_key(['phone_a'])],
       'ambiguous' => (object) ['outcome' => 'ambiguous', 'literals' => $by_key(['phone_a', 'phone_b'])],
       'unresolvable' => (object) ['outcome' => 'match', 'literals' => $by_key(['gone'])],
-      default => (object) ['outcome' => 'none', 'literals' => []],
+      default => (object) ['outcome' => 'none', 'literals' => [], 'reason' => ''],
     };
   }
 
