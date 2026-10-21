@@ -85,4 +85,45 @@ class LiteralChooserTest extends UnitTestCase {
     $this->assertSame('chose_none', $result->reason);
   }
 
+  /**
+   * Scores name the two likeliest literals, the none option and the model.
+   */
+  public function testScores(): void {
+    $chooser = (new \ReflectionClass(LiteralChooser::class))->newInstanceWithoutConstructor();
+    $scores = $chooser->scores(['b' => 0.04, '__none__' => 0.007, 'a' => 0.92, 'c' => 0.033], 'model-x');
+    $this->assertSame(['top' => ['a', 0.92], 'next' => ['b', 0.04], 'none' => 0.007, 'model' => 'model-x'], $scores);
+
+    // A one-literal menu has no runner-up.
+    $scores = $chooser->scores(['__none__' => 0.6, 'a' => 0.4], 'model-x');
+    $this->assertSame(['a', 0.4], $scores['top']);
+    $this->assertNull($scores['next']);
+  }
+
+  /**
+   * Replaying recorded scores gives the live outcome at any setting.
+   */
+  public function testRuleFromScoresMatchesFullSpread(): void {
+    $chooser = (new \ReflectionClass(LiteralChooser::class))->newInstanceWithoutConstructor();
+    $spreads = [
+      ['main_phone' => 0.5, 'staff_line' => 0.45, 'other' => 0.03, '__none__' => 0.02],
+      ['a' => 0.55, 'b' => 0.5, 'c' => 0.4, '__none__' => 0.05],
+      ['main_phone' => 0.8, 'staff_line' => 0.1, '__none__' => 0.1],
+      ['__none__' => 0.7, 'main_phone' => 0.3],
+      ['a' => 0.36, 'b' => 0.33, 'c' => 0.31, '__none__' => 0.0],
+      ['a' => 0.4, '__none__' => 0.35, 'b' => 0.25],
+    ];
+    foreach ($spreads as $spread) {
+      $replayed = LiteralChooser::probabilitiesFromScores($chooser->scores($spread, 'model-x'));
+      $candidates = array_diff(array_keys($spread), ['__none__']);
+      for ($t = 0.3; $t <= 0.9; $t += 0.05) {
+        for ($m = 0.0; $m <= 0.4; $m += 0.05) {
+          $live = LiteralChooser::rule($spread, $candidates, $t, $m);
+          $offline = LiteralChooser::rule($replayed, $candidates, $t, $m);
+          $this->assertSame($live['outcome'], $offline['outcome']);
+          $this->assertSame($live['reason'], $offline['reason']);
+        }
+      }
+    }
+  }
+
 }

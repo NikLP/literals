@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\literals_finder\Kernel;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Logger\RfcLoggerTrait;
 use Drupal\Tests\literals\Kernel\LiteralsKernelTestBase;
 use Drupal\literals_finder\Finder\LiteralChooserInterface;
 use Drupal\literals_finder\Finder\LiteralFindResult;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Psr\Log\LoggerInterface;
 
 /**
  * Tests the finder around a stand-in chooser: cache, access, context, errors.
@@ -200,6 +202,26 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
   }
 
   /**
+   * With log_verbose on, the audit line carries the scores, cached or not.
+   */
+  public function testVerboseAuditLineCarriesScores(): void {
+    $logger = new RecordingLogger();
+    $this->container->get('logger.factory')->addLogger($logger);
+    $this->createLiteral('main_phone', '111 1111', ['type' => 'text']);
+    FakeChooser::$answer = ['match', ['main_phone']];
+    FakeChooser::$scores = ['top' => ['main_phone', 0.92], 'next' => NULL, 'none' => 0.007, 'model' => 'model-x'];
+
+    $this->finder()->find('phone', $this->member);
+    $this->assertStringNotContainsString('Scores:', end($logger->lines), 'No scores without log_verbose');
+
+    $this->config('literals_finder.settings')->set('log_verbose', TRUE)->save();
+    $result = $this->finder()->find('phone', $this->member);
+    $this->assertSame('cache', $result->tier);
+    $this->assertSame(FakeChooser::$scores, $result->scores, 'The cache keeps the scores');
+    $this->assertStringEndsWith('Scores: top main_phone 0.92, none 0.007, model model-x.', end($logger->lines));
+  }
+
+  /**
    * A model failure is reported as none/error and never cached.
    */
   public function testChooserFailureIsNotCached(): void {
@@ -259,6 +281,11 @@ class FakeChooser implements LiteralChooserInterface {
   public static array $answer = ['none', []];
 
   /**
+   * The canned scores.
+   */
+  public static array $scores = [];
+
+  /**
    * Resets the recorded state.
    */
   public static function reset(): void {
@@ -269,6 +296,7 @@ class FakeChooser implements LiteralChooserInterface {
     self::$lastThresholds = NULL;
     self::$lastKeys = [];
     self::$answer = ['none', []];
+    self::$scores = [];
   }
 
   /**
@@ -292,7 +320,31 @@ class FakeChooser implements LiteralChooserInterface {
     [$outcome, $keys] = self::$answer;
     // Like the real chooser, name only literals it was shown.
     $named = array_values(array_filter($candidates, fn ($l) => in_array($l->id(), $keys, TRUE)));
-    return new LiteralFindResult($outcome, $named, 'chooser');
+    return new LiteralFindResult($outcome, $named, 'chooser', '', self::$scores);
+  }
+
+}
+
+/**
+ * Records log lines with their placeholders filled in.
+ */
+class RecordingLogger implements LoggerInterface {
+
+  use RfcLoggerTrait;
+
+  /**
+   * The lines logged so far.
+   *
+   * @var string[]
+   */
+  public array $lines = [];
+
+  /**
+   * {@inheritdoc}
+   */
+  public function log($level, string|\Stringable $message, array $context = []): void {
+    $placeholders = array_filter($context, fn ($key) => is_string($key) && str_starts_with($key, '@'), ARRAY_FILTER_USE_KEY);
+    $this->lines[] = strtr((string) $message, $placeholders);
   }
 
 }

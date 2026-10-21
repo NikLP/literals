@@ -104,8 +104,6 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
    * Does not check the literal's own access (the restricted flag). Outside
    * resolver tests, read through LiteralReader instead.
    *
-   * @internal
-   *
    * @param \Drupal\Core\Session\AccountInterface|null $account
    *   The account the value is for. NULL means the current user.
    * @param \Drupal\Core\Cache\CacheableMetadata $metadata
@@ -114,6 +112,8 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
    *
    * @return string|null
    *   The resolved value, or NULL when it cannot be resolved for the account.
+   *
+   * @internal
    */
   public function resolve(?AccountInterface $account, CacheableMetadata $metadata): ?string {
     return $this->getResolverPlugin()->resolve($this, $account ?? \Drupal::currentUser(), $metadata);
@@ -125,8 +125,6 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
    * Does not check the literal's own access (the restricted flag). Outside
    * resolver tests, read through LiteralReader instead.
    *
-   * @internal
-   *
    * @param \Drupal\Core\Session\AccountInterface|null $account
    *   The account the value is for. NULL means the current user.
    * @param \Drupal\Core\Cache\CacheableMetadata $metadata
@@ -135,6 +133,8 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
    *
    * @return \Drupal\literals\ResolvedLiteral|null
    *   The resolved literal, or NULL when it cannot be resolved for the account.
+   *
+   * @internal
    */
   public function resolveItem(?AccountInterface $account, CacheableMetadata $metadata): ?ResolvedLiteral {
     return $this->getResolverPlugin()->resolveItem($this, $account ?? \Drupal::currentUser(), $metadata);
@@ -144,7 +144,8 @@ class Literal extends EditorialContentEntityBase implements EntityOwnerInterface
    * Returns the gist, the plain-language description that is matched.
    *
    * Every reader goes through here, so the gist can later come from
-   * somewhere other than the stored field (tracked gists, ADR-0040 "Deferred and pinned").
+   * somewhere other than the stored field (tracked gists, ADR-0040
+   * "Deferred and pinned").
    *
    * @return string
    *   The trimmed gist, empty when there is none.

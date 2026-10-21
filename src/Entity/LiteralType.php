@@ -17,8 +17,8 @@ use Drupal\literals\LiteralTypeListBuilder;
  *
  * A type says what sort of value its literals hold (text, token, entity,
  * URL: a LiteralResolver plugin) and carries that resolver's settings, e.g. a
- * Text type or a Content type limited to some bundles. Fieldable, so a type can carry extra
- * fields beside the shared name, key, value and gist.
+ * Text type or a Content type limited to some bundles. Fieldable, so a type
+ * can carry extra fields beside the shared name, key, value and gist.
  */
 #[ConfigEntityType(
   id: 'literal_type',

@@ -87,6 +87,13 @@ class LiteralsFinderSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Write an audit line per lookup'),
       '#default_value' => $config->get('log_audit'),
     ];
+    $form['log_verbose'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Add the chooser scores to the audit line'),
+      '#description' => $this->t('The top pick, runner-up and none probabilities and the model ID, for watching borderline lookups. Keys and numbers only, never the question or a value.'),
+      '#default_value' => $config->get('log_verbose'),
+      '#states' => ['visible' => [':input[name="log_audit"]' => ['checked' => TRUE]]],
+    ];
 
     return parent::buildForm($form, $form_state);
   }
@@ -97,6 +104,7 @@ class LiteralsFinderSettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $config = $this->config('literals_finder.settings');
     $config->set('log_audit', (bool) $form_state->getValue('log_audit'));
+    $config->set('log_verbose', (bool) $form_state->getValue('log_verbose'));
     foreach (['match_threshold', 'choice_margin'] as $key) {
       $config->set($key, (float) $form_state->getValue($key));
     }

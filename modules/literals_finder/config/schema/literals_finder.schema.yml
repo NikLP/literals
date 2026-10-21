@@ -17,6 +17,9 @@ literals_finder.settings:
     log_audit:
       type: boolean
       label: 'Write an audit line per lookup'
+    log_verbose:
+      type: boolean
+      label: 'Add the chooser scores and model ID to the audit line'
     chooser_context:
       type: string
       label: 'Who is being asked, put before the chooser instructions'

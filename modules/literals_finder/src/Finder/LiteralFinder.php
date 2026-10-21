@@ -68,7 +68,7 @@ class LiteralFinder implements LiteralFinderInterface {
       // A cached id the asker can no longer see just drops out.
       $literals = array_values(array_intersect_key($by_id, $candidates));
       if (count($literals) === count($hit->data['ids'])) {
-        return $this->done(new LiteralFindResult($hit->data['outcome'], $literals, 'cache', $hit->data['reason']), count($candidates));
+        return $this->done(new LiteralFindResult($hit->data['outcome'], $literals, 'cache', $hit->data['reason'], $hit->data['scores'] ?? []), count($candidates));
       }
     }
 
@@ -93,6 +93,7 @@ class LiteralFinder implements LiteralFinderInterface {
         'outcome' => $result->outcome,
         'ids' => array_map(fn (Literal $l) => $l->id(), $result->literals),
         'reason' => $result->reason,
+        'scores' => $result->scores,
       ], $expire, ['literal_list']);
     }
     return $this->done($result, count($candidates));
@@ -116,7 +117,7 @@ class LiteralFinder implements LiteralFinderInterface {
    */
   protected function settingsFingerprint(?string $context, ?array $thresholds = NULL): string {
     $settings = $this->configFactory->get('literals_finder.settings')->getRawData();
-    unset($settings['_core'], $settings['log_audit']);
+    unset($settings['_core'], $settings['log_audit'], $settings['log_verbose']);
     $settings['context'] = $context ?? '';
     $settings['thresholds'] = $thresholds ?? [];
     ksort($settings);
@@ -159,24 +160,30 @@ class LiteralFinder implements LiteralFinderInterface {
     if ($flags === []) {
       return [];
     }
+
     $storage = $this->entityTypeManager->getStorage('literal');
     $query = $storage->getQuery()->accessCheck(FALSE)->condition('status', 1)->condition('gist', '', '<>');
+
     if ($flags !== NULL) {
       $query->condition('restricted', $flags, 'IN');
     }
+
     $literals = [];
     foreach ($storage->loadMultiple($query->execute()) as $literal) {
       if ($literal->access('view', $account)) {
         $literals[$literal->id()] = $literal;
       }
     }
+
     return $literals;
   }
 
   /**
    * Writes the audit line and returns the result.
    *
-   * IDs, tier and outcome only, never the question text or a value.
+   * IDs, tier and outcome only, never the question text or a value. With
+   * log_verbose on, the chooser's scores and model ID are added (a cached
+   * outcome repeats the scores of the call that made it).
    *
    * @param \Drupal\literals_finder\Finder\LiteralFindResult $result
    *   The result.
@@ -184,16 +191,46 @@ class LiteralFinder implements LiteralFinderInterface {
    *   The visible pool size.
    */
   protected function done(LiteralFindResult $result, int $pool): LiteralFindResult {
-    if ($this->configFactory->get('literals_finder.settings')->get('log_audit')) {
-      $this->logger->info('Find: @outcome via @tier (@reason), literals [@ids], pool @pool.', [
+    $settings = $this->configFactory->get('literals_finder.settings');
+    if ($settings->get('log_audit')) {
+      $message = 'Find: @outcome via @tier (@reason), literals [@ids], pool @pool.';
+      $args = [
         '@outcome' => $result->outcome,
         '@tier' => $result->tier,
         '@reason' => $result->reason ?: '-',
         '@ids' => implode(',', array_map(fn (Literal $l) => $l->id(), $result->literals)),
         '@pool' => $pool,
-      ]);
+      ];
+
+      if ($settings->get('log_verbose') && $result->scores) {
+        $message .= ' Scores: @scores.';
+        $args['@scores'] = $this->formatScores($result->scores);
+      }
+      $this->logger->info($message, $args);
     }
     return $result;
+  }
+
+  /**
+   * Formats chooser scores: "top a 0.92, next b 0.04, none 0.007, model m".
+   *
+   * @param array $scores
+   *   The scores, as LiteralFindResult describes them.
+   *
+   * @return string
+   *   The formatted scores.
+   */
+  protected function formatScores(array $scores): string {
+    $parts = [];
+    foreach (['top', 'next'] as $rank) {
+      if (!empty($scores[$rank])) {
+        $parts[] = sprintf('%s %s %.2g', $rank, $scores[$rank][0], $scores[$rank][1]);
+      }
+    }
+
+    $parts[] = sprintf('none %.2g', $scores['none'] ?? 0.0);
+    $parts[] = 'model ' . ($scores['model'] ?? '-');
+    return implode(', ', $parts);
   }
 
 }

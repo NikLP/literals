@@ -67,7 +67,7 @@ errors never cached) then the chooser over the whole menu. No decision
 model gives `none` / `no_backend`. Chooser rule: argmax `__none__` is none;
 a lead over the best other literal under `choice_margin` is ambiguous;
 below `match_threshold` is none. Settings are `literals_finder.settings`
-(`match_threshold` 0.5, `choice_margin` 0.2, `miss_ttl`, `log_audit`,
+(`match_threshold` 0.5, `choice_margin` 0.2, `miss_ttl`, `log_audit`, `log_verbose`,
 `chooser_context`, `chooser_instructions`, `max_question_length` 300:
 longer questions are cut in `find()`, for every caller). `chooser_context` states who is
 asking and whose literals these are ("you" means the library); write it
@@ -79,7 +79,8 @@ site default for that lookup.
 | Command | Does |
 | --- | --- |
 | `drush literals:find "question" [--uid=N]` | runs the finder as a user (default anonymous), prints outcome, tier and keys, never values |
-| `drush literals:eval [file]` | scores a gold set (default `eval/gold.seed.yml`): hit, miss, ambiguous, wrong-confident, unanswerable, time. `expect` is a key, `none`, `ambiguous` or a list of acceptable answers (`none` in a list counts as acceptable); `as` is a user ID (default 0). Clears the cache first |
+| `drush literals:eval [file] [--dump=FILE]` | scores a gold set (default `eval/gold.seed.yml`): hit, miss, ambiguous, wrong-confident, unanswerable, time, and each query's chooser scores (top, runner-up, none). `expect` is a key, `none`, `ambiguous` or a list of acceptable answers (`none` in a list counts as acceptable); `as` is a user ID or name (default 0; an unknown name skips the query with a warning). Clears the cache first. `--dump` writes each row (question, expected, scores, verdict, expected keys the asker cannot see) as JSON |
+| `drush literals:sweep DUMPS [--against=DUMPS] [--drop-stale] [--grid]` | replays `--dump` files (a file, or a directory read as one run) through `LiteralChooser::rule()` at each `match_threshold` and `choice_margin` step (`--thresholds`/`--margins`, `from:to:step`), no model calls: right / wrong / false positive / lost / none ok per step, a replay check against the live verdicts, likely stale gold labels (confident `--pool` prefix picks, default `pl_`, where the set expects none, an unseen key or an `--older` prefix key, default `st_`; and questions whose only answer the asker cannot see), and calibration (top probability against how often that pick was right). `--against` compares a second run for stability; `--drop-stale` sweeps without the suspects. See `eval/TUNING.md` |
 
 Gold sets are in `modules/literals_finder/eval/`: `gold.seed.yml`,
 `gold.paraphrase.yml`, `gold.blind.yml`, `gold.agentblind.yml` (written by
@@ -99,8 +100,14 @@ a set written by someone else is the fair test.
 
 `literals.settings:log_audit` (off by default) logs writes and reads: key,
 type, restricted flag, uid and outcome, never the gist or value.
-`literals_finder.settings:log_audit` (on) logs finder outcomes. Channel
-`logger.channel.literals`.
+`literals_finder.settings:log_audit` (on) logs finder outcomes (the
+`Find:` line); `log_verbose` (off) adds the chooser's top pick, runner-up
+and none probabilities and the model ID (`Scores: top a 0.92, next b 0.04,
+none 0.007, model m`; a cached outcome repeats its original scores). Keys
+and numbers only. Channel `logger.channel.literals`. Chooser calls are
+tagged `literals_choose`; add the tag to the site's
+`ai_logging.settings:prompt_logging_tags` to keep their prompts and replies
+in `ai_log` (literals does not write that config).
 
 ## Drush scripts
 

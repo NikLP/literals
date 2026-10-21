@@ -83,7 +83,35 @@ class LiteralChooser implements LiteralChooserInterface {
     $threshold = (float) ($thresholds['match_threshold'] ?? $settings->get('match_threshold'));
     $margin = (float) ($thresholds['choice_margin'] ?? $settings->get('choice_margin'));
 
-    return $this->interpret($answer->getProbabilities(), $by_key, $threshold, $margin);
+    $probabilities = $answer->getProbabilities();
+    return $this->interpret($probabilities, $by_key, $threshold, $margin)
+      ->withScores($this->scores($probabilities, $default['model_id']));
+  }
+
+  /**
+   * Summarizes a probability spread for the audit line, keys and numbers only.
+   *
+   * @param float[] $probabilities
+   *   Probabilities keyed by literal key, plus the none option.
+   * @param string $model
+   *   The decision model ID.
+   *
+   * @return array
+   *   The two likeliest literals ("top", "next": [key, probability] or NULL),
+   *   the none probability ("none") and the model ID ("model").
+   */
+  public function scores(array $probabilities, string $model): array {
+    $none = (float) ($probabilities[self::NONE_OPTION] ?? 0.0);
+    unset($probabilities[self::NONE_OPTION]);
+    arsort($probabilities);
+    $ranked = array_slice($probabilities, 0, 2, TRUE);
+    $pairs = array_map(fn ($key, $p) => [(string) $key, (float) $p], array_keys($ranked), $ranked);
+    return [
+      'top' => $pairs[0] ?? NULL,
+      'next' => $pairs[1] ?? NULL,
+      'none' => $none,
+      'model' => $model,
+    ];
   }
 
   /**
@@ -102,36 +130,86 @@ class LiteralChooser implements LiteralChooserInterface {
    *   The result.
    */
   public function interpret(array $probabilities, array $by_key, float $threshold, float $margin): LiteralFindResult {
+    $decision = static::rule($probabilities, array_keys($by_key), $threshold, $margin);
+    $literals = array_map(fn ($key) => $by_key[$key], $decision['keys']);
+    return new LiteralFindResult($decision['outcome'], $literals, 'chooser', $decision['reason']);
+  }
+
+  /**
+   * Applies the threshold and margin rule to a probability spread, keys only.
+   *
+   * Needs no model and no literals, so an offline sweep (drush
+   * literals:sweep) can replay a recorded spread under other settings.
+   *
+   * @param float[] $probabilities
+   *   Probabilities keyed by literal key, plus the none option.
+   * @param string[] $candidates
+   *   The candidate literal keys.
+   * @param float $threshold
+   *   The least probability a top pick needs to be returned at all.
+   * @param float $margin
+   *   The lead the top pick needs over the runner-up.
+   *
+   * @return array
+   *   "outcome" (a LiteralFindResult outcome), "keys" (the matched or tied
+   *   literal keys) and "reason" (a machine reason, or '').
+   */
+  public static function rule(array $probabilities, array $candidates, float $threshold, float $margin): array {
+    $candidates = array_flip(array_map('strval', $candidates));
     arsort($probabilities);
     $ranked = array_keys($probabilities);
-    $top = $ranked[0];
-    if ($top === self::NONE_OPTION || !isset($by_key[$top])) {
-      return new LiteralFindResult(LiteralFindResult::NONE, [], 'chooser', 'chose_none');
+    $top = (string) $ranked[0];
+    if ($top === self::NONE_OPTION || !isset($candidates[$top])) {
+      return ['outcome' => LiteralFindResult::NONE, 'keys' => [], 'reason' => 'chose_none'];
     }
     // A top pick under the threshold is no answer, however the rest lie: a flat
     // spread would otherwise tie almost the whole pool.
     if ($probabilities[$top] < $threshold) {
-      return new LiteralFindResult(LiteralFindResult::NONE, [], 'chooser', 'low_confidence');
+      return ['outcome' => LiteralFindResult::NONE, 'keys' => [], 'reason' => 'low_confidence'];
     }
     // The lead is over the best other literal: "none" is only a rival for the
     // top place, never part of a tie.
     $rival = 0.0;
     foreach ($probabilities as $key => $p) {
-      if ($key !== $top && $key !== self::NONE_OPTION) {
+      if ((string) $key !== $top && $key !== self::NONE_OPTION) {
         $rival = max($rival, $p);
       }
     }
+
     if ($probabilities[$top] - $rival < $margin) {
       // Only literals the model itself believes in are contenders.
       $tied = [];
       foreach ($probabilities as $key => $p) {
-        if ($key !== self::NONE_OPTION && isset($by_key[$key]) && $p >= $threshold && $probabilities[$top] - $p < $margin) {
-          $tied[] = $by_key[$key];
+        if ($key !== self::NONE_OPTION && isset($candidates[(string) $key]) && $p >= $threshold && $probabilities[$top] - $p < $margin) {
+          $tied[] = (string) $key;
         }
       }
-      return new LiteralFindResult(LiteralFindResult::AMBIGUOUS, $tied, 'chooser');
+      return ['outcome' => LiteralFindResult::AMBIGUOUS, 'keys' => $tied, 'reason' => ''];
     }
-    return new LiteralFindResult(LiteralFindResult::MATCH, [$by_key[$top]], 'chooser');
+    return ['outcome' => LiteralFindResult::MATCH, 'keys' => [$top], 'reason' => ''];
+  }
+
+  /**
+   * Rebuilds a probability spread from recorded scores.
+   *
+   * Holds only the top two literals and the none option, which is enough for
+   * rule() to give the same outcome as on the full spread; only a tie of
+   * three or more literals would list fewer keys.
+   *
+   * @param array $scores
+   *   Scores as scores() returns them.
+   *
+   * @return float[]
+   *   Probabilities keyed by literal key, plus the none option.
+   */
+  public static function probabilitiesFromScores(array $scores): array {
+    $probabilities = [self::NONE_OPTION => (float) ($scores['none'] ?? 0.0)];
+    foreach (['top', 'next'] as $rank) {
+      if (!empty($scores[$rank])) {
+        $probabilities[(string) $scores[$rank][0]] = (float) $scores[$rank][1];
+      }
+    }
+    return $probabilities;
   }
 
 }

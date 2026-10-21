@@ -3,4 +3,5 @@ choice_margin: 0.2
 miss_ttl: 300
 max_question_length: 300
 log_audit: true
+log_verbose: false
 chooser_context: ''

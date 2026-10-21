@@ -29,12 +29,31 @@ final class LiteralFindResult {
    *   What decided it: "cache", "chooser" or "pool".
    * @param string $reason
    *   A short machine reason, for example "no_candidates" or "no_backend".
+   * @param array $scores
+   *   What the chooser scored, keys and numbers only: "top" and "next" (the
+   *   two likeliest literals, each [key, probability] or NULL), "none" (the
+   *   none option's probability) and "model" (the model ID). Empty when no
+   *   model ran.
    */
   public function __construct(
     public readonly string $outcome,
     public readonly array $literals = [],
     public readonly string $tier = 'pool',
     public readonly string $reason = '',
+    public readonly array $scores = [],
   ) {}
+
+  /**
+   * Returns a copy of this result carrying the chooser's scores.
+   *
+   * @param array $scores
+   *   The scores, as the constructor describes them.
+   *
+   * @return static
+   *   The copy.
+   */
+  public function withScores(array $scores): static {
+    return new static($this->outcome, $this->literals, $this->tier, $this->reason, $scores);
+  }
 
 }

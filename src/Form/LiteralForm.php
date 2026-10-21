@@ -132,8 +132,9 @@ class LiteralForm extends ContentEntityForm {
   /**
    * The token types a token literal can resolve.
    *
-   * Mirrors TokenResolver::validate(): no session-bound current-user, no literal (recursion), and
-   * nothing that needs an entity, except user (the asking account).
+   * Mirrors TokenResolver::validate(): no session-bound current-user, no
+   * literal (recursion), and nothing that needs an entity, except user (the
+   * asking account).
    *
    * @return string[]
    *   Token type IDs.
