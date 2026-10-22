@@ -1,32 +1,34 @@
-# ADR-0040: Literals - exact values with a fuzzy address, found by a Jev choice
+# ADR-0040: Literals - exact values with a fuzzy address: what they are for, how they are found, how aim uses them
 
-**Status:** Accepted (settled by the Phase 1 to 3 builds); built through the finder, tokens, tool and
-search (see "What is built"). Refactored 2026-10-07 from a draft with nine
-addenda into the current state; the superseded designs (a field type, a
-`config_pages` host, pool bundles, an `aim_fact` mirror,
-an embedding gate) are summarized under "Rejected" (the alias field is
-pinned, see "Deferred and pinned") and the
-full text is in the `aim` repo history (`adr/0040-...` at commit 502f799).
-Supersedes the retired ADR-0039 (`scope: token`, label-only facts resolving live from a `config_pages` token; removed, history in git).
-**Date:** 2026-10-03
+**Status:** Accepted, current state. Built: the entity, types and resolvers,
+tokens, the finder, the lookup tool, plain search, `aim`'s token replacement
+at recall, the `aim_literal` tool and the finder-first chat gate (see "What
+is built"). Unbuilt: the aim-side options in section 7 and everything under
+"Deferred and pinned". Merged 2026-10-22 with the former ADR-0052 (what
+literals is for, how aim uses it, the answer modes) and the resolved
+ADR-0048 (token literals resolve for the asking account); both numbers are
+retired and their full text is in git. Earlier history: refactored
+2026-10-07 from a draft with nine addenda (the `aim` repo at commit
+502f799); supersedes the retired ADR-0039 (`scope: token`, label-only facts
+resolving live from a `config_pages` token).
+**Date:** 2026-10-03 (merged 2026-10-22)
 
-Related: [ADR-0048](0048-token-literal-access-and-entity-targets.md)
-(token access, entity targets), [ADR-0052](0052-what-literals-is-for.md)
-(what it is for), [ADR-0049](../../aim/adr/0049-finder-family-parked.md) section D
+Related: [ADR-0049](../../aim/adr/0049-finder-family-parked.md) section D
 (the shared "gist" term, formerly ADR-0053). Current state and runbooks:
 [CLAUDE.md](../CLAUDE.md) and [DEVELOPING.md](../DEVELOPING.md); how it works and its
 measurements: [how-it-works.md](how-it-works.md); the model ladder:
-[progressive-enhancement.md](progressive-enhancement.md).
+[progressive-enhancement.md](progressive-enhancement.md). Open work:
+[BACKLOG.md](../BACKLOG.md).
 
 ## Context
 
 A visitor asks the chat bot "what is the phone number?". The value exists in
-exactly one right place and the agent has to find it. Today it can only call
-`aim_recall`, which embeds the question and searches fact text. A number is a
-poor target for an embedding: recall can miss it, return opening hours
-instead, or return a stale copy that consolidation has merged or rewritten
-([ADR-0020](../../aim/adr/0020-verbatim-facts-consolidation-opt-out.md)). A
-missed recall is also invisible
+exactly one right place and the agent has to find it. Without literals it can
+only call `aim_recall`, which embeds the question and searches fact text. A
+number is a poor target for an embedding: recall can miss it, return opening
+hours instead, or return a stale copy that consolidation has merged or
+rewritten ([ADR-0020](../../aim/adr/0020-verbatim-facts-consolidation-opt-out.md)).
+A missed recall is also invisible
 ([ADR-0035](../../aim/adr/0035-standing-constraints-action-gate.md)).
 
 The idea: **the value is exact, the address is probabilistic.** A person or
@@ -45,6 +47,19 @@ Two facts shape everything below:
 2. **The semantic part is optional.** A literal is first a key and a value.
    Exact lookup by key (PHP, tokens, the tool) is a complete product with no
    AI at all; the finder is the optional layer on top.
+
+**Is it worth its curation cost, or is Search API simply better?** Tested
+2026-10-06 on "I want to pay my council tax":
+
+- For navigational queries Search API wins. A bill payer wants a landing
+  page, search returns it, and nobody wrote a gist. Hand-writing a literal
+  per popular destination is a second sitemap.
+- What search cannot do: return one exact value (phone, token, link) or an
+  honest "none" instead of nearest neighbours; resolve per viewer with an
+  access check; serve consumers that are not chat (a form field asking for
+  "our phone number", a `[literal:key]` token, an MCP tool).
+- The model never sees values: the chooser sees gists and IDs only, and the
+  value is resolved afterward. A hosted chat model doing recall would see it.
 
 **Prior art.** Two shallow `drupal-code-query` searches and web searches
 (2026-10-03) found no contrib module or CMS field type doing
@@ -73,7 +88,28 @@ of the menu's keys) gives the same "can only pick from the list" guarantee.
 
 ## Decision
 
-### 1. A standalone `literal` content entity
+### 1. What literals is for, and what it is not
+
+- **A find-and-gate layer for things, not fields.** A literal is a thing a
+  person would point at (a phone number, a login page, a "pay your council
+  tax" entry point). A field is only where a value lives.
+- **Not justified by chat cost alone.** Five reasons to adopt it, in order
+  of defensibility: correct-or-none answers; values kept out of prompts;
+  per-viewer access at resolve time; non-chat consumers (tokens, form
+  fields, MCP); and, weakest, the cost gate (section 7).
+- **No second sitemap.** Navigational destinations come from a menu and
+  page candidate provider (main-menu links and nodes flagged as entry
+  points; see "Candidates" under "Deferred and pinned"), not hand-typed
+  literals.
+- **Gists are written by a person.** Core metadata is too thin to describe
+  things in the words people use, so harvesting gists from it does not work;
+  a gist can be suggested from a token's description, then rewritten.
+- **No more literal-specific gist machinery for now** (aliases, pools,
+  vector tier stay pinned). The finder's demo case is a paraphrase with no
+  word overlap ("how do I ring you" to "main switchboard number"), not a
+  navigational query; it is not "better than search".
+
+### 2. A standalone `literal` content entity
 
 `literals` is a module of its own, a sibling of `aim` under
 `web/modules/custom/` (its own repo), and the name is Nik's decision. A
@@ -90,14 +126,13 @@ fields must live together in one place with revisions, access and a list UI:
 - **`config_pages` cannot host values:** no revisions, no Content Moderation,
   access per page type only, and its token handler does no view-access check.
 
-### 2 to 7. The parts, settled (mechanics live in the docs)
+### 3. The parts, settled (mechanics live in the docs)
 
-Condensed 2026-10-12: these sections described what is now documented where
-it is maintained, so only the decisions and their reasons stay here. Anatomy
-and stored fields: [how-it-works.md](how-it-works.md) "What is stored". Types,
-the finder, the tool and tokens in use: [DEVELOPING.md](../DEVELOPING.md).
-The rules in force (access, keys, revisions, the `field` resolver):
-[CLAUDE.md](../CLAUDE.md) "Decisions in force".
+Only the decisions and their reasons stay here. Anatomy and stored fields:
+[how-it-works.md](how-it-works.md) "What is stored". Types, the finder, the
+tool and tokens in use: [DEVELOPING.md](../DEVELOPING.md). The rules in force
+(access, keys, revisions, the `field` resolver): [CLAUDE.md](../CLAUDE.md)
+"Decisions in force".
 
 - **Anatomy.** Name, key (the entity ID, unique, immutable, the only handle
   logs may carry), value, gist (255 characters, one-shot wording; arbitrary
@@ -110,6 +145,11 @@ The rules in force (access, keys, revisions, the `field` resolver):
   holding several fields of mixed kinds (the `config_pages` model), because
   the finder would have to understand arbitrary field types. `url` is
   internal paths only (external URLs cannot be access checked).
+- **Resolvers return a pair, not a string.** `ResolvedLiteral` (value,
+  label, kind) through `resolveItem()` and `LiteralReader::readItem()`, so a
+  bare `/node/5` becomes a usable link. Literals supplies the data (the
+  literal's name, or the entity title); the caller (chat, block, aim's gate)
+  renders it.
 - **Access is one boolean, not audiences.** The `literal_audience` entities
   and three-level column were removed 2026-10-10 as more machinery than one
   realistic split needed. `LiteralVisibility::visibleFlags($account)` answers
@@ -139,13 +179,30 @@ The rules in force (access, keys, revisions, the `field` resolver):
   tool creates literal types or enters values (ADR-0035), and a narrow
   `literal_register` tool (gist and pointer to an existing target) is not
   built.
-- **Tokens.** `[literal:key]`, checked for view access on every resolve,
-  published revision only, escaping left to the caller like core tokens.
+- **Tokens.** `[literal:key]` and `[literal:key:link]`, checked for view
+  access on every resolve, published revision only, escaping left to the
+  caller like core tokens. Callers must pass and bubble `CacheableMetadata`
+  (`LiteralReader` does), or per-user text is cached for the wrong user.
   Rejected: a semantic token (`[literal:ask:...]`), because token rendering
   sits on hot cached paths and a model call there is slow, nondeterministic
   and uncacheable.
+- **A token literal resolves for the asking account** (the former ADR-0048,
+  built 2026-10-05). `resolve($literal, $account)` once ignored `$account`,
+  so `[current-user:*]` resolved for the session user (an agent, queue
+  worker or Drush call acting for B inside session A got A's data cached
+  under B's context), and access to the data a token reveals was never
+  checked. Now `[user:...]` always means the asking account (`resolve()`
+  passes it and adds the `user` cache context), and `validate()` rejects
+  `current-user` and any token type whose token info sets `needs-data`,
+  other than `user` (the token system's own flag, not a hardcoded list). A
+  token literal can only reveal global values (`site`, `current-date`) and
+  the asking account's own data, by construction rather than author trust.
+  `AccountSwitcherInterface::switchTo()` was rejected: it makes the session
+  lie and leaves the data-access gap open. Entity data goes through the
+  `entity`, `field` and `content` resolvers, each with its own view-access
+  check, not a token target (see "Rejected").
 
-### 8. Guardrails at save
+### 4. Guardrails at save
 
 Every `gist` and `value` runs through `drupal/ai` Guardrails at entity
 validation (decision 7 of the aim CLAUDE.md, extended to literals): the base
@@ -164,31 +221,7 @@ The match check is plausibility, not truth, and
 found bare plausibility the wrong test for small local models; measure
 before leaning on it.
 
-### 9. The `aim` relationship
-
-There is no `literal` scope, no `aim_scope_literal` and no mirror of gists
-into `aim_fact`. A scope says what a fact is **about**; a literal is an exact
-value with a fuzzy address, not a fact, and a pointer-only fact has no text
-to embed. `entity` scope stays ([ADR-0027](../../aim/adr/resolved/0027-entity-scope.md)):
-a fact about a literal is an ordinary `scope=entity` fact with
-`target_type=literal`.
-
-`aim` depends on `literals` (hard) but not on `literals_finder`, and stores
-nothing of a literal. Built 2026-10-08 to 10-10: `aim` replaces
-`[literal:key]` tokens in fact text at recall as the viewing account (a fact
-naming an unreadable literal is withheld), and the chat assistant looks
-values up with `aim_literal`, a wrapper over `literals.lookup` exposed
-through `tool_ai_connector`; today the large model is the gate for one-shot
-lookups (measured 2026-10-12: a finder-first gate beats that, ADR-0052 decision 3). `aim_recall` does **not** call the finder: the finder as a live
-recall source, answer modes and convert-a-fact are the unbuilt options in
-the 2026-10-08 addendum to [ADR-0052](0052-what-literals-is-for.md). A parked option:
-an aim-stored gist backend (the gist lives only as a `scope=entity` fact
-targeting the literal). The interface already allows it; it is not built
-because it needs two storage modes, a literal form writing another entity's
-text, no draft gists on a fact, a retire-on-delete link, and a consolidation
-skip.
-
-### 10. Growing and linking the gist
+### 5. Growing and linking the gist
 
 - **Wording grows by observed misses, not hand-kept aliases.** The pinned
   design: a question that returned `none` or `ambiguous`, which a person
@@ -199,6 +232,84 @@ skip.
   logging (question text is personal data). Risk: widening a gist pulls the
   literal toward vague neighbours (a wider alias list created a false
   positive in a trial); the neighbour check is the guard.
+
+### 6. The `aim` relationship
+
+There is no `literal` scope, no `aim_scope_literal` and no mirror of gists
+into `aim_fact`. A scope says what a fact is **about**; a literal is an exact
+value with a fuzzy address, not a fact, and a pointer-only fact has no text
+to embed. `entity` scope stays ([ADR-0027](../../aim/adr/resolved/0027-entity-scope.md)):
+a fact about a literal is an ordinary `scope=entity` fact with
+`target_type=literal`.
+
+`aim` depends on `literals` (hard) but not on `literals_finder`, and stores
+nothing of a literal. Built 2026-10-08 to 10-15:
+
+- `aim` replaces `[literal:key]` and `[literal:key:link]` in fact text at
+  recall as the viewing account; a fact naming an unreadable literal is
+  withheld whole.
+- The chat assistant looks values up with `aim_literal`, a wrapper over
+  `literals.lookup` exposed through `tool_ai_connector`. It stays for MCP
+  and external agents, which have no gate in front of them.
+- **The finder is the gate, ahead of the chat model** (`AimGateProcessor`, a
+  `ChatProcessor` in aim_chatbot, live 2026-10-15; open points in aim's
+  TODO.md). Measured 2026-10-12 (`drush aim:chatbot-eval`, numbers and charts
+  in [how-it-works.md](how-it-works.md)): letting the chat model decide to
+  call `aim_literal` cost two hosted calls plus the finder and still
+  under-called the tool (20/51 on the 101-literal set, against the finder's
+  50/51 on the same questions). Putting the finder first and handing the
+  question to the chat model only on `none` or `ambiguous` used a fifth to a
+  quarter of the hosted tokens at 101 literals, was the fastest, and kept
+  per-viewer visibility. Stuffing the prompt with every readable value
+  scaled with the pool (3x tokens at 101 literals) and cannot serve two
+  audiences. A hit skips the hosted model only; the Jev call stays, as it is
+  the fuzzy match.
+- `aim_recall` does **not** call the finder (section 7).
+
+A parked option: an aim-stored gist backend (the gist lives only as a
+`scope=entity` fact targeting the literal). The interface already allows it;
+it is not built because it needs two storage modes, a literal form writing
+another entity's text, no draft gists on a fact, a retire-on-delete link, and
+a consolidation skip.
+
+### 7. How aim could use literals further (unbuilt)
+
+Design for aim's side, pulled out one at a time when a site needs it.
+
+1. **Convert-a-fact retires the fact.** Promoting an extracted one-shot fact
+   (an exact value) to a literal supersedes the fact through the existing
+   non-destructive `superseded_by` edge, through a short form, never one
+   click (mechanics under "Deferred and pinned"). The literal's gist is then
+   the only description of the thing; the value lives once. Facts that
+   merely mention a literal in a longer sentence stay facts and carry
+   `[literal:key]`, so the value is never stale.
+2. **Two ways to show a literal in recall.**
+   - *Finder as a live source:* `aim_recall` asks the finder as a second
+     source and returns the literal as a fact-shaped live result (value
+     resolved for the viewer). Nothing stored in `aim`. The finder's failure
+     mode is `none` (0 wrong-confident measured), not a wrong value.
+   - *Pointer fact with a tracked gist:* a fact with no text of its own whose
+     index entry is computed from the literal's gist. Only worth building if
+     the live source proves insufficient. If both run, de-duplicate by
+     literal key.
+3. **Two answer modes, a setting.**
+   - *Mode 1, literal only:* the reply is the fixed text and link; no large
+     model, lowest cost, the value never reaches a model. (The gate's
+     template reply today.)
+   - *Mode 2, literal plus smoothing:* the question and the resolved literal
+     go to the large model for a natural reply.
+   - *Escalation:* mode 1 can show a "think harder" control that re-runs the
+     question through mode 2 or the full recall path (a skill, wired later).
+4. **Visibility decides what may reach a hosted model.** Default: mode 2 only
+   for unrestricted values; restricted values stay mode 1, or go to a local
+   model. A trade-off accepted until local reasoning models are available,
+   not a settled principle. It assumes aim's standing rule that it is not for
+   classified data (aim CLAUDE.md, Scope).
+5. **Copy controls are front-end work.** The chat items already carry value,
+   label and kind, so a "copy value" / "copy link" button shown by role or
+   restriction needs nothing new in `literals`.
+6. **An optional pre-gate** ("is this a lookup?" ahead of the finder), only
+   if measured to pay.
 
 ## What is built
 
@@ -213,6 +324,7 @@ decision model, large pools) is in [progressive-enhancement.md](progressive-enha
 ## Deferred and pinned
 
 None of these is built; each names its trigger. Measure before building.
+Actionable next steps are in [BACKLOG.md](../BACKLOG.md).
 
 - **Staged choice** (pick a group, then a literal) for pools past the full
   menu. Needs an author-written `group` field and group descriptions. The
@@ -234,14 +346,16 @@ None of these is built; each names its trigger. Measure before building.
   facts only, rate-limited, Guardrails on the proposal, source facts beside
   the diff, separate permission for business-critical literals), and the
   alias review loop. ADR-0035 applies: it only ever creates a draft revision.
-- **Convert a fact to a literal** (a short form, never one click): a model
-  splits the fact into gist and value, a human picks the type, the literal
-  carries a `source_fact` back-reference, and the fact is retired after a
-  cool-off. Depends on the agreed `retired`/`expires` split in aim's TODO.md.
+- **Convert a fact to a literal** (section 7, item 1): a model splits the
+  fact into gist and value, a human picks the type, the literal carries a
+  `source_fact` back-reference, and the fact is retired after a cool-off.
+  Depends on the agreed `retired`/`expires` split in aim.
 - **Candidates** (folded in from the retired ADR-0047;
   nothing built). Candidates are suggestions, never entities: a provider
-  (a curated YAML list of site tokens, or a generic one over
-  `Token::getInfo()` filtered to site-level types, `current-user` excluded)
+  (a curated YAML list of site tokens, a generic one over
+  `Token::getInfo()` filtered to site-level types with `current-user`
+  excluded, or a menu and page provider: main-menu links and nodes flagged
+  as entry points, label from the menu title, value a path or entity)
   proposes a (source, key, gist) triple, a person edits and saves, and only
   then does a `literal` exist, so the count tracks use, not the token list
   (every literal costs a menu slot). Stores like `site_settings` and
@@ -265,8 +379,8 @@ None of these is built; each names its trigger. Measure before building.
   languages with no translation; verify with a second-language gold set
   before claiming it. Values return in the visitor's language through entity
   translation if the literal is translated.
-- **A `literal_register` agent tool and the aim-stored gist backend** (section
-  6 and 9).
+- **A `literal_register` agent tool and the aim-stored gist backend**
+  (sections 3 and 6).
 - **Keyword fallback when the finder says none.** "dimwit?" gets
   `chose_none` although the search would match "dimwit" in the gist. Idea:
   on none, offer search hits as "did you mean", never as an answer, with its
@@ -297,8 +411,8 @@ None of these is built; each names its trigger. Measure before building.
   measured gain). A wider alias list pulled near-topic questions in, on one
   in-sample trial. Pinned, not rejected (2026-10-10): intent-matching
   systems (Dialogflow, Rasa, Azure custom question answering) treat several
-  example phrasings per answer as their main lever. Re-test after a blind
-  question set; tracked in aim's TODO.md. Until then: add specific `ALSO`
+  example phrasings per answer as their main lever. Re-test tracked in
+  [BACKLOG.md](../BACKLOG.md). Until then: add specific `ALSO`
   phrasings freely (ideally from real misses), never one-word or
   category-level ones ("payments"), and keep the `chooser_context` line.
 - **A local decision model.** One CPU cross-encoder was tried 2026-10-10
@@ -321,12 +435,17 @@ None of these is built; each names its trigger. Measure before building.
   threshold, if one type misbehaves.
 - **Rewriting the query with Jev:** it cannot generate text.
 - **A literal field type, a registry entity, a
-  `config_pages` host:** section 1.
+  `config_pages` host:** section 2.
 - **Pools as bundles, per-pool permissions and `[literal:pool:key]`:**
   replaced by types and one access column (Phase 1 build; the column became the `restricted` flag 2026-10-10).
 - **A literal scope, an `aim_scope_literal` bridge and a gist mirror in
   `aim_fact`:** a second copy of the gist with its own embedding, sync code
   on every save, delete and draft, and a standing duplicate invariant.
+- **An entity target on token literals** (the former ADR-0048 Part B,
+  dropped 2026-10-12): a `target` (`entity_type:id`) so `[node:title]` could
+  resolve with an access check. The `entity`, `field` and `content`
+  resolvers already reach entity data with their own view-access checks.
+- **Harvesting gists from Drupal metadata alone:** too thin (section 1).
 - **Form API `#pattern` for value patterns:** validates on submit only, so
   agents bypass it. Typed Data constraints instead.
 - **Auto-applying regenerated gists, aliases or proposals, and letting
@@ -351,13 +470,23 @@ None of these is built; each names its trigger. Measure before building.
 - The value is never embedded or consolidated; the finder and chooser are the
   only probabilistic parts. Stale copies cannot occur because the value
   lives once.
+- A short fixed list, or a few verbatim facts with consolidation opted out
+  ([ADR-0020](../../aim/adr/0020-verbatim-facts-consolidation-opt-out.md)),
+  covers the "well known but unavailable" case on a typical site without a
+  finder. The finder only earns its keep when such values are numerous or
+  restricted.
 - Reliability is bounded by the chooser's accuracy, measured per site. Misses
-  surface as `none` or `ambiguous`. Every number so far is in-sample (gold
-  sets written by Claude); a blind set written by Nik is the fair test.
+  surface as `none` or `ambiguous`. Most numbers are in-sample (gold sets
+  written by Claude); the 2026-10-12 blind set (16 of 22, 2 wrong-confident)
+  was also Claude-drafted, so a set written by Nik is still the fair test.
 - The hosted decision model sees real gists. Demo data only until a local
   model or a data-handling decision exists.
+- A token literal saved earlier with `current-user` fails validation on its
+  next save.
 - A site that adopts the proposer, convert-a-fact or the alias merge takes on
   a review queue someone must staff.
+- Demo literals ship as default content in the `literals_demo_library`
+  recipe (finder and chat demo) and aim's `aim_demo_library` recipe.
 
 ## Logging
 
@@ -377,10 +506,13 @@ and reason). Never the gist, value or question text. An opt-in
   where the staged choice or a vector shortlist earns its place.
 - Whether a local in-house Jev model changes any of the above (clear the
   finder cache when swapping models; the cache fingerprint deliberately omits
-  the model).
+  the model). Local Jev latency on the gate is unmeasured.
+- Whether a Jev-written sentence around the gate's value is worth one more
+  in-house call.
+- Does a menu and page candidate provider keep gist coverage high enough to
+  matter?
 - Whether `config_pages` and `dynamic_entity_reference` ever warrant a
   resolver of their own; whether the Token provider should declare dynamic
   tokens per literal or only the generic chain.
 - Whether `literals` clashes on drupal.org (the check has not been run and is
   needed before release).
-- ~~Fold `literals_search` into the base module?~~ Done 2026-10-07.

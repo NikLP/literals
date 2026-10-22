@@ -158,8 +158,8 @@ literals as a standalone fuzzy value store.
   running `literals` **without** `aim`. An aim site uses `aim_tool`'s
   `aim_literal` instead: the same `literals.lookup` service under aim's
   name, so the two never both need enabling.
-- `literals_chat` - a chat responder over the finder; a demo surface, likely
-  to be scrapped.
+- `literals_chat` - a chat responder over the finder, with no chat model
+  behind it; the demo surface for the `literals_demo_library` recipe.
 
 ## Drush commands
 

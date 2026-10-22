@@ -217,7 +217,7 @@ Same caveat: none of these is an independent blind set.
 
 ### End to end: does the gate save anything (2026-10-12)
 
-The cost question from [ADR-0052](0052-what-literals-is-for.md) decision 3,
+The cost question from [ADR-0040](0040-literals-probabilistic-lookup-of-exact-values.md) section 6 (the gate),
 measured with `drush aim:chatbot-eval` in aim_chatbot: the same 39
 questions (`gold.agentblind.yml`, 11 literals, hosted Jev) through the real
 assistant three ways. **`tool`**: the chat model decides to call

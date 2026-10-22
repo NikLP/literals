@@ -12,7 +12,8 @@ use Drupal\literals\Entity\Literal;
  * A resolver of literal value: plain text, a token, an entity, a URL.
  *
  * The stored value is always a string. The resolver says what it means and how
- * to turn it into the thing handed to the caller (ADR-0040 "value resolvers").
+ * to turn it into the thing handed to the caller (ADR-0040 "The parts,
+ * settled").
  */
 interface LiteralResolverInterface {
 

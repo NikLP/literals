@@ -7,11 +7,14 @@ consumer), not contain it. Status: working PoC, live on this DDEV site.
 
 See [README.md](README.md) for the pitch, [DEVELOPING.md](DEVELOPING.md)
 for commands, API and runbooks, and [adr/](adr/) for decisions: start with
-[ADR-0040](adr/0040-literals-probabilistic-lookup-of-exact-values.md) (current
-state), then [ADR-0052](adr/0052-what-literals-is-for.md) (what it is for,
-how `aim` uses it, the answer modes) and [adr/how-it-works.md](adr/how-it-works.md)
-(measurements).
-Backlog items live in aim's [TODO.md](../aim/TODO.md) ("Literals").
+[ADR-0040](adr/0040-literals-probabilistic-lookup-of-exact-values.md) (the
+one decision record: what it is for, current state, how `aim` uses it, the
+answer modes), then [adr/how-it-works.md](adr/how-it-works.md)
+(measurements) and [adr/progressive-enhancement.md](adr/progressive-enhancement.md)
+(the model ladder). [adr/howto-literals-demo-install.md](adr/howto-literals-demo-install.md)
+installs the finder and chat demo on a fresh site.
+Open work on this module is in [BACKLOG.md](BACKLOG.md); aim-side work
+(the gate, convert-a-fact, answer modes) is in aim's [TODO.md](../aim/TODO.md).
 
 The project-wide rules in the site CLAUDE.md and aim's CLAUDE.md apply
 here: no em dashes, American English, no banner comments, **never
@@ -24,7 +27,7 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
 | `literals` | `user`, `views`; no AI | entity, types, resolvers, view access, reader, `[literal:key]` and `[literal:key:link]` tokens, Guardrails constraint, plain search service, `literals.lookup` service, list UI |
 | `literals_finder` | `drupal/ai` | finder, chooser (Decision API), outcome cache, Guardrails runner, `drush literals:find`/`literals:eval`/`literals:sweep` |
 | `literals_tool` | `tool` | `literals:lookup` Tool API / MCP tool, a thin wrapper over `literals.lookup`; for sites without aim (aim sites use `aim_tool`'s `aim_literal`, the same service) |
-| `literals_chat` | finder | chat responder and chat processor; a demo surface, likely to be scrapped |
+| `literals_chat` | finder | chat responder and chat processor with no chat model behind it; kept as the `literals_demo_library` demo surface |
 
 ## Decisions in force (do not reopen without a reason)
 
