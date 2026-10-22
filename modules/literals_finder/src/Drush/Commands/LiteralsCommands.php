@@ -12,7 +12,6 @@ use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AnonymousUserSession;
-use Drupal\literals\Entity\Literal;
 use Drupal\literals_finder\Finder\LiteralChooser;
 use Drupal\literals_finder\Finder\LiteralFindResult;
 use Drupal\literals_finder\Finder\LiteralFinderInterface;
@@ -768,83 +767,6 @@ final class LiteralsCommands extends DrushCommands {
         $made++;
       }
       $this->io()->success("$made of " . count($rows) . ' literals loaded.');
-    }
-    finally {
-      $this->accountSwitcher->switchBack();
-    }
-  }
-
-  /**
-   * Generates a synthetic zz_ pool and a matching gold set.
-   *
-   * Reads a generator spec (--spec: departments, kinds with gist, value,
-   * type, offset and questions, and unanswerable questions). The gold set is
-   * a fixed 60 sampled questions plus the unanswerable ones, written to
-   * --gold. Runs as user 1.
-   */
-  #[CLI\Command(name: 'literals:pool-scale')]
-  #[CLI\Option(name: 'spec', description: 'The generator spec YAML (needed unless --clean).')]
-  #[CLI\Option(name: 'count', description: 'Number of literals to create (max 225).')]
-  #[CLI\Option(name: 'gold', description: 'Where to write the gold YAML.')]
-  #[CLI\Option(name: 'clean', description: 'Remove the zz_ literals instead.')]
-  public function poolScale(
-    array $options = [
-      'spec' => NULL,
-      'count' => 60,
-      'gold' => '/tmp/scale-gold.yml',
-      'clean' => FALSE,
-    ],
-  ): void {
-    $storage = $this->entityTypeManager->getStorage('literal');
-    $this->accountSwitcher->switchTo(User::load(1));
-    try {
-      $old = array_filter($storage->loadMultiple(), fn ($l) => str_starts_with((string) $l->id(), 'zz_'));
-      $storage->delete($old);
-      if ($options['clean']) {
-        $this->io()->success(count($old) . ' literals removed.');
-        return;
-      }
-      if (!$options['spec'] || !is_file($options['spec'])) {
-        throw new \InvalidArgumentException('Pass --spec=FILE, the generator spec YAML.');
-      }
-      $spec = Yaml::decode(file_get_contents($options['spec']));
-      $limit = (int) $options['count'];
-      $gold = [];
-      $count = 0;
-      foreach ($spec['departments'] as $department) {
-        foreach ($spec['kinds'] as $kind => $k) {
-          if ($count >= $limit) {
-            break 2;
-          }
-          $slug = 'zz_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($department)) . '_' . $kind;
-          $gist = sprintf($k['gist'], $department);
-          $literal = Literal::create([
-            'type' => $k['type'],
-            'name' => ucfirst($gist),
-            'id' => $slug,
-            'value' => sprintf($k['value'], $k['offset'] + $count),
-            'gist' => $gist,
-            'status' => 1,
-          ]);
-          if (count($literal->validate())) {
-            continue;
-          }
-          $literal->save();
-          foreach ($k['questions'] as $q) {
-            $gold[] = ['q' => sprintf($q, strtolower($department)), 'expect' => $slug];
-          }
-          $count++;
-        }
-      }
-      // A fixed sample size, whatever the pool size.
-      mt_srand(42);
-      shuffle($gold);
-      $gold = array_slice($gold, 0, 60);
-      foreach ($spec['unanswerable'] as $q) {
-        $gold[] = ['q' => $q, 'expect' => 'none'];
-      }
-      file_put_contents($options['gold'], Yaml::encode(['queries' => $gold]));
-      $this->io()->success("$count literals created, " . count($gold) . " gold questions in {$options['gold']}.");
     }
     finally {
       $this->accountSwitcher->switchBack();

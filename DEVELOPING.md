@@ -113,9 +113,7 @@ and test pools are site data, kept outside the module (this site:
 `demo/literals-eval/`). A pool file lists `literals` (id, type, name, gist,
 value, optional restricted); `drush literals:pool load|clean FILE` loads or
 removes it (runs as user 1; removes exactly the keys the file lists).
-`drush literals:pool-scale --spec=FILE --count=60 --gold=PATH` generates up
-to 225 synthetic `zz_` literals and a matching gold set from a generator
-spec; `--clean` removes them. Drush runs from the docroot, so give absolute
+Drush runs from the docroot, so give absolute
 paths. Synthetic sets are fixtures for regression runs, not a basis for
 tuning a real site. All numbers so far are
 in-sample (written by the module's author or an agent, not independently);

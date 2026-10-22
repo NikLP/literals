@@ -331,7 +331,7 @@ eval data (this site: `demo/literals-eval/RESULTS.md`).
 | Date | Set | Pool | Answerable hit | Wrong-confident | Unanswerable correct | Per query |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-05 | seed | 9 | 29/29 | 0 | 10/10 | 0.3 s |
-| 2026-10-05 | synthetic (`pool-scale`) | 60 / 234 | 60/60 | 0 | 10/10 | 0.4 s |
+| 2026-10-05 | synthetic `zz_` pools | 60 / 234 | 60/60 | 0 | 10/10 | 0.4 s |
 | 2026-10-07 | paraphrase | 9 / 99 | 44/45 | 0 | 15/15, 14/15 | |
 | 2026-10-07 | agent-written from the menu alone | 9 | 28/29 | 0 | 13/16 | |
 | 2026-10-12 | blind (Claude-drafted) | site | 16/22 | 2 | | |
