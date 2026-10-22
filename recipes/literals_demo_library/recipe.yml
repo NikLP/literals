@@ -1,19 +1,27 @@
 name: 'Literals: demo library'
 description: 'Demo literals for the fictional Harbourside Community Library demo.'
 type: 'Demo'
-recipes:
-  - literals_base
 install:
+  - literals
   - literals_finder
   - literals_chat
   - ai_chatbot
   - block
 config:
+  # A recipe-installed module is installed in syncing mode, so its own
+  # config/install is skipped; import it explicitly.
   import:
+    literals: '*'
     literals_finder: '*'
   actions:
+    # Everyone sees unrestricted literals; restricted ones need a staff role
+    # granted `view restricted literals`.
+    user.role.anonymous:
+      grantPermissions:
+        - 'view literals'
     user.role.authenticated:
       grantPermissions:
+        - 'view literals'
         - 'use literals chat'
         - 'access deepchat api'
     block.block.literals_demo_chat:

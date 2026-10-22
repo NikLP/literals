@@ -91,8 +91,7 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
 - **The module ships six fixed literal types** in `config/install` (Text,
   Path, Token, Content, Entity, Field), each with a `description` shown
   read-only on its edit form (no editable field). Entity and Field ship
-  disabled; Content ships with no bundles ticked (opt-in). The
-  `literals_base` recipe only grants the view permissions.
+  disabled; Content ships with no bundles ticked (opt-in).
 - **No update hooks (PoC).** `literals.install` was removed 2026-10-09:
   nothing real depends on this site's data, so a schema or bundle change
   means `drush pmu literals` and re-enable (remove the view from
@@ -102,7 +101,7 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   literal -y`); the `literals_demo_library` recipe re-seeds them.
   Nothing grants the view permissions on install: a fresh site shows
   literals to admins only until roles are granted `view literals` (the
-  `literals_base` recipe does).
+  `literals_demo_library` recipe does).
 - **The admin list is for editors**: its View uses the `literal_editor`
   access plugin (`edit literals` or `administer literals`), so
   `administer literals` covers the list as it covers every literal

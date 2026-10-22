@@ -1,7 +1,9 @@
 # Literals: demo library
 
-Applies [literals_base](../literals_base/README.md) and imports eight
-literals as default content (`content/literal/`): the main, reservations,
+Installs `literals` with `literals_finder` and `literals_chat`, grants
+`view literals` to Anonymous and Authenticated (restricted literals stay
+hidden until a staff role is granted `view restricted literals`), places
+the chat block, and imports eight literals as default content (`content/literal/`): the main, reservations,
 accounts and staff phones, the login, password reset and my-account links,
 and the site name. Their gists are the ones the finder evaluation uses,
 including the `ALSO` phrases (see ADR-0040, "Measurements").

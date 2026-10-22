@@ -56,22 +56,23 @@ class LiteralInstallTest extends KernelTestBase {
   }
 
   /**
-   * The base recipe grants the view permissions; the demo adds eight, once.
+   * The demo recipe grants the view permissions and adds eight literals, once.
    */
   public function testRecipes(): void {
     // Default content is imported as the site's first account.
     User::create(['uid' => 1, 'name' => 'root', 'status' => 1])->save();
     $recipes = dirname(__DIR__, 3) . '/recipes/';
-    RecipeRunner::processRecipe(Recipe::createFromDirectory($recipes . 'literals_base'));
-    $this->assertSame(['view literals'], Role::load('anonymous')->getPermissions());
-    // Restricted literals need a staff role granted; the recipe does not.
-    $this->assertSame(['view literals'], Role::load('authenticated')->getPermissions());
 
     // The demo places a block in the default theme.
     $this->container->get('theme_installer')->install(['stark']);
     $this->config('system.theme')->set('default', 'stark')->save();
     $demo = Recipe::createFromDirectory($recipes . 'literals_demo_library');
     RecipeRunner::processRecipe($demo);
+    $this->assertSame(['view literals'], Role::load('anonymous')->getPermissions());
+    // Restricted literals need a staff role granted; the recipe does not.
+    $authenticated = Role::load('authenticated');
+    $this->assertTrue($authenticated->hasPermission('view literals'));
+    $this->assertFalse($authenticated->hasPermission('view restricted literals'));
     $this->assertCount(8, Literal::loadMultiple());
     $this->assertTrue(Literal::load('staff_line')->isRestricted());
     $this->assertFalse(Literal::load('main_phone')->isRestricted());

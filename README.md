@@ -45,24 +45,20 @@ module; the finder and the tool are extras (see below).
    ```
 
    This installs the module, its six fixed literal types and the admin list
-   view. It grants nothing and creates no literals. For a moderate setup with
-   the view permissions granted, use the literals_base recipe.
+   view. It grants nothing and creates no literals.
 
 2. **Grant the view permissions.** `view literals` sees every literal not
    marked restricted; `view restricted literals` sees all of them (a
    literal's **Restricted** checkbox). Nothing is granted on install (a
-   literal nobody can see fails closed), so choose deliberately. The
-   `literals_base` recipe grants `view literals` to everyone; grant `view
-   restricted literals` yourself to the staff role that should see
-   restricted values:
+   literal nobody can see fails closed), so choose deliberately. To let
+   everyone see unrestricted literals, and a staff role the restricted ones:
 
    ```bash
-   ddev drush recipe modules/custom/literals/recipes/literals_base
+   ddev drush role:perm:add anonymous,authenticated 'view literals'
+   ddev drush role:perm:add editor 'view restricted literals'
    ```
 
-   The path is relative to the `web` directory. Without DDEV:
-   `php core/scripts/drupal recipe path/to/recipe`. Or grant the permissions
-   by hand at `/admin/people/permissions/module/literals`.
+   Or grant them by hand at `/admin/people/permissions/module/literals`.
 
 3. **Optional: load the demo literals.** Eight literals for a fictional
    library (four phones, login, password reset, my account, site name),

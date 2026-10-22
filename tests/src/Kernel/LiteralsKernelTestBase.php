@@ -71,7 +71,7 @@ abstract class LiteralsKernelTestBase extends KernelTestBase {
     LiteralType::create(['id' => 'url', 'label' => 'URL', 'resolver' => 'url'])->save();
     LiteralType::create(['id' => 'field', 'label' => 'Field', 'resolver' => 'field'])->save();
 
-    // Everyone sees unrestricted literals, as the literals_base recipe sets.
+    // Everyone sees unrestricted literals, as the demo recipe sets.
     foreach (['anonymous' => 'Anonymous', 'authenticated' => 'Authenticated'] as $rid => $label) {
       Role::create(['id' => $rid, 'label' => $label])->grantPermission('view literals')->save();
     }
