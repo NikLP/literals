@@ -44,15 +44,7 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    // Not installConfig(): the module's guardrail configs hit an upstream
-    // schema gap (check_all_messages), and only the settings matter here.
-    $this->config('literals_finder.settings')->setData([
-      'match_threshold' => 0.5,
-      'choice_margin' => 0.2,
-      'miss_ttl' => 300,
-      'log_audit' => TRUE,
-      'chooser_context' => '',
-    ])->save();
+    $this->installConfig(['literals_finder']);
     FakeChooser::reset();
   }
 

@@ -25,12 +25,6 @@ keeps them).
       model") on latency, accuracy and 50 to 500 options; local Jev latency
       on aim's gate is unmeasured.
 
-## Before a drupal.org release
-
-- [ ] **Finder test exclusions.** The schema-checker exclusions in
-      `literals_finder`'s tests may be removable now the
-      `literals_max_length` guardrail uses `scan_all_user_messages`.
-
 ## Wait for a trigger
 
 - [ ] **Showing the literal key** (wait for a request; Nik 2026-10-21:

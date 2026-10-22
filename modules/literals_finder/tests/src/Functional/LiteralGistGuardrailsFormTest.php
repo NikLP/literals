@@ -30,14 +30,6 @@ class LiteralGistGuardrailsFormTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * {@inheritdoc}
-   *
-   * The ai module's schema for input_length_limit lacks check_all_messages,
-   * an upstream gap (see this module's CLAUDE.md gotchas).
-   */
-  protected static $configSchemaCheckerExclusions = ['ai.ai_guardrail.literals_max_length'];
-
-  /**
    * A gist the no-markup guardrail rejects is a form error on the gist.
    */
   public function testGistRejected(): void {
