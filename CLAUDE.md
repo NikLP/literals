@@ -126,6 +126,13 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   gold queries or it correctly answers none. `literals:sweep` lists such
   rows (an expected key the asker cannot see), with deleted keys and
   gist-less literals, as lost at every setting.
+- **Eval data is site data, not shipped.** The module ships only
+  `eval/gold.example.yml` (for the demo recipe) and the method
+  (`eval/TUNING.md`); this site's gold sets, pools and sweep results are in
+  the site repo's `demo/literals-eval/`. Deleting a literal or adding a pool
+  means re-labeling those sets in the same change; `drush literals:eval SET
+  --check` finds stale labels without model calls. Drush runs from the
+  docroot: pass absolute paths.
 - `config_devel` is installed (dev): `drush config:devel-export literals`.
   Validate config schema with
   `\Drupal::service('config.typed')->createFromNameAndData($name, $data)->validate()`

@@ -79,20 +79,20 @@ site default for that lookup.
 | Command | Does |
 | --- | --- |
 | `drush literals:find "question" [--uid=N]` | runs the finder as a user (default anonymous), prints outcome, tier and keys, never values |
-| `drush literals:eval [file] [--dump=FILE]` | scores a gold set (default `eval/gold.seed.yml`): hit, miss, ambiguous, wrong-confident, unanswerable, time, and each query's chooser scores (top, runner-up, none). `expect` is a key, `none`, `ambiguous` or a list of acceptable answers (`none` in a list counts as acceptable); `as` is a user ID or name (default 0; an unknown name skips the query with a warning). Clears the cache first. `--dump` writes each row (question, expected, scores, verdict, expected keys the asker cannot see) as JSON |
-| `drush literals:sweep DUMPS [--against=DUMPS] [--drop-stale] [--grid]` | replays `--dump` files (a file, or a directory read as one run) through `LiteralChooser::rule()` at each `match_threshold` and `choice_margin` step (`--thresholds`/`--margins`, `from:to:step`), no model calls: right / wrong / false positive / lost / none ok per step, a replay check against the live verdicts, likely stale gold labels (confident `--pool` prefix picks, default `pl_`, where the set expects none, an unseen key or an `--older` prefix key, default `st_`; and questions whose only answer the asker cannot see), and calibration (top probability against how often that pick was right). `--against` compares a second run for stability; `--drop-stale` sweeps without the suspects. See `eval/TUNING.md` |
+| `drush literals:eval [file] [--dump=FILE] [--check]` | scores a gold set (default `eval/gold.example.yml`, for the `literals_demo_library` recipe): hit, miss, ambiguous, wrong-confident, unanswerable, time, and each query's chooser scores (top, runner-up, none). `expect` is a key, `none`, `ambiguous` or a list of acceptable answers (`none` in a list counts as acceptable); `as` is a user ID or name (default 0; an unknown name skips the query with a warning). A set's `requires` names the pools (`pools`) and extra site literals (`site`) it needs; eval warns when they are missing, and when a question's only answers are literals the asker cannot see. `--check` only checks the labels, with no model calls: every expected key must exist on the site or in a pool file in `pools/` next to the set, and a bare pool key needs its pool in `requires` (exit 1 on a problem). Clears the cache first. `--dump` writes each row (question, expected, scores, verdict, expected keys the asker cannot see) as JSON |
+| `drush literals:sweep DUMPS [--against=DUMPS] [--drop-stale] [--grid]` | replays `--dump` files (a file, or a directory read as one run) through `LiteralChooser::rule()` at each `match_threshold` and `choice_margin` step (`--thresholds`/`--margins`, `from:to:step`), no model calls: right / wrong / false positive / lost / none ok per step, a replay check against the live verdicts, likely stale gold labels (confident picks, of `--pool` prefix keys if given, where the set expects none, an unseen key or an `--older` prefix key; and questions whose only answer the asker cannot see), and calibration (top probability against how often that pick was right). `--against` compares a second run for stability; `--drop-stale` sweeps without the suspects. See `eval/TUNING.md` |
 
-Gold sets are in `modules/literals_finder/eval/`: `gold.seed.yml`,
-`gold.paraphrase.yml`, `gold.blind.yml`, `gold.agentblind.yml` (written by
-a cold agent from the menu alone), `gold.stress.yml`, `gold.pool100.yml`.
-Test pools are YAML in `modules/literals_finder/eval/pools/` (`pool100`: 90
-`pl_*` literals, `stress`: 14 `st_*`), loaded and removed with
-`drush literals:pool load|clean NAME` (runs as user 1; removes exactly the
-keys the file lists). `drush literals:pool-scale --count=60 --gold=PATH`
-generates up to 225 synthetic `zz_` literals and a matching gold set from
-`pools/scale.yml`; `--clean` removes them. The pools are synthetic fixtures
-for regression runs, not a basis for tuning a real site (see
-`eval/TUNING.md`). All numbers so far are
+The module ships one gold set, `modules/literals_finder/eval/gold.example.yml`
+(for the demo recipe), and the method in `eval/TUNING.md`. Other gold sets
+and test pools are site data, kept outside the module (this site:
+`demo/literals-eval/`). A pool file lists `literals` (id, type, name, gist,
+value, optional restricted); `drush literals:pool load|clean FILE` loads or
+removes it (runs as user 1; removes exactly the keys the file lists).
+`drush literals:pool-scale --spec=FILE --count=60 --gold=PATH` generates up
+to 225 synthetic `zz_` literals and a matching gold set from a generator
+spec; `--clean` removes them. Drush runs from the docroot, so give absolute
+paths. Synthetic sets are fixtures for regression runs, not a basis for
+tuning a real site (see `eval/TUNING.md`). All numbers so far are
 in-sample (written by the module's author or an agent, not independently);
 a set written by someone else is the fair test.
 

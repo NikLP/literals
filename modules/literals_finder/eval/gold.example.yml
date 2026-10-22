@@ -1,21 +1,27 @@
-# Gold queries for the five seed literals on the dev site. "expect" is a
-# literal key, "none" when nothing should match, or "ambiguous"
-# when several literals fit equally (a tie or none is right, one pick is wrong). "as" is a user ID
-# (0 = anonymous). Synthetic data only: queries go to hosted Jev.
+# Example gold set for drush literals:eval, written for the literals_demo_library
+# recipe's literals (apply the recipe first). Synthetic: a fictional library,
+# questions written by Claude. A worked example of the format, not a basis for
+# tuning a real site (see TUNING.md).
+#
+# "expect" is a literal key, "none" when nothing should match, "ambiguous" when
+# several literals fit equally (a tie or none is right, one pick is wrong), or a
+# list of acceptable answers. "as" is a user ID (default 0, anonymous) or a user
+# name. A set may declare "requires": "pools" (pool files in a pools/ directory
+# next to the set, loaded with drush literals:pool) and "site" (literal keys the
+# site must have beyond the recipe). literals:eval warns when either is missing.
 queries:
   - {q: 'what is your phone number', expect: [main_phone, ambiguous]}
   - {q: 'how can I call the library', expect: main_phone}
   - {q: 'main phone', expect: main_phone}
   - {q: 'telephone number for the front desk', expect: main_phone}
-  - {q: 'who is the admin', expect: admin_user}
-  - {q: 'which account runs the site', expect: admin_user}
+  - {q: 'who is the admin', expect: none}
+  - {q: 'which account runs the site', expect: none}
   - {q: 'where do I sign in', expect: login}
   - {q: 'how do I log in', expect: login}
   - {q: 'login page', expect: login}
   - {q: 'what is the name of this site', expect: site_name, as: 1}
   - {q: 'what is the website called', expect: site_name, as: 1}
   - {q: 'what is the name of this site', expect: none, as: 0}
-  - {q: 'where are the dimwits', expect: dimwit}
   - {q: 'what is the capital of France', expect: none}
   - {q: 'what is the weather', expect: none}
   # Near neighbours: the wrong-confident risk.
@@ -26,16 +32,15 @@ queries:
   - {q: 'call billing about an overdue charge', expect: accounts_phone}
   - {q: 'main phone', expect: main_phone}
   - {q: 'general enquiries phone number', expect: main_phone}
-  - {q: 'what time do you open', expect: opening_hours}
-  - {q: 'are you open on Sunday', expect: opening_hours}
-  - {q: 'when do you close', expect: opening_hours}
+  - {q: 'what time do you open', expect: none}
+  - {q: 'are you open on Sunday', expect: none}
+  - {q: 'when do you close', expect: none}
   - {q: 'I forgot my password', expect: password_reset}
   - {q: 'reset my password', expect: password_reset}
   - {q: 'phone number', expect: [main_phone, ambiguous]}
   - {q: 'email address of the librarian', expect: none}
-  - {q: 'do you have the latest Stephen King novel', expect: none}
   # "You/your" phrasings (the chooser context makes these about the library).
-  - {q: 'what are your opening hours', expect: opening_hours}
+  - {q: 'what are your opening hours', expect: none}
   - {q: 'how do I get hold of you by phone', expect: [main_phone, ambiguous]}
   - {q: 'what is your telephone number', expect: [main_phone, ambiguous]}
   - {q: 'how do I sign in to your website', expect: login}

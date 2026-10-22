@@ -92,21 +92,33 @@ final class LiteralsCommands extends DrushCommands {
    * Clears the outcome cache first. Reports per-query results with the
    * chooser's scores, then recall, misses, wrong-confident matches (the
    * costly kind: a wrong value served) and time. Never prints values. With
-   * --dump, writes each row as JSON for an offline literals:sweep.
+   * --dump, writes each row as JSON for an offline literals:sweep. With
+   * --check, only checks the labels, with no model calls.
    */
   #[CLI\Command(name: 'literals:eval')]
-  #[CLI\Argument(name: 'file', description: 'YAML gold set (default: the module\'s eval/gold.seed.yml).')]
+  #[CLI\Argument(name: 'file', description: 'YAML gold set (default: the module\'s eval/gold.example.yml, for the literals_demo_library recipe).')]
   #[CLI\Option(name: 'dump', description: 'Write each row (question, expected, scores, verdict) as JSON to this file.')]
-  #[CLI\Usage(name: 'drush literals:eval eval/gold.blind.yml --dump=/tmp/run1/blind.json', description: 'Score a set and keep its rows for literals:sweep.')]
-  public function evaluate(?string $file = NULL, array $options = ['dump' => NULL]): void {
-    $file ??= $this->moduleList->getPath('literals_finder') . '/eval/gold.seed.yml';
-    $gold = Yaml::decode(file_get_contents($file))['queries'] ?? [];
+  #[CLI\Option(name: 'check', description: 'Only check that every expected key exists on the site or in a pool file next to the set; no model calls.')]
+  #[CLI\Usage(name: 'drush literals:eval sets/gold.blind.yml --dump=/tmp/run1/blind.json', description: 'Score a set and keep its rows for literals:sweep.')]
+  #[CLI\Usage(name: 'drush literals:eval sets/gold.blind.yml --check', description: 'Find stale labels before spending model calls.')]
+  public function evaluate(?string $file = NULL, array $options = ['dump' => NULL, 'check' => FALSE]): int {
+    $file ??= $this->moduleList->getPath('literals_finder') . '/eval/gold.example.yml';
+    if (!is_file($file)) {
+      throw new \InvalidArgumentException("No gold set at $file");
+    }
+    $set = Yaml::decode(file_get_contents($file));
+    $gold = $set['queries'] ?? [];
+    if ($options['check']) {
+      return $this->checkLabels($set, dirname($file)) ? self::EXIT_FAILURE : self::EXIT_SUCCESS;
+    }
+    $this->checkRequires($set['requires'] ?? [], dirname($file));
     Cache::invalidateTags(['literal_list']);
 
     $score = ['hit' => 0, 'miss' => 0, 'wrong' => 0, 'ambiguous' => 0, 'none_ok' => 0, 'none_fp' => 0];
     $elapsed = 0.0;
     $rows = [];
     $dump = [];
+    $unreachable = [];
     foreach ($gold as $item) {
       $account = $this->evalAccount($item['as'] ?? 0);
       if (!$account) {
@@ -145,6 +157,9 @@ final class LiteralsCommands extends DrushCommands {
         'unseen' => $this->unseen($item['expect'], $account),
         'time' => round($took, 3),
       ];
+      if ($this->unanswerable(end($dump))) {
+        $unreachable[] = $item['q'];
+      }
     }
 
     $this->io()->table(['', 'Question', 'Expected', 'Got', 'Tier', 'Scores (top, next, none)', 'Time'], $rows);
@@ -156,6 +171,12 @@ final class LiteralsCommands extends DrushCommands {
       'Unanswerable: correct none ' . $pct($score['none_ok'], $unanswerable) . ', false positive ' . $score['none_fp'],
       sprintf('Mean time %.2fs per query', $dump ? $elapsed / count($dump) : 0),
     ]);
+    if ($unreachable) {
+      $this->logger()->warning('{n} questions expect only literals the asker cannot see (missing, unpublished, no gist or hidden), so they cannot hit: {q}', [
+        'n' => count($unreachable),
+        'q' => implode('; ', $unreachable),
+      ]);
+    }
 
     if ($options['dump']) {
       $settings = $this->configFactory->get('literals_finder.settings');
@@ -173,6 +194,7 @@ final class LiteralsCommands extends DrushCommands {
       }
       $this->io()->writeln("Rows written to {$options['dump']}");
     }
+    return self::EXIT_SUCCESS;
   }
 
   /**
@@ -198,6 +220,7 @@ final class LiteralsCommands extends DrushCommands {
   #[CLI\Option(name: 'drop-stale', description: 'Leave the stale-label suspects out of the threshold and margin tables.')]
   #[CLI\Option(name: 'older', description: 'Key prefix of an older pool whose expectations the new pool may have overtaken.')]
   #[CLI\Usage(name: 'drush literals:sweep /tmp/run1 --against=/tmp/run2', description: 'Sweep run 1, then compare it with run 2.')]
+  #[CLI\Usage(name: 'drush literals:sweep /tmp/run1 --pool=pl_ --older=st_', description: 'Flag stale labels from a pl_ pool added after an st_ one.')]
   public function sweep(
     string $dumps,
     array $options = [
@@ -206,8 +229,8 @@ final class LiteralsCommands extends DrushCommands {
       'grid' => FALSE,
       'against' => NULL,
       'confident' => 0.8,
-      'pool' => 'pl_',
-      'older' => 'st_',
+      'pool' => '',
+      'older' => '',
       'drop-stale' => FALSE,
     ],
   ): void {
@@ -242,7 +265,7 @@ final class LiteralsCommands extends DrushCommands {
     foreach ($run as $i => $row) {
       $top = $row['scores']['top'] ?? NULL;
       $expected = $this->expectedKeys($row['expect']);
-      if ($expected && $expected === $row['unseen'] && !in_array('none', array_map('strval', (array) $row['expect']), TRUE)) {
+      if ($this->unanswerable($row)) {
         $unanswerable[$i] = $row;
       }
       if (!$top || $top[1] < (float) $options['confident'] || in_array($top[0], $expected, TRUE) || !str_starts_with($top[0], (string) $options['pool'])) {
@@ -294,7 +317,8 @@ final class LiteralsCommands extends DrushCommands {
       $this->io()->table($header, array_map(fn ($m) => $line($threshold, $m), $margins));
     }
 
-    $this->io()->section(sprintf('Likely stale gold labels: %d confident (>= %.2f) %s* picks', count($stale), $options['confident'], $options['pool']));
+    $picks = $options['pool'] !== '' ? $options['pool'] . '*' : 'literal';
+    $this->io()->section(sprintf('Likely stale gold labels: %d confident (>= %.2f) %s picks', count($stale), $options['confident'], $picks));
     if ($stale) {
       $this->io()->table(['Set', 'Question', 'Expected', 'Pick', 'Why'], array_values($stale));
     }
@@ -336,6 +360,8 @@ final class LiteralsCommands extends DrushCommands {
   /**
    * Prints how far a second run of the same questions agrees with the first.
    *
+   * Questions are matched by set, "as" and text.
+   *
    * @param array $first
    *   The first run's rows.
    * @param array $second
@@ -361,7 +387,8 @@ final class LiteralsCommands extends DrushCommands {
       }
       $pairs++;
       $va = $this->replay($a, $threshold, $margin);
-      $vb = $this->replay($b, $threshold, $margin);
+      // Judged by the first run's labels, so a re-label is not a change.
+      $vb = $this->replay(['expect' => $a['expect']] + $b, $threshold, $margin);
       $ta = $a['scores']['top'] ?? NULL;
       $tb = $b['scores']['top'] ?? NULL;
       if ($ta && $tb && $ta[0] === $tb[0]) {
@@ -478,6 +505,113 @@ final class LiteralsCommands extends DrushCommands {
   }
 
   /**
+   * Tells whether a dumped row's only acceptable answers are unseen keys.
+   *
+   * Such a question is lost or wrong at every setting: its label is stale or
+   * it needs a pool, a site literal or an "as" it was not run with.
+   *
+   * @param array $row
+   *   A dumped row.
+   */
+  protected function unanswerable(array $row): bool {
+    $expected = $this->expectedKeys($row['expect']);
+    $accepted = array_map('strval', (array) $row['expect']);
+    return $expected && $expected === $row['unseen'] && !in_array('none', $accepted, TRUE) && !in_array('ambiguous', $accepted, TRUE);
+  }
+
+  /**
+   * Warns when a gold set's required pools or site literals are missing.
+   *
+   * @param array $requires
+   *   The set's "requires": "pools" (names of files in a pools/ directory
+   *   next to the set) and "site" (literal keys the site must have).
+   * @param string $dir
+   *   The gold set's directory.
+   */
+  protected function checkRequires(array $requires, string $dir): void {
+    $storage = $this->entityTypeManager->getStorage('literal');
+    foreach ($requires['pools'] ?? [] as $pool) {
+      $file = "$dir/pools/$pool.yml";
+      $keys = $this->poolKeys($file);
+      $missing = count($keys) - count($storage->loadMultiple($keys));
+      if (!$keys || $missing) {
+        $this->logger()->warning('This set needs pool {pool} ({missing} of {total} literals missing): drush literals:pool load {file}', [
+          'pool' => $pool,
+          'missing' => $missing,
+          'total' => count($keys),
+          'file' => $file,
+        ]);
+      }
+    }
+    $site = $requires['site'] ?? [];
+    if ($missing = array_diff($site, array_keys($storage->loadMultiple($site)))) {
+      $this->logger()->warning('This set needs site literals the site does not have: {keys}', ['keys' => implode(', ', $missing)]);
+    }
+  }
+
+  /**
+   * Prints a gold set's labels that no literal or pool file can satisfy.
+   *
+   * An expected key must exist on the site or in a pool file next to the set;
+   * a question whose only answer is a pool's key needs that pool in
+   * "requires". Access, status and gists are not checked (eval reports those).
+   *
+   * @param array $set
+   *   The decoded gold set.
+   * @param string $dir
+   *   The gold set's directory.
+   *
+   * @return int
+   *   The number of problems found.
+   */
+  protected function checkLabels(array $set, string $dir): int {
+    $pools = [];
+    foreach (glob("$dir/pools/*.yml") ?: [] as $file) {
+      $pools[basename($file, '.yml')] = $this->poolKeys($file);
+    }
+    $required = $set['requires']['pools'] ?? [];
+    $problems = [];
+    foreach (array_diff($required, array_keys($pools)) as $pool) {
+      $problems[] = ['-', "requires pool $pool, which has no file in $dir/pools"];
+    }
+    $expected = array_unique(array_merge(...array_map(fn ($item) => $this->expectedKeys($item['expect']), $set['queries'] ?? [])));
+    $site = array_map('strval', array_keys($this->entityTypeManager->getStorage('literal')->loadMultiple($expected)));
+    foreach ($set['queries'] ?? [] as $item) {
+      foreach ($this->expectedKeys($item['expect']) as $key) {
+        $from = array_keys(array_filter($pools, fn ($keys) => in_array($key, $keys, TRUE)));
+        if (in_array($key, $site, TRUE)) {
+          continue;
+        }
+        if (!$from) {
+          $problems[] = [$item['q'], "expects $key, which is neither on the site nor in a pool file"];
+        }
+        elseif (!is_array($item['expect']) && !array_intersect($from, $required)) {
+          $pools_named = implode('/', $from);
+          $problems[] = [$item['q'], "expects $key from pool $pools_named, which the set does not require"];
+        }
+      }
+    }
+    if ($problems) {
+      $this->io()->table(['Question', 'Problem'], $problems);
+    }
+    $this->io()->writeln(sprintf('%d label problems in %d questions.', count($problems), count($set['queries'] ?? [])));
+    return count($problems);
+  }
+
+  /**
+   * Reads the literal keys a pool file lists.
+   *
+   * @param string $file
+   *   The pool YAML file.
+   *
+   * @return string[]
+   *   The keys, or none when the file is missing.
+   */
+  protected function poolKeys(string $file): array {
+    return is_file($file) ? array_map('strval', array_column(Yaml::decode(file_get_contents($file))['literals'] ?? [], 'id')) : [];
+  }
+
+  /**
    * Lists the expected keys the asker cannot find in this pool.
    *
    * A literal that is missing, unpublished, without a gist or not viewable
@@ -586,19 +720,20 @@ final class LiteralsCommands extends DrushCommands {
   }
 
   /**
-   * Loads or removes a test pool of literals from eval/pools/NAME.yml.
+   * Loads or removes a test pool of literals from a YAML file.
    *
-   * Runs as user 1. Existing literals with a pool key are replaced on load.
-   * Removing deletes exactly the keys the pool file lists.
+   * The file lists "literals", each with id, type, name, gist, value and
+   * optionally restricted. Runs as user 1. Existing literals with a pool key
+   * are replaced on load. Removing deletes exactly the keys the file lists.
    */
   #[CLI\Command(name: 'literals:pool')]
   #[CLI\Argument(name: 'action', description: 'load or clean.')]
-  #[CLI\Argument(name: 'name', description: 'Pool name: a file in eval/pools, without .yml (pool100, stress).')]
-  public function pool(string $action, string $name): void {
-    if (!in_array($action, ['load', 'clean'], TRUE) || !preg_match('/^[a-z0-9_]+$/', $name)) {
-      throw new \InvalidArgumentException('Usage: literals:pool load|clean NAME');
+  #[CLI\Argument(name: 'file', description: 'The pool YAML file.')]
+  #[CLI\Usage(name: 'drush literals:pool load sets/pools/pool100.yml', description: 'Seed a test pool.')]
+  public function pool(string $action, string $file): void {
+    if (!in_array($action, ['load', 'clean'], TRUE)) {
+      throw new \InvalidArgumentException('Usage: literals:pool load|clean FILE');
     }
-    $file = $this->moduleList->getPath('literals_finder') . "/eval/pools/$name.yml";
     if (!is_file($file)) {
       throw new \InvalidArgumentException("No pool file at $file");
     }
@@ -642,14 +777,24 @@ final class LiteralsCommands extends DrushCommands {
   /**
    * Generates a synthetic zz_ pool and a matching gold set.
    *
-   * Reads eval/pools/scale.yml. The gold set is a fixed 60 sampled questions
-   * plus the unanswerable ones, written to --gold. Runs as user 1.
+   * Reads a generator spec (--spec: departments, kinds with gist, value,
+   * type, offset and questions, and unanswerable questions). The gold set is
+   * a fixed 60 sampled questions plus the unanswerable ones, written to
+   * --gold. Runs as user 1.
    */
   #[CLI\Command(name: 'literals:pool-scale')]
+  #[CLI\Option(name: 'spec', description: 'The generator spec YAML (needed unless --clean).')]
   #[CLI\Option(name: 'count', description: 'Number of literals to create (max 225).')]
   #[CLI\Option(name: 'gold', description: 'Where to write the gold YAML.')]
   #[CLI\Option(name: 'clean', description: 'Remove the zz_ literals instead.')]
-  public function poolScale(array $options = ['count' => 60, 'gold' => '/tmp/scale-gold.yml', 'clean' => FALSE]): void {
+  public function poolScale(
+    array $options = [
+      'spec' => NULL,
+      'count' => 60,
+      'gold' => '/tmp/scale-gold.yml',
+      'clean' => FALSE,
+    ],
+  ): void {
     $storage = $this->entityTypeManager->getStorage('literal');
     $this->accountSwitcher->switchTo(User::load(1));
     try {
@@ -659,7 +804,10 @@ final class LiteralsCommands extends DrushCommands {
         $this->io()->success(count($old) . ' literals removed.');
         return;
       }
-      $spec = Yaml::decode(file_get_contents($this->moduleList->getPath('literals_finder') . '/eval/pools/scale.yml'));
+      if (!$options['spec'] || !is_file($options['spec'])) {
+        throw new \InvalidArgumentException('Pass --spec=FILE, the generator spec YAML.');
+      }
+      $spec = Yaml::decode(file_get_contents($options['spec']));
       $limit = (int) $options['count'];
       $gold = [];
       $count = 0;
