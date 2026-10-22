@@ -1,7 +1,7 @@
 # Example gold set for drush literals:eval, written for the literals_demo_library
 # recipe's literals (apply the recipe first). Synthetic: a fictional library,
 # questions written by Claude. A worked example of the format, not a basis for
-# tuning a real site (see TUNING.md).
+# tuning a real site (see DEVELOPING.md, "Tuning the thresholds").
 #
 # "expect" is a literal key, "none" when nothing should match, "ambiguous" when
 # several literals fit equally (a tie or none is right, one pick is wrong), or a

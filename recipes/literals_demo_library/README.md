@@ -4,7 +4,7 @@ Applies [literals_base](../literals_base/README.md) and imports eight
 literals as default content (`content/literal/`): the main, reservations,
 accounts and staff phones, the login, password reset and my-account links,
 and the site name. Their gists are the ones the finder evaluation uses,
-including the `ALSO` phrases (see `adr/how-it-works.md`).
+including the `ALSO` phrases (see ADR-0040, "Measurements").
 
 Re-applying skips literals that already exist (matched by UUID), so a
 value edited on the site is not overwritten.

@@ -15,10 +15,8 @@ resolving live from a `config_pages` token).
 
 Related: [ADR-0049](../../aim/adr/0049-finder-family-parked.md) section D
 (the shared "gist" term, formerly ADR-0053). Current state and runbooks:
-[CLAUDE.md](../CLAUDE.md) and [DEVELOPING.md](../DEVELOPING.md); how it works and its
-measurements: [how-it-works.md](how-it-works.md); the model ladder:
-[progressive-enhancement.md](progressive-enhancement.md). Open work:
-[BACKLOG.md](../BACKLOG.md).
+[CLAUDE.md](../CLAUDE.md) and [DEVELOPING.md](../DEVELOPING.md);
+measurements: "Measurements" below. Open work: [BACKLOG.md](../BACKLOG.md).
 
 ## Context
 
@@ -128,9 +126,8 @@ fields must live together in one place with revisions, access and a list UI:
 
 ### 3. The parts, settled (mechanics live in the docs)
 
-Only the decisions and their reasons stay here. Anatomy and stored fields:
-[how-it-works.md](how-it-works.md) "What is stored". Types, the finder, the
-tool and tokens in use: [DEVELOPING.md](../DEVELOPING.md). The rules in force
+Only the decisions and their reasons stay here. Stored fields, types, the
+finder, the tool and tokens in use: [DEVELOPING.md](../DEVELOPING.md). The rules in force
 (access, keys, revisions, the `field` resolver): [CLAUDE.md](../CLAUDE.md)
 "Decisions in force".
 
@@ -167,8 +164,8 @@ tool and tokens in use: [DEVELOPING.md](../DEVELOPING.md). The rules in force
   `choice_margin` 0.2) are untuned placeholders that held on every gold set.
   Hosted Jev is for synthetic or demo data only (gists go to it, values
   never do); a production site needs a local decision model or a
-  data-handling decision first. Latency and the context-line findings are in
-  how-it-works.md and progressive-enhancement.md.
+  data-handling decision first. Latency and the context-line findings are
+  under "Measurements".
 - **Tool, search and lookup modes.** `literals:lookup` has three modes with
   precedence `key` > `question` > `search`; missing, draft and not-visible are
   one identical "none". The logic is typed service methods returning a value
@@ -253,8 +250,8 @@ nothing of a literal. Built 2026-10-08 to 10-15:
   and external agents, which have no gate in front of them.
 - **The finder is the gate, ahead of the chat model** (`AimGateProcessor`, a
   `ChatProcessor` in aim_chatbot, live 2026-10-15; open points in aim's
-  TODO.md). Measured 2026-10-12 (`drush aim:chatbot-eval`, numbers and charts
-  in [how-it-works.md](how-it-works.md)): letting the chat model decide to
+  TODO.md). Measured 2026-10-12 (`drush aim:chatbot-eval`, numbers under
+  "Measurements"): letting the chat model decide to
   call `aim_literal` cost two hosted calls plus the finder and still
   under-called the tool (20/51 on the 101-literal set, against the finder's
   50/51 on the same questions). Putting the finder first and handing the
@@ -313,13 +310,84 @@ Design for aim's side, pulled out one at a time when a site needs it.
 
 ## What is built
 
-Modules and what each provides: [CLAUDE.md](../CLAUDE.md) "Modules".
-Verified: PHPUnit kernel tests (visibility matrix, every resolver, reader,
-token, key rules, guardrail wiring, tool, finder over a fake chooser) and
-`drush literals:eval` gold sets (hosted Jev, 0 wrong-confident in every run;
-numbers in [how-it-works.md](how-it-works.md)). The finder's real chooser is
-covered only by the eval. The progressive-enhancement ladder (no model,
-decision model, large pools) is in [progressive-enhancement.md](progressive-enhancement.md).
+Modules and what each provides: [CLAUDE.md](../CLAUDE.md) "Modules"; tests:
+[DEVELOPING.md](../DEVELOPING.md) "Tests". The finder's real chooser is
+covered only by `drush literals:eval`.
+
+**The model ladder.** Step 0, no model: exact key (PHP, tokens, the tool)
+and plain search, a complete product; a question gets `none`/`no_backend`.
+Step 1, one decision model: the finder, one chooser call per uncached
+question. Step 2, large pools (staged choice or a vector index): unbuilt,
+not needed so far. Adding a step is a module install and a provider setting.
+With step 1, the question, the context and the visible candidates' keys and
+gists leave the site; values never do.
+
+## Measurements
+
+All hosted Jev, all with gold sets written by Claude or an agent (in-sample,
+smoke tests, not benchmarks). Site results and sweeps live with the site's
+eval data (this site: `demo/literals-eval/RESULTS.md`).
+
+| Date | Set | Pool | Answerable hit | Wrong-confident | Unanswerable correct | Per query |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-05 | seed | 9 | 29/29 | 0 | 10/10 | 0.3 s |
+| 2026-10-05 | synthetic (`pool-scale`) | 60 / 234 | 60/60 | 0 | 10/10 | 0.4 s |
+| 2026-10-07 | paraphrase | 9 / 99 | 44/45 | 0 | 15/15, 14/15 | |
+| 2026-10-07 | agent-written from the menu alone | 9 | 28/29 | 0 | 13/16 | |
+| 2026-10-12 | blind (Claude-drafted) | site | 16/22 | 2 | | |
+| 2026-10-22 | seven sets | 114 | 191/192 | 1 | | 0.3 s |
+
+- **Keyword baseline** (seed set): the module's search 4/29 hits; a crude
+  ranked variant 17/29 with 1 wrong. The chooser's lead is paraphrase and
+  saying none.
+- **Context line.** Without one, "what is your phone number" scored `none`
+  (whose number?); with it, a match. One sentence (pick the library's own
+  services, answer none if another organization is named) removed three
+  near-topic false positives for 1-2 misses. Negated or long contexts
+  over-steered toward none. Prompt rewording of the instructions did not help.
+- **Thresholds.** Raising `match_threshold` to 0.7 removed one false
+  positive, 0.85 started losing hits. The margin mattered not at all.
+- **A bigger pool turns "I don't know" into "the closest thing"**: false
+  positives at 99+ literals are gray-zone picks. Pool size did not hurt hits
+  up to 234.
+- **`ALSO` phrases** recovered misses (9/9 against 4/9 on invented names),
+  written after seeing the misses; a category-level one ("payments") added a
+  false positive.
+- **Gist overlap (2026-10-22):** two gists sharing wording did not predict
+  confusion: the one wrong pick in 192 shared no wording with its gist, and
+  21 hits had a word-sharing runner-up and were still right. A warning was
+  built and removed.
+- **Embedding gate** (built and removed 2026-10-05): same hits and
+  correct-none as the chooser alone at 9 and 234 literals, faster only at 9;
+  alone it could not say none; about 450 lines, a queue and three drifting
+  thresholds.
+
+**The gate, end to end** (2026-10-12, `drush aim:chatbot-eval`, 39
+agent-written questions; `tool`: the chat model calls `aim_literal`;
+`prompt`: every readable value in the system prompt; `gate`: the finder
+first, the chat model only on `none` or `ambiguous`):
+
+| Mode | Hosted tokens, 11 / 101 literals | Seconds, 101 | Correct, agent set | Correct, 101-literal set |
+| --- | --- | --- | --- | --- |
+| `tool` | 3,422 / 3,360 | 4.2 | 20/23 | 20/51 |
+| `prompt` | 1,874 / 5,599 | 2.6 | 22/23 | 37/51 |
+| `gate` | 923 / 604 | 1.3 | 23/23 | 50/51 |
+
+The chat model is a poor gate (it often never called the tool); the prompt
+path scales with the pool and cannot serve two audiences (restricted values:
+`tool` and `gate` 5/5 for the signed-in user, `prompt` 1/5, none leaked to
+anonymous). "Correct" means the stored value appears in the reply, so
+chat-model rephrasing counts as wrong.
+
+**Jev limits** (TypeSafe docs, 2026-10-06): up to 255 options per Choice and
+about 32k tokens for the whole menu; Jev leans to the first option, loses
+accuracy on similar options with long descriptions and reads negation
+literally. Open models are far tighter (`laya:en` about 125 options), so a
+small local model needs a per-send gist budget or a paged menu.
+
+**Not measured:** pools past 234, a local decision model on the chooser, a
+second language, an independently written gold set, and live traffic (the
+real miss rate).
 
 ## Deferred and pinned
 
@@ -415,10 +483,16 @@ Actionable next steps are in [BACKLOG.md](../BACKLOG.md).
   [BACKLOG.md](../BACKLOG.md). Until then: add specific `ALSO`
   phrasings freely (ideally from real misses), never one-word or
   category-level ones ("payments"), and keep the `chooser_context` line.
+- **Stacked questions in the chooser call.** The Decision API takes several
+  questions per request: `one_shot`, `asks_for_value` or `sensitive`
+  booleans could short-circuit to `none` before the choice is read, at no
+  extra round trip. Add one only if a set shows false matches it would
+  catch, and re-run the eval (it may shift the choice probabilities).
 - **A local decision model.** One CPU cross-encoder was tried 2026-10-10
   (`ms-marco-MiniLM-L-12-v2`, 99 literals, 206 gold queries): at best 84/142
   answerable hits with 7 wrong-confident, about 0.7 s per query. Not a
-  replacement. Untried: a larger reranker (`bge-reranker-v2-m3`), NLI
+  replacement. A local `tev1:4b` typed choice took 10 to 14 s on this
+  CPU-only laptop (ADR-0038). Untried: a larger reranker (`bge-reranker-v2-m3`), NLI
   zero-shot (`deberta-v3` zeroshot), a small local model with constrained
   JSON-enum output via Ollama. Re-measure any candidate (latency, accuracy,
   50 to 500 options) before deciding whether pool-chopping is needed.
@@ -431,7 +505,7 @@ Actionable next steps are in [BACKLOG.md](../BACKLOG.md).
 - **A match threshold per literal** (semantic-router's fitted per-route
   thresholds): needs 10 to 20 labelled questions per literal; the gold sets
   have one to three. Raising the global threshold already did not help
-  (section on measurements in how-it-works.md). At most a per-type
+  ("Measurements"). At most a per-type
   threshold, if one type misbehaves.
 - **Rewriting the query with Jev:** it cannot generate text.
 - **A literal field type, a registry entity, a
@@ -477,8 +551,8 @@ Actionable next steps are in [BACKLOG.md](../BACKLOG.md).
   restricted.
 - Reliability is bounded by the chooser's accuracy, measured per site. Misses
   surface as `none` or `ambiguous`. Most numbers are in-sample (gold sets
-  written by Claude); the 2026-10-12 blind set (16 of 22, 2 wrong-confident)
-  was also Claude-drafted, so a set written by Nik is still the fair test.
+  written by Claude or an agent), so a set written by Nik, or real traffic,
+  is still the fair test.
 - The hosted decision model sees real gists. Demo data only until a local
   model or a data-handling decision exists.
 - A token literal saved earlier with `current-user` fails validation on its

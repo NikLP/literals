@@ -9,9 +9,8 @@ See [README.md](README.md) for the pitch, [DEVELOPING.md](DEVELOPING.md)
 for commands, API and runbooks, and [adr/](adr/) for decisions: start with
 [ADR-0040](adr/0040-literals-probabilistic-lookup-of-exact-values.md) (the
 one decision record: what it is for, current state, how `aim` uses it, the
-answer modes), then [adr/how-it-works.md](adr/how-it-works.md)
-(measurements) and [adr/progressive-enhancement.md](adr/progressive-enhancement.md)
-(the model ladder). [adr/howto-literals-demo-install.md](adr/howto-literals-demo-install.md)
+answer modes, the model ladder and the measurements).
+[adr/howto-literals-demo-install.md](adr/howto-literals-demo-install.md)
 installs the finder and chat demo on a fresh site.
 Open work on this module is in [BACKLOG.md](BACKLOG.md); aim-side work
 (the gate, convert-a-fact, answer modes) is in aim's [TODO.md](../aim/TODO.md).
@@ -131,7 +130,7 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
   gist-less literals, as lost at every setting.
 - **Eval data is site data, not shipped.** The module ships only
   `eval/gold.example.yml` (for the demo recipe) and the method
-  (`eval/TUNING.md`); this site's gold sets, pools and sweep results are in
+  (DEVELOPING.md "Tuning the thresholds"); this site's gold sets, pools and sweep results are in
   the site repo's `demo/literals-eval/`. Deleting a literal or adding a pool
   means re-labeling those sets in the same change; `drush literals:eval SET
   --check` finds stale labels without model calls. Drush runs from the

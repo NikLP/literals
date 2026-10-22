@@ -10,16 +10,9 @@ keeps them).
 
 ## Next
 
-- [ ] **Gist overlap check.** The `login`, `password_reset` and `my_account`
-      gists overlap ("where do I log in", "what I've borrowed"; blind set
-      2026-10-12: 16 of 22 hits, 2 wrong-confident). Do NOT reword gists to
-      pass the set (feedback rule). Build a general check (warn when two
-      gists share a phrase), designed without looking at those failures and
-      measured on a fresh set; re-check `chooser_context` and thresholds.
-      The set is Claude-drafted, so not fully independent.
 - [ ] **Example phrasings per literal** (ADR-0040 "Deferred and pinned"):
-      re-test against the in-gist `ALSO` convention after the gist overlap
-      check.
+      re-test against the in-gist `ALSO` convention, once a real miss
+      calls for it.
 - [ ] **A local finder, for latency and data handling.** Hosted Jev is
       demo-only. Re-measure a local candidate (ADR-0040 "A local decision
       model") on latency, accuracy and 50 to 500 options; local Jev latency

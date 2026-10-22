@@ -1,7 +1,26 @@
 # DEVELOPING - literals
 
 Commands, API and runbooks. Rules and gotchas are in [CLAUDE.md](CLAUDE.md);
-how it works and its measurements are in [adr/how-it-works.md](adr/how-it-works.md).
+decisions and measurements are in
+[ADR-0040](adr/0040-literals-probabilistic-lookup-of-exact-values.md).
+
+## What is stored
+
+One revisionable content entity, `literal`, with a published status. The
+bundle is a **type** (config entity) whose **resolver** plugin validates the
+value at save and resolves it at read (`text`, `url`, `token`, `content`,
+`entity`, `field`; `entity` and `field` ship disabled).
+
+| Field | Holds | Seen by a model? |
+| --- | --- | --- |
+| `name` | Human label, "Main phone number" | No |
+| `id` (the key) | Machine name, unique, immutable | Yes, as the chooser's option ID |
+| `gist` | Short description of what the value is | Yes (chooser) |
+| `value` | The exact payload, read through its resolver | **Never** |
+| `restricted` | Only `view restricted literals` holders see it | No: filters before any model |
+
+Types, settings and the view are config; literals are content, editable on
+production.
 
 ## Reading a literal (PHP)
 
@@ -72,7 +91,13 @@ below `match_threshold` is none. Settings are `literals_finder.settings`
 longer questions are cut in `find()`, for every caller). `chooser_context` states who is
 asking and whose literals these are ("you" means the library); write it
 positively, avoid "not X". A per-call `context` on `find()` replaces the
-site default for that lookup.
+site default for that lookup. The context is a hint, not a filter: it
+changes what "you" means, it never narrows the pool.
+
+The chooser is the module's only model call (plus any model-backed
+Guardrails on the gist at save). It is sent the question, the context and
+each visible candidate's key and gist; never a value. A model or network
+failure is `none` with reason `error`, never a guess.
 
 ## Commands
 
@@ -80,10 +105,10 @@ site default for that lookup.
 | --- | --- |
 | `drush literals:find "question" [--uid=N]` | runs the finder as a user (default anonymous), prints outcome, tier and keys, never values |
 | `drush literals:eval [file] [--dump=FILE] [--check]` | scores a gold set (default `eval/gold.example.yml`, for the `literals_demo_library` recipe): hit, miss, ambiguous, wrong-confident, unanswerable, time, and each query's chooser scores (top, runner-up, none). `expect` is a key, `none`, `ambiguous` or a list of acceptable answers (`none` in a list counts as acceptable); `as` is a user ID or name (default 0; an unknown name skips the query with a warning). A set's `requires` names the pools (`pools`) and extra site literals (`site`) it needs; eval warns when they are missing, and when a question's only answers are literals the asker cannot see. `--check` only checks the labels, with no model calls: every expected key must exist on the site or in a pool file in `pools/` next to the set, and a bare pool key needs its pool in `requires` (exit 1 on a problem). Clears the cache first. `--dump` writes each row (question, expected, scores, verdict, expected keys the asker cannot see) as JSON |
-| `drush literals:sweep DUMPS [--against=DUMPS] [--drop-stale] [--grid]` | replays `--dump` files (a file, or a directory read as one run) through `LiteralChooser::rule()` at each `match_threshold` and `choice_margin` step (`--thresholds`/`--margins`, `from:to:step`), no model calls: right / wrong / false positive / lost / none ok per step, a replay check against the live verdicts, likely stale gold labels (confident picks, of `--pool` prefix keys if given, where the set expects none, an unseen key or an `--older` prefix key; and questions whose only answer the asker cannot see), and calibration (top probability against how often that pick was right). `--against` compares a second run for stability; `--drop-stale` sweeps without the suspects. See `eval/TUNING.md` |
+| `drush literals:sweep DUMPS [--against=DUMPS] [--drop-stale] [--grid]` | replays `--dump` files (a file, or a directory read as one run) through `LiteralChooser::rule()` at each `match_threshold` and `choice_margin` step (`--thresholds`/`--margins`, `from:to:step`), no model calls: right / wrong / false positive / lost / none ok per step, a replay check against the live verdicts, likely stale gold labels (confident picks, of `--pool` prefix keys if given, where the set expects none, an unseen key or an `--older` prefix key; and questions whose only answer the asker cannot see), and calibration (top probability against how often that pick was right). `--against` compares a second run for stability; `--drop-stale` sweeps without the suspects. See "Tuning the thresholds" |
 
 The module ships one gold set, `modules/literals_finder/eval/gold.example.yml`
-(for the demo recipe), and the method in `eval/TUNING.md`. Other gold sets
+(for the demo recipe). Other gold sets
 and test pools are site data, kept outside the module (this site:
 `demo/literals-eval/`). A pool file lists `literals` (id, type, name, gist,
 value, optional restricted); `drush literals:pool load|clean FILE` loads or
@@ -92,9 +117,36 @@ removes it (runs as user 1; removes exactly the keys the file lists).
 to 225 synthetic `zz_` literals and a matching gold set from a generator
 spec; `--clean` removes them. Drush runs from the docroot, so give absolute
 paths. Synthetic sets are fixtures for regression runs, not a basis for
-tuning a real site (see `eval/TUNING.md`). All numbers so far are
+tuning a real site. All numbers so far are
 in-sample (written by the module's author or an agent, not independently);
 a set written by someone else is the fair test.
+
+### Tuning the thresholds
+
+`match_threshold` (how sure the chooser must be of its top pick, else
+`none`) and `choice_margin` (how far it must lead the runner-up, else
+`ambiguous`) depend on the site's own literals and questions; there is no
+universal setting, and a value tuned on someone else's set (including
+`gold.example.yml`) is not a basis for another site.
+
+1. Write a gold set of real questions, each with the key it should find or
+   `none`. Keep a blind set apart. Format: `gold.example.yml`.
+2. `drush literals:eval SET --check` (labels only, no model calls), then
+   `drush literals:eval SET --dump=DIR/SET.json` per set.
+3. `drush literals:sweep DIR`: replays the recorded scores at each setting.
+   Use the sweep, not repeated eval runs: it holds the scores fixed, so a
+   difference is the setting, not the model's run-to-run noise. The replay
+   check must reproduce every live verdict. Re-label the stale-label
+   suspects it flags (expectations only, never the question wording) before
+   reading the wrong and false-positive counts.
+4. Pick a value inside a plateau of right answers, not at its edge. Prefer
+   fewer wrong-confident answers over fewer misses.
+5. Check calibration, repeat the run once (`--against`) to see which rows
+   flip, and re-check on the blind set. Never tune gists or facts to pass a
+   set. Real questions (the `Find:` line with `log_verbose`) beat written ones.
+
+On the synthetic library most "wrong" answers were stale labels, the
+threshold mattered little either side of 0.5 and the margin not at all.
 
 ## Logging
 
@@ -108,6 +160,31 @@ and numbers only. Channel `logger.channel.literals`. Chooser calls are
 tagged `literals_choose`; add the tag to the site's
 `ai_logging.settings:prompt_logging_tags` to keep their prompts and replies
 in `ai_log` (literals does not write that config).
+
+## Tests
+
+Run commands are in [CLAUDE.md](CLAUDE.md) "Lint and tests".
+`LiteralsKernelTestBase` installs the six types, grants `view literals` to
+anonymous and authenticated, makes `member`, `restrictedViewer` and `admin`,
+and has `createLiteral()` and `createPage()`.
+
+| Area | Test | Covers |
+| --- | --- | --- |
+| Links | `Unit/ResolvedLiteralTest` | `href()` allows only http(s), `tel:` and `mailto:` |
+| Access | `LiteralAccessTest` | `restricted` matrix, drafts, `edit literals`, query alter |
+| Reader | `LiteralReaderTest` | published only, indistinguishable misses, cache metadata, token cycles, audit lines without values, `replaceTokens()`, `resolveFound()` |
+| Resolvers | `LiteralResolversTest` | every resolver's validation, access and kind |
+| Tokens | `LiteralTokenTest` | `[literal:key]` and `:link`, escaping, restricted, drafts, bubbling |
+| Key, Guardrails | `LiteralKeyAndGuardrailsTest` | key rules (unique, pattern, immutable, reserved); a value never reaches model guardrails |
+| Search | `LiteralSearchTest` | all words, LIKE escaping, access, limit |
+| Moderation | `LiteralModerationTest` | a draft of a published literal is not served |
+| Install | `LiteralInstallTest` | shipped config, recipes, clean uninstall, uninstall guard |
+| Admin UI | `Functional/LiteralAdminTest` | access, form, type delete guard, list, revisions |
+| Submodules | `literals_finder`, `literals_tool`, `literals_chat` | finder cache and outcomes over a fake chooser, gist Guardrails form, tool modes, chat responder |
+| aim | aim's `AimRecallLiteralTokensTest`, `aim_tool`'s `AimToolPermissionsTest` | recall reads tokens per viewer; `aim_literal` through `literals.lookup` |
+
+The real chooser is covered only by `drush literals:eval`, on purpose: do
+not mock it into a PHPUnit pass.
 
 ## Drush scripts
 
