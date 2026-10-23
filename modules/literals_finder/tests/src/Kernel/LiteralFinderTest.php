@@ -168,6 +168,12 @@ class LiteralFinderTest extends LiteralsKernelTestBase {
     $this->config('literals_finder.settings')->set('log_audit', FALSE)->save();
     $this->finder()->find('your phone', $this->member);
     $this->assertSame(5, FakeChooser::$calls);
+
+    FakeChooser::$model = 'fake/model-y';
+    $this->finder()->find('your phone', $this->member);
+    $this->assertSame(6, FakeChooser::$calls, 'A swapped decision model is not served the old answer');
+    $this->finder()->find('your phone', $this->member);
+    $this->assertSame(6, FakeChooser::$calls, 'The new model\'s answer is cached');
   }
 
   /**
@@ -243,6 +249,11 @@ class FakeChooser implements LiteralChooserInterface {
   public static bool $available = TRUE;
 
   /**
+   * The model ID reported.
+   */
+  public static string $model = 'fake/model-x';
+
+  /**
    * Whether choose() throws.
    */
   public static bool $throw = FALSE;
@@ -282,6 +293,7 @@ class FakeChooser implements LiteralChooserInterface {
    */
   public static function reset(): void {
     self::$available = TRUE;
+    self::$model = 'fake/model-x';
     self::$throw = FALSE;
     self::$calls = 0;
     self::$lastContext = NULL;
@@ -296,6 +308,13 @@ class FakeChooser implements LiteralChooserInterface {
    */
   public function isAvailable(): bool {
     return self::$available;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function modelId(): ?string {
+    return self::$available ? self::$model : NULL;
   }
 
   /**

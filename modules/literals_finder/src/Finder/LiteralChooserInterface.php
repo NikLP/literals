@@ -15,6 +15,17 @@ interface LiteralChooserInterface {
   public function isAvailable(): bool;
 
   /**
+   * Names the model choose() would use now.
+   *
+   * The finder keys its outcome cache on it, so a model swap is not served
+   * the old model's answers.
+   *
+   * @return string|null
+   *   An ID naming the provider and model, or NULL when none is configured.
+   */
+  public function modelId(): ?string;
+
+  /**
    * Chooses among candidates by key and gist only.
    *
    * Values are never sent to the model.

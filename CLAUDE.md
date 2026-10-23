@@ -120,8 +120,9 @@ auto-commit**, run phpcs/phpstan before calling PHP work done.
 - **Keys that equal a literal field name or entity token** (`url`, `name`,
   `value`, ...) are refused: the Token module adds entity tokens under the
   same `literal` namespace.
-- **The finder's cache fingerprint does not include the decision model ID.**
-  Clear the cache when swapping models.
+- **The finder's cache fingerprint includes the decision provider/model ID**
+  (`LiteralChooserInterface::modelId()`), so a swap needs no cache clear; a
+  model updated behind the same ID (a re-pulled Ollama tag) still does.
 - **Eval runs as anonymous by default** (`as: 0`); a restricted
   literal (for example `site_name`) needs `as: 1` on its
   gold queries or it correctly answers none. `literals:sweep` lists such

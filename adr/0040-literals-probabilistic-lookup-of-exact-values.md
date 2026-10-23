@@ -578,9 +578,9 @@ and reason). Never the gist, value or question text. An opt-in
   a second audience exists.
 - Chooser accuracy at 500 or more options, hosted and local, and the point
   where the staged choice or a vector shortlist earns its place.
-- Whether a local in-house Jev model changes any of the above (clear the
-  finder cache when swapping models; the cache fingerprint deliberately omits
-  the model). Local Jev latency on the gate is unmeasured.
+- Whether a local in-house Jev model changes any of the above (the finder
+  cache fingerprint includes the model ID, so a swap re-asks). Local Jev
+  latency on the gate is unmeasured.
 - Whether a Jev-written sentence around the gate's value is worth one more
   in-house call.
 - Does a menu and page candidate provider keep gist coverage high enough to

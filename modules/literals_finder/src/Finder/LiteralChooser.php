@@ -42,16 +42,34 @@ class LiteralChooser implements LiteralChooserInterface {
    * {@inheritdoc}
    */
   public function isAvailable(): bool {
+    return $this->defaultModel() !== NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function modelId(): ?string {
+    $default = $this->defaultModel();
+    return $default ? $default['provider_id'] . '/' . $default['model_id'] : NULL;
+  }
+
+  /**
+   * The site's default decision provider and model, if both are set.
+   *
+   * @return array|null
+   *   The provider_id and model_id, or NULL when either is missing.
+   */
+  protected function defaultModel(): ?array {
     $default = $this->aiProvider->getDefaultProviderForOperationType('decision');
-    return !empty($default['provider_id']) && !empty($default['model_id']);
+    return !empty($default['provider_id']) && !empty($default['model_id']) ? $default : NULL;
   }
 
   /**
    * {@inheritdoc}
    */
   public function choose(string $question, array $candidates, ?string $context = NULL, ?array $thresholds = NULL): LiteralFindResult {
-    $default = $this->aiProvider->getDefaultProviderForOperationType('decision');
-    if (empty($default['provider_id']) || empty($default['model_id'])) {
+    $default = $this->defaultModel();
+    if ($default === NULL) {
       throw new \RuntimeException('No default decision provider is configured.');
     }
     $provider = $this->aiProvider->createInstance($default['provider_id']);
