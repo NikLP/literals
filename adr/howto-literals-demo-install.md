@@ -2,9 +2,6 @@
 
 For someone who knows Drupal and composer but has never seen Literals. Follow the steps in order.
 
-Last verified 2026-10-18 on DDEV, Drupal 11.4, PHP 8.4, MariaDB 11.8, `drupal/literals` dev-main @ bc42a40.
-Install method: composer vcs repository (not yet on drupal.org/packagist).
-
 **What you get:** a chat box that answers simple questions like
 "what is the main phone number?" or "how do I reset my password?" by picking one stored value (a "literal") and replying with a fixed template. **No chat model is involved.** If the question isn't covered, it says "I don't have that."
 

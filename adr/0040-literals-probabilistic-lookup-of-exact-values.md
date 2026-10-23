@@ -1,33 +1,11 @@
-# ADR-0040: Literals - exact values with a fuzzy address: what they are for, how they are found, how aim uses them
-
-**Status:** Accepted, current state. Built: the entity, types and resolvers,
-tokens, the finder, the lookup tool, plain search, `aim`'s token replacement
-at recall, the `aim_literal` tool and the finder-first chat gate (see "What
-is built"). Unbuilt: the aim-side options in section 7 and everything under
-"Deferred and pinned". Merged 2026-10-22 with the former ADR-0052 (what
-literals is for, how aim uses it, the answer modes) and the resolved
-ADR-0048 (token literals resolve for the asking account); both numbers are
-retired and their full text is in git. Earlier history: refactored
-2026-10-07 from a draft with nine addenda (the `aim` repo at commit
-502f799); supersedes the retired ADR-0039 (`scope: token`, label-only facts
-resolving live from a `config_pages` token).
-**Date:** 2026-10-03 (merged 2026-10-22)
-
-Related: [ADR-0049](../../aim/adr/0049-finder-family-parked.md) section D
-(the shared "gist" term, formerly ADR-0053). Current state and runbooks:
-[CLAUDE.md](../CLAUDE.md) and [DEVELOPING.md](../DEVELOPING.md);
-measurements: "Measurements" below. Open work: [BACKLOG.md](../BACKLOG.md).
-
-## Context
+# Context
 
 A visitor asks the chat bot "what is the phone number?". The value exists in
 exactly one right place and the agent has to find it. Without literals it can
 only call `aim_recall`, which embeds the question and searches fact text. A
 number is a poor target for an embedding: recall can miss it, return opening
 hours instead, or return a stale copy that consolidation has merged or
-rewritten ([ADR-0020](../../aim/adr/0020-verbatim-facts-consolidation-opt-out.md)).
-A missed recall is also invisible
-([ADR-0035](../../aim/adr/0035-standing-constraints-action-gate.md)).
+rewritten. A missed recall is also invisible.
 
 The idea: **the value is exact, the address is probabilistic.** A person or
 agent describes what they want in words; the system works out which exact
@@ -37,7 +15,7 @@ is never embedded, paraphrased or consolidated.
 Two facts shape everything below:
 
 1. **The match comes from a typed decision model, not a vector score.** A
-   decision model (Jev, [ADR-0021](../../aim/adr/0021-jev-typed-decision-provider.md))
+   decision model
    picks from a menu of options, or says "none" or "ambiguous". It cannot
    generate text, so it can choose among IDs it is given but never invent a
    value. Literals are a small, closed, human-vetted set, which is the easy
@@ -46,8 +24,7 @@ Two facts shape everything below:
    Exact lookup by key (PHP, tokens, the tool) is a complete product with no
    AI at all; the finder is the optional layer on top.
 
-**Is it worth its curation cost, or is Search API simply better?** Tested
-2026-10-06 on "I want to pay my council tax":
+**Is it worth its curation cost, or is Search API simply better?**
 
 - For navigational queries Search API wins. A bill payer wants a landing
   page, search returns it, and nobody wrote a gist. Hand-writing a literal
@@ -58,14 +35,6 @@ Two facts shape everything below:
   "our phone number", a `[literal:key]` token, an MCP tool).
 - The model never sees values: the chooser sees gists and IDs only, and the
   value is resolved afterward. A hosted chat model doing recall would see it.
-
-**Prior art.** Two shallow `drupal-code-query` searches and web searches
-(2026-10-03) found no contrib module or CMS field type doing
-semantic-description-to-exact-value lookup; treat "no existing module" as
-unverified (`drupal_rag_toolkit`, `ai_rag_api`, `search_api_ai`, `daedalus`
-turned up adjacent and were not opened). The nearest research is
-attribute-level uncertainty in probabilistic databases (Orion), inverted
-here: the value is exact and the uncertainty is in how it is addressed.
 
 Outside Drupal (reviewed 2026-10-10, from knowledge plus a short look at
 semantic-router and NeMo Guardrails), each part has an established
@@ -102,34 +71,18 @@ of the menu's keys) gives the same "can only pick from the list" guarantee.
 - **Gists are written by a person.** Core metadata is too thin to describe
   things in the words people use, so harvesting gists from it does not work;
   a gist can be suggested from a token's description, then rewritten.
-- **No more literal-specific gist machinery for now** (aliases, pools,
-  vector tier stay pinned). The finder's demo case is a paraphrase with no
-  word overlap ("how do I ring you" to "main switchboard number"), not a
-  navigational query; it is not "better than search".
 
 ### 2. A standalone `literal` content entity
 
-`literals` is a module of its own, a sibling of `aim` under
-`web/modules/custom/` (its own repo), and the name is Nik's decision. A
-`literal` is a revisionable content entity with a published status, owner
+A `literal` is a revisionable content entity with a published status, owner
 and timestamps; the bundle is the **type** (section 3). Values are content,
 not config: editing a phone number on production never needs a config import.
 Only the types are config.
 
 It is an entity and not a field type because the
-fields must live together in one place with revisions, access and a list UI:
-
-- A `literal` **field** on any host gains nothing the host does not already
-  provide, and a formatter owns neither data nor an index.
-- **`config_pages` cannot host values:** no revisions, no Content Moderation,
-  access per page type only, and its token handler does no view-access check.
+fields must live together in one place with revisions, access and a list UI.
 
 ### 3. The parts, settled (mechanics live in the docs)
-
-Only the decisions and their reasons stay here. Stored fields, types, the
-finder, the tool and tokens in use: [DEVELOPING.md](../DEVELOPING.md). The rules in force
-(access, keys, revisions, the `field` resolver): [CLAUDE.md](../CLAUDE.md)
-"Decisions in force".
 
 - **Anatomy.** Name, key (the entity ID, unique, immutable, the only handle
   logs may carry), value, gist (255 characters, one-shot wording; arbitrary
@@ -232,8 +185,7 @@ before leaning on it.
 
 ### 6. The `aim` relationship
 
-There is no `literal` scope, no `aim_scope_literal` and no mirror of gists
-into `aim_fact`. A scope says what a fact is **about**; a literal is an exact
+A literal is an exact
 value with a fuzzy address, not a fact, and a pointer-only fact has no text
 to embed. `entity` scope stays ([ADR-0027](../../aim/adr/resolved/0027-entity-scope.md)):
 a fact about a literal is an ordinary `scope=entity` fact with

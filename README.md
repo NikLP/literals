@@ -1,13 +1,14 @@
-# Literals (experimental, probably doesn't work)
+# Literals
 
-Tell the site what you want in words, and it finds the exact value, and
-shows it only to the people allowed to see it. Semantic value lookup?
+A semantic key/value store - Tell the site what you want in words, and it
+finds the exact value, and shows it only to the people allowed to see it.
 
 A literal is a small record: a **key**, an exact **value** (a phone number,
 a URL, a token such as `[site:login-url]`, a reference to an entity), and a
 **gist**, a plain-language description such as "the page where members sign
 in". The gist is the only part that is ever matched. The value is returned
-exactly as stored, never guessed, paraphrased or sent to a language model.
+exactly as stored, never guessed, paraphrased or sent to a language model
+(directly from this module?).
 
 ## Where it fits
 
@@ -18,7 +19,7 @@ literal, and the value comes back if the viewer is allowed to see it.
 
 The value does not have to live in `literals`:
 
-- If a module already holds it (Site Settings, Config Pages, Custom Tokens,
+- If a module already holds it (Site Settings, Config Pages,
   core tokens, a node field), the literal points at it with the **token**,
   **field** or **entity** resolver and adds the gist and the access rules.
   Nothing is copied. A **field** literal (`node:12:field_phone`) needs view
@@ -44,7 +45,7 @@ module; the finder and the tool are extras (see below).
    ddev drush en literals -y
    ```
 
-   This installs the module, its six fixed literal types and the admin list
+   This installs the module, its literal types and the admin list
    view. It grants nothing and creates no literals.
 
 2. **Grant the view permissions.** `view literals` sees every literal not
